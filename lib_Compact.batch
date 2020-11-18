@@ -1,0 +1,5 @@
+echo "***Assembling AMOSPro_Compact.Lib"
+c/Library_Digest src/APULib_Compact/APUCompact_lib.s
+c/Genam FROM src/APULib_Compact/APUCompact_lib.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Compact.Lib
+delete >NIL: src/APULib_Compact/APUCompact_lib_Labels.s
+delete >NIL: src/APULib_Compact/APUCompact_lib_Size.s

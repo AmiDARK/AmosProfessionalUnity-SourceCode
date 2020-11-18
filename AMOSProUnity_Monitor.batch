@@ -1,0 +1,3 @@
+echo " "
+echo "******** Run Script to compile: Amos Professional Monitor"
+c/genam FROM src/AMOSProUnity_Monitor/AmosProUnity_Monitor.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Monitor

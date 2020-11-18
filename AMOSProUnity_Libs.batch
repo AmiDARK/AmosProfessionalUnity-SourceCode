@@ -1,0 +1,6 @@
+echo " "
+echo "******** Execute scripts to build AmosProAGA internal Libraries (.lib)"
+execute lib_Music.batch
+execute lib_Compact.batch
+execute lib_Request.batch
+execute lib_IOPorts.batch

@@ -1,0 +1,14 @@
+echo " "
+echo "****************************************************** "
+echo "* Compile LIBS:AMOSProUnityECS.library :"
+c/genim2 src/AMOSProUnity_libraryECS.s -oAmosProfessionalUnity/APUSystem/AMOSProUnityECS.library -C
+
+echo "* Compilation DONE Successfully"
+
+echo "* ------> Installing AMOSProUnityECS.Library to LIBS:"
+Copy AmosProfessionalUnity/APUSystem/AMOSProUnityECS.library LIBS:AMOSProUnityECS.library
+
+echo "* ------> Copying AMOSProUnityECS.Library to AmosProUnity_System:LIBS/ For futures Setup"
+Copy AmosProfessionalUnity/APUSystem/AMOSProUnityECS.library AmosProfessionalUnity/Libs/AMOSProUnityECS.library
+
+echo " "

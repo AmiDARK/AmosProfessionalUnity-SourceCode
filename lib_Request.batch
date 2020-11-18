@@ -1,0 +1,5 @@
+echo "***Assembling AMOSPro_Request.Lib"
+c/Library_Digest src/APULib_Request/APURequest_lib.s
+c/Genam FROM src/APULib_Request/APURequest_lib.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Request.Lib
+delete >NIL: src/APULib_Request/APURequest_lib_Labels.s
+delete >NIL: src/APULib_Request/APURequest_lib_Size.s

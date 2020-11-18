@@ -1,0 +1,13 @@
+echo "**************************************************"
+echo " "
+echo "Run Script to compile : APUSystem/AmosProUnity.Lib.lib"
+echo " "
+echo "Step 1/4 : Making Token Table Toktab_Verif.Bin"
+c/Make_Toktable
+echo "Step 2/4 : Making Label Files"
+c/Make_Labels
+echo "Step 3/4 : Assembling AmosProUnity.Lib"
+c/genam FROM src/AMOSProUnity_Lib/AmosProUnity_Lib.s TO AmosProfessionalUnity/APUSystem/AmosProUnity.Lib
+echo "Step 4/4 : Delete temporar files"
+echo "> APUSystem/AmosProUnity.Lib compiled successfully"
+echo " "

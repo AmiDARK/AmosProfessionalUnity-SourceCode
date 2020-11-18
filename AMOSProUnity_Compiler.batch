@@ -1,0 +1,44 @@
+echo "**********************"
+echo " "
+echo "******** Run Script to build : Amos Professional Compiler"
+echo " "
+echo "Step 1/1 : Compile complier components"
+
+; ***************************************************** STEP 1 : Prepare the compiler configuration file and push it in the correct place
+echo "***Assembling the Compiler Configuration"
+c/Genim2 src/compiler/Compiler_Config.s -oRAM:Compiler_Config.o
+c/Get_Chunk RAM:Compiler_Config.o AmosProfessionalUnity/APUTutorial/Extra_Configs/AMOSProUnity_Compiler_Config.Backup
+delete RAM:Compiler_Config.o
+echo "***Installing compiler configuration"
+Copy AmosProfessionalUnity/APUTutorial/Extra_Configs/AMOSProUnity_Compiler_Config.Backup AmosProfessionalUnity/S/AMOSProUnity_Compiler_Config
+echo "***Installing compiler configuration to s:"
+Copy AmosProfessionalUnity/APUTutorial/Extra_Configs/AMOSProUnity_Compiler_Config.Backup s:AMOSProUnity_Compiler_Config
+
+
+; ***************************************************** STEP 2 : Compile the AMOSPro_Sustem:APUSystem/APUCmp file
+echo "***Assembling APUCmp Command Line Compiler"
+c/Genam FROM src/compiler/APComp.s TO AmosProfessionalUnity/APUSystem/APUCmp
+List AmosProfessionalUnity/APUSystem/APUCmp
+
+; ***************************************************** STEP 3 : Compile the AMOSPro_Sustem:APUSystem/Compiler.lib file
+echo "***Assembling Compiler.Lib"
+c/Library_Digest src/compiler/CLib.s
+c/Check_CLib_UnityECS
+c/Genam FROM src/compiler/CLib.s TO AmosProfessionalUnity/APUSystem/Compiler.Lib
+delete >NIL: src/compiler/CLib_Labels.s
+delete >NIL: src/compiler/CLib_Size.s
+
+; ***************************************************** STEP 4 : Compile the AMOSPro_Sustem:APUSystem/AMOSProUnity_Compiler.lib file
+echo "***Assembling AMOSPro_Compiler.Lib"
+c/Library_Digest src/compiler/Compext.s
+c/Genam FROM src/compiler/Compext.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Compiler.Lib
+delete >NIL: src/compiler/Compext_Labels.s
+delete >NIL: src/compiler/Compext_Size.s
+
+; ***************************************************** STEP 5 : Compile the AMOSPro_Sustem:APUSystem/Header_CLI/Backstart.Lib files
+c/Genam FROM src/compiler/Header.s TO AmosProfessionalUnity/APUSystem/Header_CLI.Lib
+c/Genam FROM src/compiler/Header_Backstart.s TO AmosProfessionalUnity/APUSystem/Header_Backstart.Lib
+
+echo " "
+echo "> Compiler update completed successfully"
+echo " "

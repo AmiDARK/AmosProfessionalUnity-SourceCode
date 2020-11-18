@@ -1,0 +1,57 @@
+Here is the official roadmap for ending 2020 and 2021 concerning the brand new project "Amos Professional Unity" based on Official François Lionet Amos Professional.
+This road map will show the step I have in mind to achieve to main goal
+
+
+
+; **************************************************************************************************************
+Step 1 : Rebuild a flexible Amos Professional Version from the original
+Goal : Makes Amos Professional being able to support graphics/audio multi-platform for 68k compatible Amiga Hardwares
+
+X 1.1 Rebuild Amos Professional source code Structure to fit requirements for new flexible files structures
+
+- 1.2 Put all methods that requires graphic treatment inside the AMOS.library (iff, pack/unpack, etc. )
+      1.2.1 Load Iff / Anim
+      1.2.2 compact.lib Pack/unpack
+      1.2.3 Check if Open Screen handle graphic chipset specific values and mode it if required.
+
+- 1.3 Update color palette methods to handle 16/24/32 bits colors input.
+      1.3.1 Update Colour method to handle 24 bits by using $FF000000 at beginning of color
+
+      1.3.2 Update Rainbow method to handle 24 bits by using $FF000000 at beginning of color
+- 1.4 Update Amos Professional internal structures to handle data for all hardware variants planed.
+      1.4.1 Push up to 10 bitplanes.
+- 1.5 Reinject specific Color Palette support to flexible format support (can handle 8/16/32 Bits colors)
+      1.5.1 Aga color palette method to create/delete/load/save IFF/ILBM Color Palettes in 32 bits RGB
+      1.5.2 Rainbow Load/Save system
+- 1.6 Check that the Amos Professional Unity internal structure is adapted to changes
+
+; **************************************************************************************************************
+Step 2 : Makes the default Amos Professional uses AmosProUnityECS.library instead of AMOS.library
+X 2.1 Rename AMOS.library -> AmosProUnityECS.library
+X 2.2 Modify internal source code to use the new library name AmosProUnityECS.library
+X 2.3 Update configuration files for compiler, interpreter, editor to uses new AmosProUnity config files instead of the older ones.
+
+Step 3 : Reimplement the AGA methods inside the AmosProUnityAGA.library
+- 3.1 Reimport all the changes applied into the AmosProAGA.library inside the new AmosProUnityAGA.library
+- 3.2 Makes Amos Professional detect chipsets ECS/AGA and open the correct library AmosProUnityECS.library or AmosProUnityAGA.library depending on configuration
+- 3.3 Check that the Amos Professional Unity internal structure is adapted to changes for all the supported platforms
+
+Step 4 : Complete the AmosProUnityAGA.library AGA support
+- 4.1 Add support for AGA rainbows (modify current rainbows to switch to ECS/AGA version of the methods using a flag)
+- 4.2 Add support for AGA sprites
+
+Step 5 : Implement the SAGA methods inside the AmosProUnitySAGA.library
+- 5.1 Makes Amos Professional detecte Chipet SAGA and open the correctly ECS, AGA or SAGA AmosProUnity***.library depending on configuration
+- 5.2 Add support for Chunky screen
+- 5.3 Add support for chunky graphics (get image, paste image, etc...)
+- 5.3 Add support for PIP Screen
+- 5.4 Add support for SAGA Sprites
+- 5.2 -
+- 5.3 Check that the Amos Professional Unity internal structure is adapted to changes for all the supported platforms
+
+Step 6 : Multi-platform coding support
+- 6.1 Implement methods for platform dependant code that allow to setup things for each configuration allowing 1 .exe file to run and take benefit of each configuration.
+- 6.2 Add ECS Chunky screen support
+- 6.3 Add AGA Chunky screen support
+- 6.4 
+

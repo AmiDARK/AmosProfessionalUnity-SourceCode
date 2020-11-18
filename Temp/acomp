@@ -1,0 +1,4 @@
+echo "Assembling APCmp Command Line Compiler"
+c/Genam FROM +APComp.s TO AMOS/APSystem/APCmp
+echo "Installing APCmp to C:"
+copy AMOS/APSystem/APCmp c:

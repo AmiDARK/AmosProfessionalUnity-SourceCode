@@ -1,0 +1,5 @@
+echo "***Assembling AMOSPro_Music.Lib"
+c/Library_Digest src/APULib_Music/APUMusic_lib.s
+c/Genam FROM src/APULib_Music/APUMusic_lib.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Music.Lib
+delete >NIL: src/APULib_Music/APUMusic_lib_Labels.s
+delete >NIL: src/APULib_Music/APUMusic_lib_Size.s

@@ -1,0 +1,22 @@
+; *************************************************************
+; 2020.11.18
+; - Fixed AmosProUnity_Editor_Config issue
+; - BuildRelease.batch Updated.            Full Amos Professional Unity Build ok.
+; - Build Amos Professional Unity          completed : Tested Working
+; - Update Amos Professional Unity "about" box (startup)
+; - 1st working version of Amos Professional Unity is done. Initial GIT push.
+
+; *************************************************************
+; 2020.11.17 
+; - Added SagaRegisters.h file with registers values and informations.
+; - AmosProUnity_Compiler.batch Updated.   AmosProfessionalUnity/APUSystem/APCmp build ok.
+; - AmosProUnity_Configs.batch Updated.    AmosProfessionalUnity/Interpreter configuration file build ok.
+; - AmosProUnity_Editor.batch Updated.     AmosProfessionalUnity/APUSystem/AMOSProUnity_Editor build ok.
+; - AmosProUnity_Exe.batch Updated.        AmosProfessionalUnity/AmosProfessionalUnity executable build ok.
+; - AmosProUnity_Lib.batch Updated.        AmosProfessionalUnity/APUSystem/AmosProUnity.lib build ok.
+; - AmosProUnity_Library.batch Updated.    AmosProfessionalUnity/Libs/AmosProUnityECS.library build ok.
+; - AmosProUnity_Libs.batch Updated.       AmosProfessionalUnity/APUSystem/AmosProUnity_***.lib build ok.
+; - AmosProUnity_Monitor.batch Updated.    AmosProfessionalUnity/APUSystem/AmosProUnity_Monitor build ok.
+; - AmosProUnity_Tools.batch Updated.      Tools for ECS/AGA/SAGA build ok.
+
+

@@ -1,0 +1,22 @@
+echo " "
+echo "******** Run Script to Assemble: Amos Professional DATAS (editor, interpreter, etc.)"
+
+echo "*** DATAS : Assembling the Editor Configuration"
+c/genim2 src/configuration/APUnity_Editor_Config.s -oRAM:AmosProUnity_Editor_Config.o
+c/Get_Chunk RAM:AmosProUnity_Editor_Config.o AmosProfessionalUnity/APUTutorial/Extra_Configs/AmosProUnity_Editor_Config.Backup
+Delete RAM:AmosProUnity_Editor_Config.o
+
+echo "*** DATAS : Assembling the default Interpreter Configuration"
+c/genim2 src/configuration/APUnity_Interpreter_Config.s -oRAM:AMOSProUnity_Interpreter_Config.o
+c/Get_Chunk RAM:AMOSProUnity_Interpreter_Config.o AmosProfessionalUnity/APUTutorial/Extra_Configs/AMOSProUnity_Interpreter_Config.Backup
+Delete RAM:AMOSProUnity_Interpreter_Config.o
+
+echo "* DATAS : Installing default configuration"
+;Copy AmosProfessionalUnity/APUTutorial/Extra_Configs/AmosProUnity_Editor_Config.Backup AmosProfessionalUnity/s/AmosProUnity_Editor_Config
+Copy AmosProfessionalUnity/APUTutorial/Extra_Configs/AmosProUnity_Editor_Config.Backup AmosProfessionalUnity/APUSystem/AmosProUnity_Editor_Config
+Copy AmosProfessionalUnity/APUTutorial/Extra_Configs/AMOSProUnity_Interpreter_Config.Backup AmosProfessionalUnity/s/AMOSProUnity_Interpreter_Config
+
+echo "* DATAS : Installing default configuration to s:"
+Copy AmosProfessionalUnity/APUTutorial/Extra_Configs/AmosProUnity_Editor_Config.Backup s:AmosProUnity_Editor_Config
+Copy AmosProfessionalUnity/APUTutorial/Extra_Configs/AMOSProUnity_Interpreter_Config.Backup s:AMOSProUnity_Interpreter_Config
+
