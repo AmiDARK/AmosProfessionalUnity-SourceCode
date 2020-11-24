@@ -362,6 +362,7 @@ MemFlush    equ 97        Force un flush memoire
 AddRoutine    equ 98        Ajoute une routine
 CallRoutines    equ 99        Appelle une liste de routines
 Request_OnOff    equ 100        Set requester AMOS/WB
+AMPResTempBuffer    equ 101             ; 2020.11.24 Moved to the Amos.library for easier moves of graphics functions like LoadIff
 
 SyCall:        MACRO
         move.l    T_SyVect(a5),a0
@@ -2379,4 +2380,8 @@ L_FFloat    equ    %0001000000000000
 L_FAngle    equ    %0010000000000000
 L_FMath        equ    %0011000000000000
 L_VRes        equ    %0100000000000000
+
+
+
+    include    "src/AmosProUnity_Equates/ExtractedFromAMosPro_Lib_Equ.s"
 

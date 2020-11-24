@@ -170,5 +170,7 @@ FlSh6:    move.l    d1,a1
 FlShN    subq.b    #1,d7
     bne.s    FlShLL
 ; Fini!
-FlShX    subq.b    #1,T_NbFlash+1(a5)    Retabli les interruptions
-FlShXX    rts
+FlShX:
+    subq.b    #1,T_NbFlash+1(a5)    Retabli les interruptions
+FlShXX:
+    rts

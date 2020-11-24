@@ -2372,6 +2372,7 @@ TNTSC    moveq    #0,d0
     moveq    #-1,d1            NTSC!
 .NoNTSC    rts
 
+
     include "src/AmosProUnityECS_library/Screens.s"
 
     include "src/AmosProUnityECS_library/Autoback.s"
@@ -2447,10 +2448,6 @@ Send_Switcher
     bset    d3,d0
     jsr    _LVOSignal(a6)
 .PaSwi    rts
-
-
-
-
 
 
 
@@ -4133,11 +4130,14 @@ WErF:    move.l    (sp)+,d0
 
     include "src/AmosProUnityAGA_library/Requesters.s"
 
+    include "src/AmosProUnityECS_library/ExtractedFromAmosPro_lib.s"
+
 ***********************************************************
 
     include "src/AmosProUnityAGA_library/BraList_Controls.s"
 
     include "src/AmosProUnityAGA_library/BraList_Escapes.s"
+
 
 ***********************************************************
 *        Bordures

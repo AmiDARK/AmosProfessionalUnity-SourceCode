@@ -18,7 +18,7 @@ IceStart
     lea    SyIn(pc),a0
     move.l    a0,T_SyVect(a5)
     bsr    WMemInit
-
+   
 ; Recherche et stoppe les programmes AMOS lancés... (si AMOSPro V2.0)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     cmp.w    #$0200,T_WVersion(a5)
@@ -92,7 +92,6 @@ StartAll
     move.b    d1,T_AmigA_Ascii2(a5)
     lsr.w    #8,d1
     move.b    d1,T_AmigA_Shifts(a5)
-
 ; Mouse.Abk (si v2.0)
 ; ~~~~~~~~~~~~~~~~~~~
     cmp.w    #2,T_WVersion(a5)
@@ -109,7 +108,7 @@ StartAll
     cmp.w    #4,d1
     bcs    GFatal
     move.l    a1,T_MouBank(a5)
-; Pointe la palette pour l'ouverture des ecrans
+; Pointe la palette pour l''ouverture des ecrans
     subq.w    #1,d1
 .MLoop    move.w    (a1)+,d0
     mulu    (a1)+,d0
@@ -191,7 +190,7 @@ StartAll
     move.l    d0,T_LayBase(a5)
     beq    GFatal
 
-; Branche l'input.device
+; Branche l''input.device
 ; ~~~~~~~~~~~~~~~~~~~~~~
     bsr    ClInit
 ; Open Console Device        
@@ -234,6 +233,7 @@ StartAll
     move.l    12(a0),d0
     bsr    CpInit            Copper
     bsr    EcInit            Ecrans
+    bsr    ampLib_Init             ; 2020.11.22 Setup AmosProLib_ExtractedMethods branchment list
     bsr    SyInit            Systeme
     bsr    VBLInit            Interruptions VBL
     bsr    WiInit            Windows

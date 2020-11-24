@@ -1,5 +1,6 @@
 ******* FONCTIONS FENETRES
-WiIn:    bra    WOutC
+WiIn:
+    bra    WOutC
     bra    WPrint
     bra    WCentre
     bra    WOpen

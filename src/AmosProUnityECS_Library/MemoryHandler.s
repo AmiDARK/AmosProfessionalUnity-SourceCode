@@ -335,4 +335,5 @@ WCallRoutines
     movem.l    (sp)+,a0-a6/d0-d7
     tst.l    d0
     bne.s    .Loop
-.Out    rts
+.Out:
+    rts

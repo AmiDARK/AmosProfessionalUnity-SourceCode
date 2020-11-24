@@ -1,3 +1,24 @@
+
+
+; *************************************************************
+; 2020.11.24
+; Reversed all changes concerning AmosProUnity_Lib.s extraction (restored)
+; Extracted ResTempBuffer to push it into AmosProUnityECS.library
+; Copied D_Open, D_OpenD1, D_Read, D_Write, D_Seek and D_Close from AmosPro_lib.s -> AmosProUnityEcs.library_ExtractedFromAmosPro_lib.s
+; Imported : L_IffRead, L_IffSeek, L_IffFormPlay, L_IffFormSize, L_IffForm and L_IffFormLoad inside AmosProUnityECS.library ( As A_.... )
+
+; *************************************************************
+; 2020.11.21
+; - AmosProUnity_Lib.s : Added remplacement calls for InSaveIff
+; - Removed IffSaveScreen from replacement list as it is in fact internally used by InSaveIff2->InSaveIff
+; - AmosProUnity_Lib.s : Updated methods to call extracted ones : FnFormLoad3, FnFormLength1, FnFormPlay2, FnFormSkip1, 
+
+; *************************************************************
+; 2020.11.20
+; - Added AmpLVect vector to src/AmosProUnity_Equates/ExtractedFromAmosPro_Lib_Equ.s for list of AmosPro.lib extracted methods.
+; - src/AmosProUnity_Equates/ExtractedFromAmosPro_Lib_Equ.s added as Include in AmosProUnity_library_equ.s
+; - AmosProLibrary_Start.s/StartAll call for ampLib_Init included.
+
 ; *************************************************************
 ; 2020.11.18
 ; - Fixed AmosProUnity_Editor_Config issue

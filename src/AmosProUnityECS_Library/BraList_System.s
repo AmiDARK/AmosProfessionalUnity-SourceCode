@@ -100,6 +100,7 @@ SyIn:    bra     ClInky            ;0 -Inkey:
     bra    WAddRoutine        ;98-AddRoutine        Ajoute une routine
     bra    WCallRoutines        ;99-CallRoutines     Appelle les routines
     bra    WRequest_OnOff        ;100-Set Requester    Change le requester
+    bra    AMP_ResTempBuffer           ; 2020.11.24 Moved to the Amos.library for easier moves of graphics functions like LoadIff
 
 
 

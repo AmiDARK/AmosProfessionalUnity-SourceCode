@@ -4345,37 +4345,6 @@ GetH    move.l    Buffer(a5),d2
     moveq    #%1111111,d3
     Ret_Int
 
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     LOAD IFF "fichier"
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Par    InLoadIff1
-; - - - - - - - - - - - - -
-    move.l    d3,-(a3)
-    move.l    #EntNul,d3
-    Rbra    L_InLoadIff2
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     LOAD IFF "nom",param
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Par    InLoadIff2
-; - - - - - - - - - - - - -
-    Rbsr    L_IffInit
-    move.l    d3,IffParam(a5)
-* Ouvre le fichier
-    move.l    (a3)+,a2
-    Rbsr    L_NomDisc
-    move.l    #1005,d2
-    Rbsr    L_D_Open
-    Rbeq    L_DiskError
-* Lis un chunk image
-    Rbsr    L_SaveRegs
-    move.l    Handle(a5),d5
-    moveq    #1,d7
-    Rbsr    L_IffForm
-    Rbsr    L_LoadRegs
-* Ferme le fichier
-    Rbsr    L_D_Close
-* Ca y est!
-    rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                =FORM LOAD(N To Ad[banque][,NForms])
@@ -4408,7 +4377,8 @@ GetH    move.l    Buffer(a5),d2
     bcc.s    .PaBk
     move.l    d6,d0        Efface l'ancienne
     Rbsr    L_Bnk.Eff
-    Rbsr    L_IffFormSize    Demande la taille
+;    Rbsr    L_IffFormSize    Demande la taille
+    AmpLCall   A_IffFormSize           ; 2020.11.22 Updated to call extracted method
     move.l    d0,d2        Longueur
     moveq    #0,d1        Flags= WORK / FAST
     move.l    d6,d0        Numero
@@ -4418,7 +4388,9 @@ GetH    move.l    Buffer(a5),d2
     Rbeq    L_OOfMem
     move.l    a0,d6
 * Appelle la fonction
-.PaBk    Rbsr    L_IffFormLoad
+.PaBk:
+;    Rbsr    L_IffFormLoad
+    AmpLCall   A_IffFormLoad           ; 2020.11.22 Updated to call extracted method.
     move.l    d0,d3
     Rbsr    L_LoadRegs
     Ret_Int
@@ -4446,7 +4418,8 @@ GetH    move.l    Buffer(a5),d2
     btst    #2,FhT(a2)
     Rbne    L_FilTM
     move.l    FhA(a2),d5
-    Rbsr    L_IffFormSize        Demande la taille
+;    Rbsr    L_IffFormSize        Demande la taille
+    AmpLCall   A_IffFormSize           ; 2020.11.22 Updated to call extracted method
     move.l    d0,d3
     Rbsr    L_LoadRegs
     Ret_Int
@@ -4472,7 +4445,8 @@ GetH    move.l    Buffer(a5),d2
     move.l    (a3)+,d0
     Rbsr    L_Bnk.OrAdr
     move.l    d0,d6
-    Rbsr    L_IffFormPlay
+;    Rbsr    L_IffFormPlay
+    AmpLCall   A_IffFormPlay           ; 2020.11.22 Updated to call extracted method
     move.l    d6,d3
     Rbsr    L_LoadRegs
     Ret_Int
@@ -4498,88 +4472,58 @@ GetH    move.l    Buffer(a5),d2
     Rbsr    L_Bnk.OrAdr
     move.l    d0,d6
     bset    #30,d7
-    Rbsr    L_IffFormPlay
+;    Rbsr    L_IffFormPlay
+    AmpLCall   A_IffFormPlay           ; 2020.11.22 Updated to call extracted method
     move.l    d6,d3
     Rbsr    L_LoadRegs
     Ret_Int
 
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     IFF ANIM "name",screen[,ntimes]
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+; ************************************************************************* 2020.11.22 Replacement for IFF/ILBM methods - START
+    Lib_Def    InLoadIff1
+    move.l    d3,-(a3)
+    move.l    #EntNul,d3
+    AmpLCall   A_InLoadIff
+    rts
+; ***********************************
+    Lib_Def    InLoadIff2
+    AmpLCall   A_InLoadIff
+    rts
+; ***********************************
+    Lib_Def    IffFormLoad
+    AmpLCall   A_IffFormLoad
+    rts
+; ***********************************
+    Lib_Def    IffFormSize
+    AmpLCall   A_IffFormSize
+    rts
+; ***********************************
+    Lib_Def    IffFormPlay
+    AmpLCall   A_IffFormPlay
+    rts
+; ***********************************
     Lib_Par    InIffAnim2
-; - - - - - - - - - - - - -
     move.l    d3,-(a3)
     moveq    #1,d3
     Rbra    L_InIffAnim3
-; - - - - - - - - - - - - -
+; ***********************************
     Lib_Par    InIffAnim3
-; - - - - - - - - - - - - -
     move.l    d3,-(sp)
     Rbmi    L_FonCall
-    move.l    (a3)+,IffParam(a5)
-* Ouvre le fichier
-    move.l    (a3)+,a2
-    Rbsr    L_NomDisc
-    move.l    #1005,d2
-    Rbsr    L_D_Open
-    Rbeq    L_DiskError
-* Trouve la taille du fichier!
-    moveq    #0,d2
-    moveq    #1,d3
-    Rbsr    L_D_Seek
-    Rbmi    L_DiskError
-    moveq    #0,d2
-    moveq    #-1,d3
-    Rbsr    L_D_Seek
-    Rbmi    L_DiskError
-* Reserve un espace memoire
-    addq.l    #8,d0
-    Rjsr    L_ResTempBuffer
-    Rbeq    L_OOfMem
-* Charge le fichier
-    Rbsr    L_SaveRegs
-    illegal
-    move.l    Handle(a5),d5
-    move.l    a0,d6
-    move.w    #32767,d7
-    Rbsr    L_IffFormLoad
-* Ferme le ficher
-    Rbsr    L_D_Close
-* Execute le fichier
-    move.l    TempBuffer(a5),a0
-    cmp.l    #"ILBM",8(a0)
-    Rbne    L_IffFor2
-    move.l    a0,d6
-* Premiere image
-    moveq    #1,d7
-    Rbsr    L_IffFormPlay
-    EcCall    Double
-    move.l    d6,-(sp)
-* Images suivantes
-.Loop    move.l    d6,-(sp)
-    move.w    ScOn(a5),d1
-    subq.w    #1,d1
-    EcCall    SwapSc
-.WLoop    Rjsr    L_Test_PaSaut
-    SyCall    WaitVbl
-    subq.l    #1,IffReturn(a5)
-    bge.s    .WLoop
-.WSkip    move.l    (sp)+,a0
-    cmp.l    #"AenD",(a0)
-    beq.s    .End
-    move.l    a0,d6
-    moveq    #1,d7
-    Rbsr    L_IffFormPlay
-    bra.s    .Loop
-* Fini!
-.End    move.l    (sp),d6
-    subq.l    #1,4(sp)
-    bne.s    .Loop
-    moveq    #0,d0
-    Rjsr    L_ResTempBuffer
-    Rbsr    L_LoadRegs
-    addq.l    #8,sp
+    AmpLCall   A_InIffAnim
     rts
+; ***********************************
+    Lib_Par    InSaveIff1
+    move.l    d3,-(a3)    
+    moveq    #1,d3
+    Rbra    L_InSaveIff2
+; ***********************************
+    Lib_Par    InSaveIff2
+    AmpLCall   A_InSaveIff
+    rts
+
+; ************************************************************************* 2020.11.22 Replacement for IFF/ILBM methods - END
+
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     =FRAME PARAM
@@ -4588,35 +4532,6 @@ GetH    move.l    Buffer(a5),d2
 ; - - - - - - - - - - - - -
     move.l    IffReturn(a5),d3
     Ret_Int
-
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     SAVE IFF a$,comp
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Par    InSaveIff1
-; - - - - - - - - - - - - -
-    move.l    d3,-(a3)    
-    moveq    #1,d3
-    Rbra    L_InSaveIff2
-; - - - - - - - - - - - - -
-    Lib_Par    InSaveIff2
-; - - - - - - - - - - - - -
-    tst.l    ScOnAd(a5)
-    Rbeq    L_ScNOp
-    cmp.l    #3,d3
-    Rbcc    L_FonCall
-    move.l    d3,d7
-* Ouvre le fichier / Mode NEW
-    move.l    (a3)+,a2
-    Rbsr    L_NomDisc
-    move.l    #1006,d2
-    Rbsr    L_D_Open
-    Rbeq    L_DiskError
-* Sauve l'ecran
-    Rbsr    L_IffSaveScreen
-* Ferme
-    Rbsr    L_D_Close
-    Rbsr    L_LoadRegs
-    rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     TROUVE LE DESCRIPTEUR FICHIER
@@ -6820,322 +6735,8 @@ FsApp3:    cmp.w    d4,d6
     bne.s    FsApp1
     rts
 
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     FORM LOAD
-;    Chargement de formes IFF en memoire
-;    D7=    Nombre de FORM a voir
-;    D6=    Adresse de chargement / 0 si Skip
-;    D5=    Handle fichier
-;    Sauver D5-D7 dans SaveRegs
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    IffFormLoad
-    AmpLCallR  A_IffFormLoad,a2
-    rts
 
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;    Ramene la taille des FORMS, sans changer la position...
-;    D7=    Nombre de FORM a voir
-;    D5=    Handle fichier
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    IffFormSize
-    AmpLCallR A_IffFormSize,a2
-    rts
 
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Lecture pour IFF
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    IffRead
-     AmpLCallR A_IffRead,a2
-    rts
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Seek pour IFF
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    IffSeek
-     AmpLCallR A_IffSeek,a2
-    rts
-    
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Initialisation des flags IFF
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    IffInit
-    clr.l    IffFlag(a5)
-    rts
-
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                 Charge et joue les formes dans un buffer
-;    D5=    Handle fichier
-;    D6=    
-;    D7=    Nombre de formes
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    IffForm
-    AmpLCallR A_IffForm,a2
-    rts
-
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Interpretation des formes chargees
-;    D7=    Nombre de formes a interpreter
-;    Bit #30 >>> Sauter tout
-;    D6=     Adresse à voir
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    IffFormPlay
-    AmpLCallR  A_IffFormPlay,a2
-
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Sauvegarde d'ecran IFF
-;    D7    Compression
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    IffSaveScreen
-; - - - - - - - - - - - - -
-    move.l    ScOnAd(a5),a2
-    move.l    Buffer(a5),a1
-    move.l    #"FORM",(a1)+        * FORM
-    clr.l    (a1)+            * Espace
-    move.l    #"ILBM",(a1)+        * ILBM
-    Rbsr    L_SaveA1
-    Rbsr    L_SaveBMHD
-    Rbsr    L_SaveCAMG
-    Rbsr    L_SaveAMSC
-    Rbsr    L_SaveCMAP
-    Rbsr    L_SaveBODY
-.Fin    moveq    #-1,d3
-    moveq    #4,d2
-    Rbsr    L_D_Seek
-    subq.l    #8,d0
-    move.l    Buffer(a5),a1
-    move.l    d0,(a1)+
-    Rbsr    L_SaveA1
-    rts
-
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Sauve le BMHD
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    SaveBMHD
-; - - - - - - - - - - - - -
-    move.l    Buffer(a5),a1
-    move.l    #"BMHD",(a1)+
-    move.l    #20,(a1)+
-    move.w    EcTx(a2),(a1)+
-    move.w    EcTy(a2),(a1)+
-    clr.w    (a1)+
-    clr.w    (a1)+
-    move.b    EcNPlan+1(a2),(a1)+
-    clr.b    (a1)+
-    move.b    d7,(a1)+
-    clr.b    (a1)+
-    clr.w    (a1)+
-    moveq    #20,d0
-    moveq    #22,d1
-    move.w    EcWTx(a2),d2
-    move.w    EcWTy(a2),d3
-    move.w    EcCon0(a2),d4
-    bpl.s    Sbmhd1
-    lsr.w    #1,d0
-    lsl.w    #1,d2
-Sbmhd1    btst    #2,d4
-    beq.s    Sbmhd2
-    lsr.w    #1,d1
-    lsl.w    #1,d3
-Sbmhd2    move.b    d0,(a1)+
-    move.b    d1,(a1)+
-    move.w    d2,(a1)+
-    move.w    d3,(a1)+
-    Rbra    L_SaveA1
-
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Sauve la CMAP
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    SaveCMAP
-; - - - - - - - - - - - - -
-    move.l    Buffer(a5),a1
-    move.l    #"CMAP",(a1)+
-    move.l    #32*3,(a1)+
-    moveq    #31,d0
-    lea    EcPal(a2),a0
-SCm1    move.w    (a0)+,d1
-    lsl.w    #4,d1
-    moveq    #2,d2
-SCm2    rol.w    #4,d1
-    move.w    d1,d3
-    and.w    #$000F,d3
-    lsl.w    #4,d3
-    move.b    d3,(a1)+
-    dbra    d2,SCm2
-    dbra    d0,SCm1
-    Rbra    L_SaveA1
-
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Sauve la CAMG
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    SaveCAMG
-; - - - - - - - - - - - - -
-    move.l    Buffer(a5),a1
-    move.l    #"CAMG",(a1)+
-    move.l    #4,(a1)+
-    moveq    #0,d0
-    move.w    EcCon0(a2),d0
-    and.w    #%1000100000000110,d0
-    cmp.w    #64,EcNbCol(a2)
-    bne.s    SCa
-    btst    #11,d0
-    bne.s    SCa
-    bset    #7,d0
-SCa    move.l    d0,(a1)+
-    Rbra    L_SaveA1
-
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Sauve le AMSC
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    SaveAMSC
-; - - - - - - - - - - - - -
-    move.l    Buffer(a5),a1
-    move.l    #"AMSC",(a1)+
-    move.l    #7*2,(a1)+
-    move.w    EcAWX(a2),(a1)+
-    move.w    EcAWY(a2),(a1)+
-    move.w    EcAWTX(a2),(a1)+
-    move.w    EcAWTY(a2),(a1)+    
-    move.w    EcAVX(a2),(a1)+
-    move.w    EcAVY(a2),(a1)+
-    move.w    EcFlags(a2),d0
-    and.w    #$8000,d0
-    move.w    d0,(a1)+
-    Rbra    L_SaveA1
-
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Sauve le BODY
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    SaveBODY
-; - - - - - - - - - - - - -
-    move.l    Buffer(a5),a1
-    move.l    #"BODY",(a1)+
-    tst.b    d7
-    bne.s    SBc
-* Non compacte
-    move.l    EcTPlan(a2),d0        * Entete
-    mulu    EcNPlan(a2),d0
-    move.l    d0,(a1)+
-    Rbsr    L_SaveA1
-    move.w    EcTy(a2),d7        * Image
-    moveq    #0,d3
-    move.w    EcTLigne(a2),d3
-    moveq    #0,d4
-SBo1    move.w    EcNPlan(a2),d6
-    lea    EcLogic(a2),a0
-SBo2    move.l    (a0)+,d2
-    add.l    d4,d2
-    Rbsr    L_D_Write
-    Rbne    L_DiskError
-    subq.w    #1,d6
-    bne.s    SBo2
-    add.l    d3,d4
-    subq.w    #1,d7
-    bne.s    SBo1
-    rts
-* Compacte!
-SBc:    clr.l    (a1)+
-    Rbsr    L_SaveA1
-    moveq    #0,d2            * Position dans le fichier
-    moveq    #0,d3
-    Rbsr    L_D_Seek
-    move.l    d0,-(sp)
-    moveq    #0,d7
-    move.w    EcTy(a2),d6
-    moveq    #0,d5
-    move.w    EcTLigne(a2),d5
-    moveq    #0,d4
-    move.l    a3,-(sp)
-    move.w    EcNPlan(a2),-(sp)
-    pea    EcLogic(a2)
-SBc1    move.l    (sp),a2
-    move.w    4(sp),d3
-    move.l    Buffer(a5),a1
-SBc2    move.w    d5,d2
-    move.l    (a2)+,a0
-    add.l    d4,a0
-SBc3    moveq    #0,d1            
-    move.b    (a0)+,d0
-    subq.w    #1,d2
-    beq.s    SBc5a
-SBc4    cmp.b    (a0),d0
-    bne.s    SBc5
-    addq.l    #1,d1
-    addq.l    #1,a0
-    cmp.w    #127,d1
-    bcc.s    SBc5
-    subq.w    #1,d2
-    bne.s    SBc4
-SBc5    tst.w    d1
-    beq.s    SBc6
-    neg.b    d1
-    move.b    d1,(a1)+
-    move.b    d0,(a1)+
-    tst.w    d2
-    bne.s    SBc3
-    bra.s    SBc10
-SBc5a    clr.b    (a1)+
-    move.b    d0,(a1)+
-    bra.s    SBc10
-SBc6    move.l    a1,a3
-    moveq    #0,d1
-    clr.b    (a1)+
-    move.b    d0,(a1)+
-SBc7    move.b    (a0),d0
-    cmp.b    1(a0),d0
-    bne.s    SBc8
-    cmp.b    2(a0),d0
-    beq.s    SBc9
-SBc8    move.b    (a0)+,(a1)+
-    addq.w    #1,d1
-    subq.w    #1,d2
-    beq.s    SBc9
-    cmp.w    #127,d1
-    bcs.s    SBc7
-SBc9    move.b    d1,(a3)
-    tst.w    d2
-    bne.s    SBc3
-* Autre plan?
-SBc10    subq.w    #1,d3
-    bne.s    SBc2
-* Sauve le buffer
-    move.l    Buffer(a5),d2
-    move.l    a1,d3
-    sub.l    d2,d3
-    add.l    d3,d7
-    Rbsr    L_D_Write
-    Rbne    L_DiskError
-* Encore une ligne?
-    add.l    d5,d4
-    subq.w    #1,d6
-    bne    SBc1
-* A y est!
-    addq.l    #6,sp
-    move.l    (sp)+,a3
-* Rend le chunk pair
-    btst    #0,d7
-    beq.s    SBc11
-    move.l    Buffer(a5),a1
-    clr.b    (a1)
-    move.l    a1,d2
-    moveq    #1,d3
-    Rbsr    L_D_Write
-    Rbne    L_DiskError
-    addq.l    #1,d7
-* Marque la longueur du chunk!
-SBc11    move.l    (sp)+,d2        * Debut du chunk
-    subq.l    #4,d2
-    moveq    #-1,d3
-    Rbsr    L_D_Seek
-    move.l    d0,-(sp)
-    move.l    Buffer(a5),a1        * Sauve la longueur
-    move.l    d7,(a1)
-    move.l    a1,d2
-    moveq    #4,d3
-    Rbsr    L_D_Write
-    Rbne    L_DiskError
-    move.l    (sp)+,d2        * Remet a la fin
-    moveq    #-1,d3
-    Rbsr    L_D_Seek
-    rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Sauve jusqu'a A1

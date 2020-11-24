@@ -743,46 +743,13 @@ RamFree    move.l    a0,-(sp)
 
 ;     Reserve / Libere le buffer temporaire
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ResTempBuffer
-    movem.l    d1/a1,-(sp)
-    move.l    d0,d1
-; Libere l'ancien buffer
-    move.l    TempBuffer(a5),d0
-    beq.s    .NoLib
-    move.l    d0,a1
-    move.l    -(a1),d0
-    addq.l    #4,d0
-    bsr.s    RamFree
-    clr.l    TempBuffer(a5)
-; Reserve le nouveau
-.NoLib    move.l    d1,d0
-    beq.s    .Exit
-    addq.l    #4,d0
-    bsr    RamFast
-    beq.s    .Exit
-    move.l    d0,a0
-    move.l    d1,(a0)+
-    move.l    a0,TempBuffer(a5)
-    move.l    d1,d0
-; Branche les routines de liberation automatique
-    movem.l    a0-a2/d0-d1,-(sp)
-    lea    .LibClr(pc),a1
-    lea    Sys_ClearRoutines(a5),a2
-    SyCall    AddRoutine
-    lea    .LibErr(pc),a1
-    lea    Sys_ErrorRoutines(a5),a2
-    SyCall    AddRoutine
-    movem.l    (sp)+,a0-a2/d0-d1
-.Exit    movem.l    (sp)+,d1/a1
+; ************************************* 2020.11.24 Extracted ResTempBuffer to push it into AmosProUnityECS.library
+ResTempBuffer:
+;    move.l      a0,-(sp)
+    SyCall       AMPResTempBuffer
+;    move.l      (sp)+,a0
     rts
-; Structures liberation
-; ~~~~~~~~~~~~~~~~~~~~~
-.LibClr    dc.l    0
-    moveq    #0,d0
-    bra.s    ResTempBuffer
-.LibErr    dc.l    0
-    moveq    #0,d0
-    bra.s    ResTempBuffer
+
     
 ;     Reserve un espace mémoire sur (a5)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -821,7 +788,8 @@ A5_Free
 ;
 ; OPEN: ouvre le fichier systeme (diskname1) access mode D2
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-D_Open    move.l     Name1(a5),d1
+D_Open
+    move.l     Name1(a5),d1
 D_OpenD1
     move.l    a6,-(sp)
     move.l    DosBase(a5),a6
@@ -1364,11 +1332,13 @@ BugBug    movem.l    d0-d2/a0-a2,-(sp)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Include    "src/AmosProUnity_Verif.s"
 
-; Charge le moniteur et l'editeur en mode debug
+; Charge le moniteur et l''editeur en mode debug
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IFNE    Debug=2
-Mon_Debug    Include    "+Monitor.s"
-Edit_Debug    Include "+Edit.s"
+Mon_Debug:
+    Include    "+Monitor.s"
+Edit_Debug:
+    Include   "+Edit.s"
     ENDC
     IFEQ    Debug=2
 Mon_Debug
@@ -1382,7 +1352,7 @@ Edit_Debug
     SECTION    "I",CODE
 ; - - - - - - - - - - - - -
 
-Ext_Nb        equ    5
+Ext_Nb          equ     5
 Ext_TkCmp       equ     6
 Ext_TkCOp       equ     $14
 Ext_TkTston     equ     $28
@@ -1571,9 +1541,9 @@ FromCLI    movem.l    SP_Command(sp),a0/d0
     bra.s    .Clin0
 .Clin1    clr.b    (a1)
     rts
-; Fin de l'exploration des commandes
+; Fin de l''exploration des commandes
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-CommandX
+CommandX:
 ; Charge amos.library: differents essais si pas installe!
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l    SP_DosBase(sp),a6
@@ -1594,7 +1564,8 @@ CommandX
     bne.s    .Ok
     move.l    #Panic_Lib,Panic    Message d'erreur
     bra    Boot_Fatal
-.Ok    move.l    d0,SP_WSegment(sp)    Segment library pour fatal!
+.Ok:
+    move.l    d0,SP_WSegment(sp)    Segment library pour fatal!
     lsl.l    #2,d0
     addq.l    #4,d0
     move.l    d0,a4

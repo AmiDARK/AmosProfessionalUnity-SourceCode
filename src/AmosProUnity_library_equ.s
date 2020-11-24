@@ -33,6 +33,7 @@ GfxA5        MACRO
         Rl    SyVect,1
         Rl    EcVect,1
         Rl    WiVect,1
+        Rl    AmpLVect,1
 
 ***************************************************************
 *        ADRESSES AMOS / COMPILER

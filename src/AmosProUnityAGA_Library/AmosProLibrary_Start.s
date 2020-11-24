@@ -246,10 +246,11 @@ StartAll:
     move.l    (sp),a0
     move.l    12(a0),d0
     bsr    CpInit            ; Create the copper list memory area
-    bsr    EcInit            Ecrans
-    bsr    SyInit            Systeme
-    bsr    VBLInit            Interruptions VBL
-    bsr    WiInit            Windows
+    bsr    EcInit            ; Ecrans
+    bsr    SyInit            ; Systeme
+    bsr    VBLInit           ; Interruptions VBL
+    bsr    WiInit            ; Windows
+    bsr    ampLib_Init       ; 2020.11.22 Initialize methods that were extracted from AmosPro.lib
 
 ;    Si AA, change le vecteur LOADVIEW
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

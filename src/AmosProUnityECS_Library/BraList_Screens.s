@@ -1,5 +1,6 @@
 ******* Jumps to screen functions
-EcIn:    bra    EcRaz        ;Raz:        
+EcIn:
+    bra    EcRaz        ;Raz:        
     bra    EcCopper    ;CopMake:    
     bra    EcCopper    ;*        
     bra    EcCree        ;Cree:        
