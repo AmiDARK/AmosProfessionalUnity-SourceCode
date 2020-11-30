@@ -4414,78 +4414,83 @@ GetH    move.l    Buffer(a5),d2
 ;                     IFF ANIM "name",screen[,ntimes]
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InIffAnim2
-;; - - - - - - - - - - - - -
-    move.l    d3,-(a3)
-    moveq    #1,d3
-    Rbra    L_InIffAnim3
-;; - - - - - - - - - - - - -
-    Lib_Par InIffAnim3
 ; - - - - - - - - - - - - -
-    move.l  d3,-(sp)
-    Rbmi    L_FonCall
-    move.l  (a3)+,IffParam(a5)
-* Ouvre le fichier
-    move.l  (a3)+,a2
-    Rbsr    L_NomDisc
-    move.l  #1005,d2
-    Rbsr    L_D_Open
-    Rbeq    L_DiskError
-* Trouve la taille du fichier!
-    moveq   #0,d2
-    moveq   #1,d3
-    Rbsr    L_D_Seek
-    Rbmi    L_DiskError
-    moveq   #0,d2
-    moveq   #-1,d3
-    Rbsr    L_D_Seek
-    Rbmi    L_DiskError
-* Reserve un espace memoire
-    addq.l  #8,d0
-    Rjsr    L_ResTempBuffer
-    Rbeq    L_OOfMem
+    move.l     d3,-(a3)
+    moveq      #1,d3
+    Rbra       L_InIffAnim3
+; - - - - - - - - - - - - -
+    Lib_Par    InIffAnim3
+; - - - - - - - - - - - - -
+    move.l     d3,-(sp)
+    Rbmi       L_FonCall
+    move.l     (a3)+,IffParam(a5)      ; A3 = Number of times
+********************* Open the IFF/ILBM ANIM File
+    move.l     (a3)+,a2                ; A2 = File Name
+    Rbsr       L_NomDisc               ;
+    move.l     #1005,d2                ; READ ONLY
+    Rbsr       L_D_Open                ; Open File
+    Rbeq       L_DiskError             ; Cannot open file -> Error
+********************* Find the file size
+    moveq      #0,d2
+    moveq      #1,d3
+    Rbsr       L_D_Seek
+    Rbmi       L_DiskError
+    moveq      #0,d2
+    moveq      #-1,d3                  ; Push D3 = -1 as Seek Position to try to get the file size in D0
+    Rbsr       L_D_Seek
+    Rbmi       L_DiskError
+********************* Allocate a temporary buffer of the file size + 8 bytes
+    addq.l     #8,d0                   ; D0 = Add #8 to file sier
+    Rjsr       L_ResTempBuffer         ; -> +Clib.s/ResTempBuffer -> A0 = Buffer pointer for IFF/ILBM ANIM file loading ( also saved in TempBuffer(a5) )
+    Rbeq       L_OOfMem                ; Error Out Of Memory
 * Charge le fichier
-    Rbsr    L_SaveRegs
-    illegal
-    move.l  Handle(a5),d5
-    move.l  a0,d6
-    move.w  #32767,d7
-    Rbsr    L_IffFormLoad
-* Ferme le ficher
-    Rbsr    L_D_Close
-* Execute le fichier
-    move.l  TempBuffer(a5),a0
-    cmp.l   #"ILBM",8(a0)
-    Rbne    L_IffFor2
-    move.l  a0,d6
-* Premiere image
-    moveq   #1,d7
-    Rbsr    L_IffFormPlay
-    EcCall  Double
-    move.l  d6,-(sp)
-* Images suivantes
-.Loop   move.l  d6,-(sp)
-    move.w  ScOn(a5),d1
-    subq.w  #1,d1
-    EcCall  SwapSc
-.WLoop  Rjsr    L_Test_PaSaut
-    SyCall  WaitVbl
-    subq.l  #1,IffReturn(a5)
-    bge.s   .WLoop
-.WSkip  move.l  (sp)+,a0
-    cmp.l   #"AenD",(a0)
-    beq.s   .End
-    move.l  a0,d6
-    moveq   #1,d7
-    Rbsr    L_IffFormPlay
-    bra.s   .Loop
-* Fini!
-.End    move.l  (sp),d6
-    subq.l  #1,4(sp)
-    bne.s   .Loop
-    moveq   #0,d0
-    Rjsr    L_ResTempBuffer
-    Rbsr    L_LoadRegs
-    addq.l  #8,sp
+    Rbsr       L_SaveRegs              ; Save registers
+;    illegal                            ; Debug -> Removed.
+    move.l     Handle(a5),d5           ; D5 = Handle to the IFF/ILBM ANIM File.
+    move.l     a0,d6                   ; D6 = Memory buffer to load the IFF/ILBM ANIM file
+    move.w     #32767,d7               ; D7 = Push Amount of forms to read to a bigger count.
+    Rbsr       L_IffFormLoad           ; +Lib.s/IffFormLoad At line 6833, This method load entirely the IFF/ANIM in a buffer set at D6
+********************* Close the file
+    Rbsr       L_D_Close               ; Close File Handler.
+********************* Execute the file
+    move.l     TempBuffer(a5),a0       ; Temp buffer start at ILBM file position + 12 (without the header "FORM....ANIM")
+    cmp.l      #"ILBM",8(a0)           ; Verify we are in a picture as te 1st frame of an animation is the full frame image (reference).
+    Rbne       L_IffFor2               ; If not -> Jump to error not an Iff Form.
+    move.l     a0,d6                   ; D6 = FORM/ILBM Buffer
+
+********************* First image
+    moveq      #1,d7                   ; Iff Form -1
+    Rbsr       L_IffFormPlay           ; Call +Lib.S/IffFormPlay L7001
+    EcCall     Double                  ; Call to +W.s/EcDouble : Put Screen in double buffer once the 1st frame was rendered [Updated on 2019.11.25]
+    move.l     d6,-(sp)                ; Save D6
+********************* Next images
+.Loop
+    move.l     d6,-(sp)
+    move.w     ScOn(a5),d1
+    subq.w     #1,d1
+    EcCall     SwapSc                  ; Call to +W.s/ScSwap
+.WLoop
+    Rjsr       L_Test_PaSaut           ; +CLib.s/Test_PaSaut (Test interrupts without jump)
+    SyCall     WaitVbl
+    subq.l     #1,IffReturn(a5)
+    bge.s      .WLoop
+.WSkip:
+    move.l     (sp)+,a0
+    cmp.l      #"AenD",(a0)
+    beq.s      .End
+    move.l     a0,d6
+    moveq      #1,d7
+    Rbsr       L_IffFormPlay
+    bra.s      .Loop
+********************* Finished
+.End:
+    move.l     (sp),d6
+    subq.l     #1,4(sp)
+    bne.s      .Loop
+    moveq      #0,d0
+    Rjsr       L_ResTempBuffer
+    Rbsr       L_LoadRegs
+    addq.l     #8,sp
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -6959,27 +6964,8 @@ FsApp3:    cmp.w    d4,d6
 ;                     EFFACEMENT BOBS/ICONS A0=Adresse
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.EffBobA0
-; - - - - - - - - - - - - -
     movem.l    a0/a1/a2/d0/d1,-(sp)
-    move.l     a0,a2
-; Efface le bob
-    move.l    (a2),d1
-    beq.s    .No1
-    move.l    d1,a1
-    move.w    (a1),d0
-    mulu    2(a1),d0
-    lsl.l    #1,d0
-    mulu    4(a1),d0
-    add.l    #10,d0
-    SyCall    MemFree
-; Efface le masque
-.No1    move.l    4(a2),d1
-    ble.s    .No2
-    move.l    d1,a1
-    move.l    (a1),d0
-    SyCall    MemFree
-.No2    clr.l    (a2)+
-    clr.l    (a2)+
+    AmpLCallR  A_BnkEffBobA0,a1
     movem.l    (sp)+,a0/a1/a2/d0/d1
     rts
 
@@ -12028,17 +12014,12 @@ ChPap    dc.b 27,"B0",0
 ;                     PEN
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par InPen
-; - - - - - - - - - - - - -
-    lea    ChPen(pc),a1
-    Rbra    L_WnPp
-ChPen:    dc.b 27,"P0",0
+    AmpLCallR  A_InPen,a2
+    rts
 ; - - - - - - - - - - - - -
     Lib_Def    WnPp
-; - - - - - - - - - - - - -
-    add.b    #"0",d3    
-    move.b    d3,2(a1)
-    Rbra    L_GoWn
-
+    AmpLCallR  A_WnPp,a2
+    rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     CLW
@@ -12266,11 +12247,7 @@ ChSTa:    dc.b 27,"T0",0
 ;                     Envoie a la trappe
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    GoWn
-; - - - - - - - - - - - - -
-    tst.w    ScOn(a5)
-    Rbeq    L_ScNOp
-    WiCall    Print
-    Rbne    L_EcWiErr
+    AmpLCallR  A_GoWn,a2
     rts
 
 

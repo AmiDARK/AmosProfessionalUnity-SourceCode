@@ -28,7 +28,10 @@ A_SHunk                equ  23
 A_BnkUnRev             equ  24
 A_BnkReserveIC2        equ  25
 A_BnkEffA0             equ  26
-
+A_BnkEffBobA0          equ  27
+A_InPen                equ  28
+A_WnPp                 equ  29
+A_GoWn                 equ  30
 
 ; ************************************************************
 ; Function to use to call the methods.
