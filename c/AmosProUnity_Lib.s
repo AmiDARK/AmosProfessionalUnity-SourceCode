@@ -71,7 +71,7 @@ C_Tk    dc.w L_Nul,L_FnNull            //$2F$03$05$00
     dc.b $80,"C0",-1
     dc.w L_Nul,L_FnCstFl            //$01$15$05$05
     dc.b $80,"C1",-1
-* Token d''extension
+* Token d'extension
     dc.w L_InExtCall,L_FnExtCall         //$28$06$05$07
     dc.b $80,-1
 
@@ -1441,7 +1441,7 @@ C_Tk    dc.w L_Nul,L_FnNull            //$2F$03$05$00
 ; Nouvelles fonctions AMOSPro
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     dc.w L_Syntax,L_Syntax            //$01$01$14$00
-    dc.b "\\\\\\\\\\\\\\\","/"+$80,"I",-1 ; " <- to avoid SublimeText thinking a double comma is not closed
+    dc.b "\\\\\\\\\\\\\\\","/"+$80,"I",-1
     dc.w L_InNull,L_Nul            //$24$01$11$00
     dc.b "set accessor","y"+$80,"I",-1
     dc.w L_In_apml_,L_Nul            //$55$01$0C$00
@@ -1684,8 +1684,7 @@ C_Tk    dc.w L_Nul,L_FnNull            //$2F$03$05$00
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     dc.b     "KwiK"
     dc.w    .Fin-.Debut
-.Debut:
-    IncBin    "tmpCompil/Toktab_Verif.Bin"
+.Debut    IncBin    "tmpCompil/Toktab_Verif.Bin"
 .Fin
 
 ;    Decalage au debut de la librairie
@@ -2892,7 +2891,7 @@ ht4    Ret_Int
     move.l    (sp)+,a6
 .Skip    rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Retourne l''adresse de la librarie
+;                     Retourne l'adresse de la librarie
 ;    D0=    Numero canal
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Lib.GetA2
@@ -3144,7 +3143,7 @@ ht4    Ret_Int
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Routine: retourne l''adresse IO
+;                     Routine: retourne l'adresse IO
 ;    A2= pointeur device
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dev.GetIO
@@ -3752,7 +3751,7 @@ hx5:    move.l     d0,HiChaine(a5)
     Ret_String
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;            Demande l''espace chaine, positionne Hichaine
+;            Demande l'espace chaine, positionne Hichaine
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    AskD3
 ; - - - - - - - - - - - - -
@@ -3776,17 +3775,24 @@ AskD:    move.l    a0,HiChaine(a5)
 ;                     SAUVE HUNK BANQUE D0
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    SHunk
-    AmpLCallR  A_SHunk,a1
+; - - - - - - - - - - - - -
+    movem.l    a0/d0/d2/d3,-(sp)
+    Rlea    L_NHunk,0
+    lsl.w    #2,d0
+    lea    -4(a0,d0.w),a0
+    move.l    a0,d2
+    moveq    #4,d3
+    Rjsr    L_D_Write
+    movem.l    (sp)+,a0/d0/d2/d3
     rts
-
 ; - - - - - - - - - - - - -
-    Lib_Def NHunk
+    Lib_Def    NHunk
 ; - - - - - - - - - - - - -
-    dc.b    "AmBk"
-    dc.b    "AmSp"
-    dc.b    "AmBs"
-    dc.b    "AmIc"
-    dc.l    0
+    dc.b     "AmBk"
+    dc.b     "AmSp"
+    dc.b     "AmBs"
+    dc.b     "AmIc"
+    dc.l     0
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     SAVE "Banque", n
@@ -3886,7 +3892,94 @@ AskD:    move.l    a0,HiChaine(a5)
 ;                     Sauve la banque A0
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.SaveA0
-    AmpLCallR  A_Bnk.SaveA0,a1
+; - - - - - - - - - - - - -
+    movem.l    a2/a3/d2-d4,-(sp)
+    move.l    a0,a2
+    move.w    -16+4(a2),d2        Flags
+    btst    #Bnk_BitBob,d2
+    bne.s    SB_Bob
+    btst    #Bnk_BitIcon,d2
+    bne.s    SB_Icon
+; Sauve une banque normale!
+; ~~~~~~~~~~~~~~~~~~~~~~~~~
+    moveq    #1,d0            AmBk
+    Rbsr    L_SHunk
+    bne    SB_Err
+    move.l    Buffer(a5),a0
+    move.w    -8*2+2(a2),(a0)        NUMERO.W
+    clr.w    2(a0)            0-> CHIP / 1-> FAST
+    btst    #Bnk_BitChip,d2
+    bne.s    .Chp
+    addq.w    #1,2(a0)
+.Chp    move.l    -8*3+4(a2),d4        Taille banque
+    subq.l    #8,d4            Moins header
+    move.l    d4,4(a0)        Puis LONGUEUR.L
+    btst    #Bnk_BitData,d2        Data / Work?
+    beq.s    .Wrk
+    bset    #7,4(a0)
+.Wrk    move.l    a0,d2
+    moveq    #8,d3
+    Rbsr    L_D_Write
+    bne    SB_Err
+    lea    -8(a2),a2        Pointe le nom
+    move.l    a2,d2
+    move.l    d4,d3
+    Rbsr    L_D_Write
+    bne.s    SB_Err
+    bra.s    SB_Ok
+;    Sauve une banque d'icones
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SB_Icon    moveq    #4,d0            AmIc
+    bra.s    SB_Sp
+;     Sauve une banque de sprites
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SB_Bob    moveq    #2,d0            AmSp
+SB_Sp    Rbsr    L_SHunk
+    bne.s    SB_Err
+    move.l    a2,a0            Remet les sprites droit
+    Rjsr    L_Bnk.UnRev
+    move.l    a2,d2    
+    moveq    #2,d3
+    Rbsr    L_D_Write
+    bne.s    SB_Err
+    move.l    Buffer(a5),a3
+    clr.l    (a3)
+    clr.l    4(a3)
+    clr.w    8(a3)
+    move.w    (a2)+,d4
+    subq.w    #1,d4
+    bmi.s    .NoSpr
+; Sprite vide
+.SS1:    move.l    (a2),d0
+    bne.s    .SS2
+    move.l    a3,d2
+    moveq    #10,d3
+    Rbsr    L_D_Write
+    bne.s    SB_Err
+    bra.s    .SS3
+; Un sprite
+.SS2    move.l    d0,a0
+    move.l    d0,d2
+    move.w    (a0)+,d3
+    mulu    (a0)+,d3
+    mulu    (a0)+,d3
+    lsl.w    #1,d3
+    add.l    #10,d3
+    Rbsr    L_D_Write
+    bne.s    SB_Err
+; Suivant
+.SS3    addq.l    #8,a2
+    dbra    d4,.SS1
+; Sauve la palette
+; ~~~~~~~~~~~~~~~~
+.NoSpr    move.l    a2,d2
+    moveq    #32*2,d3
+    Rbsr    L_D_Write
+    bne.s    SB_Err
+SB_Ok    moveq    #0,d0
+    bra.s    SB_Out
+SB_Err    moveq    #-1,d0
+SB_Out    movem.l    (sp)+,a2/a3/d2-d4
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3933,7 +4026,7 @@ AskD:    move.l    a0,HiChaine(a5)
 ; - - - - - - - - - - - - -
     movem.l    a2/a3/d2-d7,-(sp)
     move.l    d0,d5
-; Charge l''entete de la banque (4 octets de debut!)
+; Charge l'entete de la banque (4 octets de debut!)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l    Buffer(a5),d2
     moveq    #4,d3
@@ -3957,7 +4050,7 @@ AskD:    move.l    a0,HiChaine(a5)
     beq    LB_Sprites
 ; Une banque normale
 ; ~~~~~~~~~~~~~~~~~~
-    move.l    Buffer(a5),d2            Charge l''entete
+    move.l    Buffer(a5),d2            Charge l'entete
     move.l    d2,a2
     moveq    #8,d3
     Rbsr    L_D_Read
@@ -3990,7 +4083,7 @@ AskD:    move.l    a0,HiChaine(a5)
     Rbsr    L_D_Read
     beq    LB_Ok
     bra    LB_DErr
-; Charge une banque d''icones
+; Charge une banque d'icones
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~
 LB_Icons
     moveq    #2,d3            Charge le nombre de sprites
@@ -4077,7 +4170,7 @@ LB_FIcons
     move.w    6(a3),(a0)        Plus de FLAGS!
     and.w    #$3FFF,(a0)+
     move.w    8(a3),(a0)+
-    move.l    a0,d2            Charge l''image
+    move.l    a0,d2            Charge l'image
     Rbsr    L_D_Read
     bne    LB_DErr
 .Rien    dbra    d6,.LSLoop
@@ -4313,7 +4406,7 @@ GetH    move.l    Buffer(a5),d2
     Rbeq    L_FonCall
     cmp.l    #1024,d6
     bcc.s    .PaBk
-    move.l    d6,d0        Efface l''ancienne
+    move.l    d6,d0        Efface l'ancienne
     Rbsr    L_Bnk.Eff
     Rbsr    L_IffFormSize    Demande la taille
     move.l    d0,d2        Longueur
@@ -4414,78 +4507,78 @@ GetH    move.l    Buffer(a5),d2
 ;                     IFF ANIM "name",screen[,ntimes]
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InIffAnim2
-;; - - - - - - - - - - - - -
+; - - - - - - - - - - - - -
     move.l    d3,-(a3)
     moveq    #1,d3
     Rbra    L_InIffAnim3
-;; - - - - - - - - - - - - -
-    Lib_Par InIffAnim3
 ; - - - - - - - - - - - - -
-    move.l  d3,-(sp)
+    Lib_Par    InIffAnim3
+; - - - - - - - - - - - - -
+    move.l    d3,-(sp)
     Rbmi    L_FonCall
-    move.l  (a3)+,IffParam(a5)
+    move.l    (a3)+,IffParam(a5)
 * Ouvre le fichier
-    move.l  (a3)+,a2
+    move.l    (a3)+,a2
     Rbsr    L_NomDisc
-    move.l  #1005,d2
+    move.l    #1005,d2
     Rbsr    L_D_Open
     Rbeq    L_DiskError
 * Trouve la taille du fichier!
-    moveq   #0,d2
-    moveq   #1,d3
+    moveq    #0,d2
+    moveq    #1,d3
     Rbsr    L_D_Seek
     Rbmi    L_DiskError
-    moveq   #0,d2
-    moveq   #-1,d3
+    moveq    #0,d2
+    moveq    #-1,d3
     Rbsr    L_D_Seek
     Rbmi    L_DiskError
 * Reserve un espace memoire
-    addq.l  #8,d0
+    addq.l    #8,d0
     Rjsr    L_ResTempBuffer
     Rbeq    L_OOfMem
 * Charge le fichier
     Rbsr    L_SaveRegs
     illegal
-    move.l  Handle(a5),d5
-    move.l  a0,d6
-    move.w  #32767,d7
+    move.l    Handle(a5),d5
+    move.l    a0,d6
+    move.w    #32767,d7
     Rbsr    L_IffFormLoad
 * Ferme le ficher
     Rbsr    L_D_Close
 * Execute le fichier
-    move.l  TempBuffer(a5),a0
-    cmp.l   #"ILBM",8(a0)
+    move.l    TempBuffer(a5),a0
+    cmp.l    #"ILBM",8(a0)
     Rbne    L_IffFor2
-    move.l  a0,d6
+    move.l    a0,d6
 * Premiere image
-    moveq   #1,d7
+    moveq    #1,d7
     Rbsr    L_IffFormPlay
-    EcCall  Double
-    move.l  d6,-(sp)
+    EcCall    Double
+    move.l    d6,-(sp)
 * Images suivantes
-.Loop   move.l  d6,-(sp)
-    move.w  ScOn(a5),d1
-    subq.w  #1,d1
-    EcCall  SwapSc
-.WLoop  Rjsr    L_Test_PaSaut
-    SyCall  WaitVbl
-    subq.l  #1,IffReturn(a5)
-    bge.s   .WLoop
-.WSkip  move.l  (sp)+,a0
-    cmp.l   #"AenD",(a0)
-    beq.s   .End
-    move.l  a0,d6
-    moveq   #1,d7
+.Loop    move.l    d6,-(sp)
+    move.w    ScOn(a5),d1
+    subq.w    #1,d1
+    EcCall    SwapSc
+.WLoop    Rjsr    L_Test_PaSaut
+    SyCall    WaitVbl
+    subq.l    #1,IffReturn(a5)
+    bge.s    .WLoop
+.WSkip    move.l    (sp)+,a0
+    cmp.l    #"AenD",(a0)
+    beq.s    .End
+    move.l    a0,d6
+    moveq    #1,d7
     Rbsr    L_IffFormPlay
-    bra.s   .Loop
+    bra.s    .Loop
 * Fini!
-.End    move.l  (sp),d6
-    subq.l  #1,4(sp)
-    bne.s   .Loop
-    moveq   #0,d0
+.End    move.l    (sp),d6
+    subq.l    #1,4(sp)
+    bne.s    .Loop
+    moveq    #0,d0
     Rjsr    L_ResTempBuffer
     Rbsr    L_LoadRegs
-    addq.l  #8,sp
+    addq.l    #8,sp
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4518,7 +4611,7 @@ GetH    move.l    Buffer(a5),d2
     move.l    #1006,d2
     Rbsr    L_D_Open
     Rbeq    L_DiskError
-* Sauve l''ecran
+* Sauve l'ecran
     Rbsr    L_IffSaveScreen
 * Ferme
     Rbsr    L_D_Close
@@ -5312,7 +5405,7 @@ GP1    move.l    (sp),d1
 .Skip    rts    
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     OUVERTURE DE L''IMPRIMANTE
+;                     OUVERTURE DE L'IMPRIMANTE
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    PRT_Open
 ; - - - - - - - - - - - - -
@@ -5504,7 +5597,7 @@ FDirV    Rbsr    L_FillFFree
 ; - - - - - - - - - - - - -
     tst.w    WB2.0(a5)
     beq.s    .1_3
-; WB2.0, appel direct de l''instruction ASSIGN
+; WB2.0, appel direct de l'instruction ASSIGN
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Rbsr    L_LockFree        Plus de LOCK
     move.l    d3,a2
@@ -5516,7 +5609,7 @@ FDirV    Rbsr    L_FillFFree
     Rbsr    L_ChVerBuf2
     Rbsr    L_Dsk.PathIt
     Rbsr    L_LockGet
-.Vide    move.l    (a3)+,a2        Prend l''assign
+.Vide    move.l    (a3)+,a2        Prend l'assign
     move.w    (a2)+,d2
     Rbeq    L_FonCall
     cmp.w    #108,d2
@@ -5868,7 +5961,7 @@ TTdiL:    Rjsr    L_Test_PaSaut
     addq.l    #2,sp
 TTdiX:    moveq    #0,d0
     rts
-* Boucle d''attente
+* Boucle d'attente
 TTdiW:    Rjsr    L_Test_PaSaut
     SyCall    Inkey
     tst.l    d1
@@ -5957,7 +6050,7 @@ FlGNo    movem.l    (sp)+,d1/d2
     move.l    4(a3),d0
     lsl.l    #2,d0
     move.l    d0,a3
-* Boucle d''exploration
+* Boucle d'exploration
 FDev1    tst.l    8(a3)
     beq.s    FDev5
 
@@ -6009,12 +6102,12 @@ FDev5    move.l    (a3),d0
     lsl.l    #2,d0
     move.l    d0,a3
     bne    FDev1
-* C''est fini!
+* C'est fini!
     jsr    Permit(a6)
     Rbsr    L_FillSort
     movem.l    (sp)+,d0-d7/a0-a6
     rts
-; Enleve l''ancien buffer -si present-
+; Enleve l'ancien buffer -si present-
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FfDeb    Rbsr    L_FillFFree
 * Premier faux fichier
@@ -6030,7 +6123,7 @@ FfDeb    Rbsr    L_FillFFree
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    FillFirst
 ; - - - - - - - - - - - - -
-* Enleve l''ancien buffer -si present-, reserve le nouveau
+* Enleve l'ancien buffer -si present-, reserve le nouveau
     Rbsr    L_FillFFree
 * Branche la routine sur la liste CLEARVAR
     movem.l    a0-a2/d0-d1,-(sp)
@@ -6375,7 +6468,7 @@ FssX    movem.l    (sp)+,a0-a4/d0-d7
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                 Routine: pointe le debut d''un nom de fichier
+;                 Routine: pointe le debut d'un nom de fichier
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dsk.DNom
 ; - - - - - - - - - - - - -
@@ -6536,7 +6629,7 @@ JokA:    cmp.b    #"a",d1
 JokB:    cmp.b    d0,d1
     beq.s    JokLoop
     bra.s    ReJok
-* N''importe quelle lettre!
+* N'importe quelle lettre!
 JokC:    cmp.b     #".",d1
     bne.s    JokLoop
     bra.s    ReJok
@@ -6586,7 +6679,7 @@ JokOUI:    moveq    #1,d0
     jsr    _LVOOpen(a6)
     move.l    (sp)+,a6
     move.l    d0,Handle(a5)
-; Branche la routine de nettoyage en cas d''erreur
+; Branche la routine de nettoyage en cas d'erreur
     move.l    a2,-(sp)
     lea    .Struc(pc),a1
     lea    Sys_ErrorRoutines(a5),a2
@@ -6788,15 +6881,269 @@ FsApp3:    cmp.w    d4,d6
     AmpLCallR  A_IffFormPlay,a2
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Sauvegarde d''ecran IFF
+;                     Sauvegarde d'ecran IFF
 ;    D7    Compression
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    IffSaveScreen
     AmpLCallR  A_IffSaveScreen,a2
+;; - - - - - - - - - - - - -
+;    move.l    ScOnAd(a5),a2
+;    move.l    Buffer(a5),a1
+;    move.l    #"FORM",(a1)+        * FORM
+;    clr.l    (a1)+            * Espace
+;    move.l    #"ILBM",(a1)+        * ILBM
+;    Rbsr    L_SaveA1
+;    Rbsr    L_SaveBMHD
+;    Rbsr    L_SaveCAMG
+;    Rbsr    L_SaveAMSC
+;    Rbsr    L_SaveCMAP
+;    Rbsr    L_SaveBODY
+;.Fin    moveq    #-1,d3
+;    moveq    #4,d2
+;    Rbsr    L_D_Seek
+;    subq.l    #8,d0
+;    move.l    Buffer(a5),a1
+;    move.l    d0,(a1)+
+;    Rbsr    L_SaveA1
+    rts
+;
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;;                     Sauve le BMHD
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Lib_Def    SaveBMHD
+;; - - - - - - - - - - - - -
+;    move.l    Buffer(a5),a1
+;    move.l    #"BMHD",(a1)+
+;    move.l    #20,(a1)+
+;    move.w    EcTx(a2),(a1)+
+;    move.w    EcTy(a2),(a1)+
+;    clr.w    (a1)+
+;    clr.w    (a1)+
+;    move.b    EcNPlan+1(a2),(a1)+
+;    clr.b    (a1)+
+;    move.b    d7,(a1)+
+;    clr.b    (a1)+
+;    clr.w    (a1)+
+;    moveq    #20,d0
+;    moveq    #22,d1
+;    move.w    EcWTx(a2),d2
+;    move.w    EcWTy(a2),d3
+;    move.w    EcCon0(a2),d4
+;    bpl.s    Sbmhd1
+;    lsr.w    #1,d0
+;    lsl.w    #1,d2
+;Sbmhd1    btst    #2,d4
+;    beq.s    Sbmhd2
+;    lsr.w    #1,d1
+;    lsl.w    #1,d3
+;Sbmhd2    move.b    d0,(a1)+
+;    move.b    d1,(a1)+
+;    move.w    d2,(a1)+
+;    move.w    d3,(a1)+
+;    Rbra    L_SaveA1
+    rts
+;
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;;                     Sauve la CMAP
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Lib_Def    SaveCMAP
+;; - - - - - - - - - - - - -
+;    move.l    Buffer(a5),a1
+;    move.l    #"CMAP",(a1)+
+;    move.l    #32*3,(a1)+
+;    moveq    #31,d0
+;    lea    EcPal(a2),a0
+;SCm1    move.w    (a0)+,d1
+;    lsl.w    #4,d1
+;    moveq    #2,d2
+;SCm2    rol.w    #4,d1
+;    move.w    d1,d3
+;    and.w    #$000F,d3
+;    lsl.w    #4,d3
+;    move.b    d3,(a1)+
+;    dbra    d2,SCm2
+;    dbra    d0,SCm1
+;    Rbra    L_SaveA1
+    rts
+;
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;;                     Sauve la CAMG
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Lib_Def    SaveCAMG
+;; - - - - - - - - - - - - -
+;    move.l    Buffer(a5),a1
+;    move.l    #"CAMG",(a1)+
+;    move.l    #4,(a1)+
+;    moveq    #0,d0
+;    move.w    EcCon0(a2),d0
+;    and.w    #%1000100000000110,d0
+;    cmp.w    #64,EcNbCol(a2)
+;    bne.s    SCa
+;    btst    #11,d0
+;    bne.s    SCa
+;    bset    #7,d0
+;SCa    move.l    d0,(a1)+
+;    Rbra    L_SaveA1
+    rts
+;
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;;                     Sauve le AMSC
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Lib_Def    SaveAMSC
+;; - - - - - - - - - - - - -
+;    move.l    Buffer(a5),a1
+;    move.l    #"AMSC",(a1)+
+;    move.l    #7*2,(a1)+
+;    move.w    EcAWX(a2),(a1)+
+;    move.w    EcAWY(a2),(a1)+
+;    move.w    EcAWTX(a2),(a1)+
+;    move.w    EcAWTY(a2),(a1)+    
+;    move.w    EcAVX(a2),(a1)+
+;    move.w    EcAVY(a2),(a1)+
+;    move.w    EcFlags(a2),d0
+;    and.w    #$8000,d0
+;    move.w    d0,(a1)+
+;    Rbra    L_SaveA1
+    rts
+;
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;;                     Sauve le BODY
+;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Lib_Def    SaveBODY
+;; - - - - - - - - - - - - -
+;    move.l    Buffer(a5),a1
+;    move.l    #"BODY",(a1)+
+;    tst.b    d7
+;    bne.s    SBc
+;* Non compacte
+;    move.l    EcTPlan(a2),d0        * Entete
+;    mulu    EcNPlan(a2),d0
+;    move.l    d0,(a1)+
+;    Rbsr    L_SaveA1
+;    move.w    EcTy(a2),d7        * Image
+;    moveq    #0,d3
+;    move.w    EcTLigne(a2),d3
+;    moveq    #0,d4
+;SBo1    move.w    EcNPlan(a2),d6
+;    lea    EcLogic(a2),a0
+;SBo2    move.l    (a0)+,d2
+;    add.l    d4,d2
+;    Rbsr    L_D_Write
+;    Rbne    L_DiskError
+;    subq.w    #1,d6
+;    bne.s    SBo2
+;    add.l    d3,d4
+;    subq.w    #1,d7
+;    bne.s    SBo1
+;    rts
+;* Compacte!
+;SBc:    clr.l    (a1)+
+;    Rbsr    L_SaveA1
+;    moveq    #0,d2            * Position dans le fichier
+;    moveq    #0,d3
+;    Rbsr    L_D_Seek
+;    move.l    d0,-(sp)
+;    moveq    #0,d7
+;    move.w    EcTy(a2),d6
+;    moveq    #0,d5
+;    move.w    EcTLigne(a2),d5
+;    moveq    #0,d4
+;    move.l    a3,-(sp)
+;    move.w    EcNPlan(a2),-(sp)
+;    pea    EcLogic(a2)
+;SBc1    move.l    (sp),a2
+;    move.w    4(sp),d3
+;    move.l    Buffer(a5),a1
+;SBc2    move.w    d5,d2
+;    move.l    (a2)+,a0
+;    add.l    d4,a0
+;SBc3    moveq    #0,d1            
+;    move.b    (a0)+,d0
+;    subq.w    #1,d2
+;    beq.s    SBc5a
+;SBc4    cmp.b    (a0),d0
+;    bne.s    SBc5
+;    addq.l    #1,d1
+;    addq.l    #1,a0
+;    cmp.w    #127,d1
+;    bcc.s    SBc5
+;    subq.w    #1,d2
+;    bne.s    SBc4
+;SBc5    tst.w    d1
+;    beq.s    SBc6
+;    neg.b    d1
+;    move.b    d1,(a1)+
+;    move.b    d0,(a1)+
+;    tst.w    d2
+;    bne.s    SBc3
+;    bra.s    SBc10
+;SBc5a    clr.b    (a1)+
+;    move.b    d0,(a1)+
+;    bra.s    SBc10
+;SBc6    move.l    a1,a3
+;    moveq    #0,d1
+;    clr.b    (a1)+
+;    move.b    d0,(a1)+
+;SBc7    move.b    (a0),d0
+;    cmp.b    1(a0),d0
+;    bne.s    SBc8
+;    cmp.b    2(a0),d0
+;    beq.s    SBc9
+;SBc8    move.b    (a0)+,(a1)+
+;    addq.w    #1,d1
+;    subq.w    #1,d2
+;    beq.s    SBc9
+;    cmp.w    #127,d1
+;    bcs.s    SBc7
+;SBc9    move.b    d1,(a3)
+;    tst.w    d2
+;    bne.s    SBc3
+;* Autre plan?
+;SBc10    subq.w    #1,d3
+;    bne.s    SBc2
+;* Sauve le buffer
+;    move.l    Buffer(a5),d2
+;    move.l    a1,d3
+;    sub.l    d2,d3
+;    add.l    d3,d7
+;    Rbsr    L_D_Write
+;    Rbne    L_DiskError
+;* Encore une ligne?
+;    add.l    d5,d4
+;    subq.w    #1,d6
+;    bne    SBc1
+;* A y est!
+;    addq.l    #6,sp
+;    move.l    (sp)+,a3
+;* Rend le chunk pair
+;    btst    #0,d7
+;    beq.s    SBc11
+;    move.l    Buffer(a5),a1
+;    clr.b    (a1)
+;    move.l    a1,d2
+;    moveq    #1,d3
+;    Rbsr    L_D_Write
+;    Rbne    L_DiskError
+;    addq.l    #1,d7
+;* Marque la longueur du chunk!
+;SBc11    move.l    (sp)+,d2        * Debut du chunk
+;    subq.l    #4,d2
+;    moveq    #-1,d3
+;    Rbsr    L_D_Seek
+;    move.l    d0,-(sp)
+;    move.l    Buffer(a5),a1        * Sauve la longueur
+;    move.l    d7,(a1)
+;    move.l    a1,d2
+;    moveq    #4,d3
+;    Rbsr    L_D_Write
+;    Rbne    L_DiskError
+;    move.l    (sp)+,d2        * Remet a la fin
+;    moveq    #-1,d3
+;    Rbsr    L_D_Seek
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Sauve jusqu''a A1
+;                     Sauve jusqu'a A1
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    SaveA1
 ; - - - - - - - - - - - - -
@@ -6874,33 +7221,28 @@ FsApp3:    cmp.w    d4,d6
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     TROUVE L''ADRESSE DE LA BANQUE D0
+;                     TROUVE L'ADRESSE DE LA BANQUE D0
 ;    OUT    BEQ Pas trouve, BNE Trouve, D0=Flags / A1=Adresse
 ;    Ne pas changer sans voir GETBOB / GETICON
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.GetAdr
 ; - - - - - - - - - - - - -
-    move.l     Cur_Banks(a5),a0    ; Banks list pointer
-    move.l     (a0),d1             ; D1 = Pointer to the current bank list
-    beq.s      .Nof                ; null = no banks in memory
-.Loop
-    move.l     d1,a1               ; A1 = Pointer to the current bank list
-    cmp.l      8(a1),d0            ; If (A1,8)=D0  ( D0 = flag for bobs or icons )
-    beq.s      .Fnd                ; = -> Correct bank found -> jump .fnd
-    move.l     (a1),d1             ; D1 = Next bank pointer
-    bne.s      .Loop               ; Continue search through banks
-.Nof                               ; D1 = null
-    sub.l      a1,a1               ; A1 = 0
-    move.l     a1,a0               ; A0 = 0
-    rts                            ; Return (not found)
-.Fnd
-;    move.l     a1,a2               ; *****************  2020.04.30 Backup Bank into A2
-    move.w     8+4(a1),d0          ; D0 = Current Bank Adress + 12
-    lea        8*3(a1),a0          ; A0 = Current Bank Adress + 24
-    move.l     a0,a1               ; A1 = A0
-    move.w     #%00000,CCR         ; Clear CCR
-    rts                            ; Return (found)
-
+    move.l    Cur_Banks(a5),a0
+    move.l    (a0),d1
+    beq.s    .Nof
+.Loop    move.l    d1,a1
+    cmp.l    8(a1),d0
+    beq.s    .Fnd
+    move.l    (a1),d1
+    bne.s    .Loop
+.Nof    sub.l    a1,a1
+    move.l    a1,a0
+    rts
+.Fnd    move.w    8+4(a1),d0
+    lea    8*3(a1),a0
+    move.l    a0,a1
+    move.w    #%00000,CCR
+    rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     TROUVE ADRESSE BANQUE SPRITES
@@ -6916,7 +7258,7 @@ FsApp3:    cmp.w    d4,d6
 .Nof    movem.l    (sp)+,d0/d1
     rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     TROUVE L''ADRESSE BANQUE ICONES
+;                     TROUVE L'ADRESSE BANQUE ICONES
 ;    OUT    D0/A0/A1=    adresse
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.GetIcons
@@ -6936,12 +7278,12 @@ FsApp3:    cmp.w    d4,d6
     Lib_Def    Bnk.Eff
 ; - - - - - - - - - - - - -
     movem.l    d0-d2/a0-a2,-(sp)
-; Trouve l''adresse
+; Trouve l'adresse
     Rbsr    L_Bnk.GetAdr
     beq.s    .Out
-; Appelle la routine d''effacement
+; Appelle la routine d'effacement
     Rbsr    L_Bnk.EffA0
-; Fin de l''effacement des banques
+; Fin de l'effacement des banques
 .Out    movem.l    (sp)+,a0-a2/d0-d2
     rts
 
@@ -6949,11 +7291,32 @@ FsApp3:    cmp.w    d4,d6
 ;                     EFFACEMENT BANQUE A0=Adresse
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.EffA0
-    move.l     a1,-(sp)
-    AmpLCallR  A_BnkEffA0,a1
-    move.l     (sp)+,a1
-    rts
 ; - - - - - - - - - - - - -
+    move.w    -16+4(a0),d0
+    btst    #Bnk_BitIcon,d0
+    bne.s    .Spr
+    btst    #Bnk_BitBob,d0
+    beq.s    .Nor
+; Une banque de Sprites / Icones
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.Spr    movem.l    a0/a2/d2,-(sp)
+    move.l    a0,a2
+; Efface les sprites
+    move.w    (a2)+,d2        Nombre de bobs
+    subq.w    #1,d2
+    bmi.s    .Skip
+.Loop    move.l    a2,a0            Va effacer la definition
+    Rbsr    L_Bnk.EffBobA0
+    addq.l    #8,a2
+    dbra    d2,.Loop
+.Skip    movem.l    (sp)+,a0/a2/d2        Recharge les pointeurs zone de def
+; Une banque normale
+; ~~~~~~~~~~~~~~~~~~
+.Nor    clr.l    -8(a0)            Efface le NOM de la banque    
+    clr.l    -8+4(a0)
+    lea    -8*3(a0),a1        Pointe le debut dans la liste
+    move.l    Cur_Banks(a5),a0
+    Rjmp    L_Lst.Del
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     EFFACEMENT BOBS/ICONS A0=Adresse
@@ -6961,7 +7324,7 @@ FsApp3:    cmp.w    d4,d6
     Lib_Def    Bnk.EffBobA0
 ; - - - - - - - - - - - - -
     movem.l    a0/a1/a2/d0/d1,-(sp)
-    move.l     a0,a2
+    move.l    a0,a2
 ; Efface le bob
     move.l    (a2),d1
     beq.s    .No1
@@ -7038,7 +7401,7 @@ FsApp3:    cmp.w    d4,d6
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     TROUVE L''ADRESSE BOB D0>A0
+;                     TROUVE L'ADRESSE BOB D0>A0
 ;    IN    D0    Numero
 ;    OUT    A0/D0    Adresse (BNE)
 ;        D1    Max de bobs
@@ -7114,9 +7477,95 @@ FsApp3:    cmp.w    d4,d6
     Rbra    L_Bnk.Ric2
 ; - - - - - - - - - - - - -
     Lib_Def    Bnk.Ric2
-    AmpLCallR  A_BnkReserveIC2,a2
-    movem.l    (sp)+,d2-d7/a2-a3
-    tst.w      d0
+; - - - - - - - - - - - - -
+    move.w    d2,d4
+    moveq    #0,d3
+    move.w    d1,d3
+    move.l    d0,d2
+    move.l    a1,a3
+; Reserve une nouvelle table de pointeurs
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    move.l    d3,d0
+    lsl.l    #3,d0
+    add.l    #8*2+2+64,d0
+    move.l    Cur_Banks(a5),a0
+    Rjsr    L_Lst.New
+    beq    .Err
+    lea    8(a1),a2
+; Entete de la banque
+; ~~~~~~~~~~~~~~~~~~~
+    moveq    #1,d0            Numero (1 ou 2)
+    Rlea    L_BkSpr,0
+    btst    #Bnk_BitIcon,d4
+    beq.s    .Pai
+    moveq    #2,d0
+    Rlea    L_BkIco,0
+.Pai    move.l    d0,(a2)+        Numero        
+    move.w    d4,(a2)+        Flag
+    clr.w    (a2)+            Vide!
+    move.l    (a0)+,(a2)+        Nom
+    move.l    (a0)+,(a2)+
+    move.l    a2,a1
+; Recopier l'ancienne banque?
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    move.w    d3,(a1)+        Nombre de bobs
+    tst.w    d2            Negatif>>> copie la palette
+    bmi.s    .ECop
+    beq    .PaCopy
+    move.l    a3,d0
+    beq.s    .PaCopy
+    move.l    a3,a0
+    move.w    (a0)+,d0    
+    cmp.w    d3,d0            Moins de bobs dans la nouvelle?
+    bls.s    .Paplu
+    move.w    d3,d0
+.Paplu    subq.w    #1,d0            Copie des bobs
+    bmi.s    .ECop
+.BCop    move.l    (a0),(a1)+        Efface leur origine,
+    clr.l    (a0)+            car la banque sera effacee!
+    move.l    (a0),(a1)+
+    clr.l    (a0)+
+    dbra    d0,.BCop
+.ECop    move.w    (a3),d0            Copie de la palette
+    lsl.w    #3,d0
+    lea    2(a3,d0.w),a0
+    bra.s    .PPal
+; Pas de recopie de l'ancienne banque
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.PaCopy    lea    DefPal(a5),a0
+    move.l    ScOnAd(a5),d0
+    beq.s    .PPal
+    move.l    d0,a0
+    lea    EcPal(a0),a0
+.PPal    move.w    d3,d1
+    lsl.w    #3,d1
+    lea    2(a2,d1.w),a1
+    moveq    #32-1,d0
+.CPal    move.w    (a0)+,(a1)+
+    dbra    d0,.CPal
+; Efface l'ancienne banque
+; ~~~~~~~~~~~~~~~~~~~~~~~~
+.EBank    tst.w    d2    
+    bmi.s    .Paeff
+    move.l    a3,d0
+    beq.s    .Paeff
+    move.l    d0,a0
+    Rbsr    L_Bnk.EffA0
+.Paeff
+; Pas d'erreur
+; ~~~~~~~~~~~~
+    move.l    a2,a0
+    move.l    a3,a1
+    moveq    #0,d0
+    bra.s    .Out
+; Out of mem!
+; ~~~~~~~~~~~
+.Err    sub.l    a0,a0
+    moveq    #-1,d0
+; Sortie, envoie l'adresse des bobs à la trappe
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.Out    movem.l    (sp)+,d2-d7/a2-a3
+    tst.w    d0
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7180,16 +7629,16 @@ FsApp3:    cmp.w    d4,d6
     movem.l    d2-d4/a2,-(sp)
     move.l    d0,d3
     move.l    a0,a1
-; Agrandi la banque d''une unite
+; Agrandi la banque d'une unite
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    moveq    #-1,d0            Garder l''ancienne, ne pas copier
+    moveq    #-1,d0            Garder l'ancienne, ne pas copier
     move.w    (a1),d1            
     addq.w    #1,d1            Un bob de plus
     move.w    -16+4(a1),d2        Flag de la banque
     Rbsr    L_Bnk.Ric
     bne.s    .Out    
     move.l    a1,a2
-; Recopie l''ancienne dans la nouvelle, en faisant un trou!
+; Recopie l'ancienne dans la nouvelle, en faisant un trou!
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     addq.l    #2,a0
     move.w    (a1)+,d1
@@ -7212,7 +7661,7 @@ FsApp3:    cmp.w    d4,d6
     bne.s    .Skup
     move.l    a0,d4
 .Skup
-; Efface l''ancienne
+; Efface l'ancienne
 ; ~~~~~~~~~~~~~~~~~
     move.l    a2,a0
     Rbsr    L_Bnk.EffA0
@@ -7261,7 +7710,7 @@ FsApp3:    cmp.w    d4,d6
     beq.s    .DBank
 ; Reduit la banque
 ; ~~~~~~~~~~~~~~~~
-    moveq    #-1,d0            Garder l''ancienne
+    moveq    #-1,d0            Garder l'ancienne
 ;                    D1= nombre de bobs
     move.w    -16+4(a1),d2        Flag de la banque
     Rbsr    L_Bnk.Ric
@@ -7297,7 +7746,29 @@ FsApp3:    cmp.w    d4,d6
 ;                     REMET LES BOBS DROITS BANQUE A0
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.UnRev
-    AmpLCallR  A_BnkUnRev,a1
+; - - - - - - - - - - - - -
+    movem.l    d0-d7/a0-a6,-(sp)
+    move.l    a0,a2
+    move.w    (a2)+,d2
+    subq.w    #1,d2
+    bmi.s    .URbx
+; Va retourner
+; ~~~~~~~~~~~~
+.URb1    move.l    a2,a1
+    moveq    #0,d1
+    EcCall    DoRev
+; Remet le point chaud, si negatif!!!
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    move.l    (a2),d0        
+    beq.s    .URb2
+    move.l    d0,a0
+    move.w    6(a0),d0
+    lsl.w    #2,d0
+    asr.w    #2,d0
+    move.w    d0,6(a0)
+.URb2    lea    8(a2),a2
+    dbra    d2,.URb1
+.URbx    movem.l    (sp)+,d0-d7/a0-a6
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7358,7 +7829,7 @@ FsApp3:    cmp.w    d4,d6
     moveq    #0,d5            Taille bobs
     move.l    Cur_Banks(a5),a1
     bra.s    .Next
-; Boucle d''exploration
+; Boucle d'exploration
 .Loop    move.l    d1,a1
     lea    3*8(a1),a0
     Rbsr    L_Bnk.Length
@@ -7383,7 +7854,7 @@ FsApp3:    cmp.w    d4,d6
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     CALCULE LA TAILLE D''UNE BANQUE
+;     CALCULE LA TAILLE D'UNE BANQUE
 ;    A0= banque
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.Length
@@ -7456,7 +7927,7 @@ FsApp3:    cmp.w    d4,d6
     Lib_Def    Bnk.List
 ; - - - - - - - - - - - - -
     movem.l    d1-d4/a2,-(sp)
-; Trouve la bonne banque, dans l''ordre
+; Trouve la bonne banque, dans l'ordre
     move.l    #65536,d1
     move.l    Cur_Banks(a5),a0
     bra.s    .B2
@@ -7787,7 +8258,54 @@ FsApp3:    cmp.w    d4,d6
 ;                     SCREEN OPEN
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InScreenOpen
-    AmpLCallR  A_InScreenOpen,a2
+; - - - - - - - - - - - - -
+    Rbsr    L_SaveRegs
+    move.l    d3,d5            * Mode
+    and.l    #$8004,d5
+* Ham?
+    move.l    (a3)+,d6
+    cmp.l    #4096,d6
+    bne.s    ScOo0
+    tst.w    d5            * Lowres only!
+    Rbmi    L_FonCall
+    moveq    #6,d4
+    or.w    #$0800,d5
+    moveq    #64,d6
+    bra.s    ScOo2
+* Nombre de couleurs-> plans
+ScOo0:    moveq    #1,d4            * Nb de plans
+    moveq    #2,d1
+ScOo1:    cmp.l    d1,d6
+    beq.s    ScOo2
+    lsl.w    #1,d1
+    addq.w    #1,d4
+    cmp.w    #7,d4
+    bcs.s    ScOo1
+IlNCo:    moveq    #5,d0            * Illegal number of colours
+    Rbra    L_EcWiErr
+ScOo2:    move.l    (a3)+,d3        * TY
+    move.l    (a3)+,d2        * TX
+    move.l    (a3)+,d1        * Numero
+    Rbsr    L_CheckScreenNumber
+    tst.w    d5            * Si HIRES, pas plus de 16 couleurs
+    bpl.s    ScOo3
+    cmp.w    #4,d4
+    Rbhi    L_FonCall    
+ScOo3:    lea    DefPal(a5),a1
+    EcCall    Cree
+    Rbne    L_EcWiErr
+    move.l    a0,ScOnAd(a5)
+    move.w    EcNumber(a0),ScOn(a5)
+    addq.w    #1,ScOn(a5)
+* Fait flasher la couleur 3 (si plus de 2 couleurs)
+    cmp.w    #1,d4
+    beq.s    ScOo4
+    moveq    #3,d1
+    moveq    #46,d0
+    Rjsr    L_Sys_GetMessage
+    move.l    a0,a1
+    EcCall    Flash
+ScOo4    Rbsr    L_LoadRegs
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7815,16 +8333,15 @@ FsApp3:    cmp.w    d4,d6
 ;                     SCREEN DISPLAY
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InScreenDisplay
-    AmpLCallR  A_InScreenDisplay,a2
 ; - - - - - - - - - - - - -
-;    move.l    d3,d5
-;    move.l    (a3)+,d4
-;    move.l    (a3)+,d3
-;    move.l    (a3)+,d2
-;    move.l    (a3)+,d1
-;    Rbsr    L_CheckScreenNumber
-;    EcCall    AView
-;    Rbne    L_EcWiErr
+    move.l    d3,d5
+    move.l    (a3)+,d4
+    move.l    (a3)+,d3
+    move.l    (a3)+,d2
+    move.l    (a3)+,d1
+    Rbsr    L_CheckScreenNumber
+    EcCall    AView
+    Rbne    L_EcWiErr
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -8071,38 +8588,35 @@ FsApp3:    cmp.w    d4,d6
     Rbra    L_InGetPalette2
 ; - - - - - - - - - - - - -
     Lib_Par InGetPalette2
-    AmpLCallR  A_InGetPalette2,a2
-;; - - - - - - - - - - - - -
-;    move.l    (a3)+,d1
-;    Rbsr    L_GetEc
-;    lea    EcPal(a0),a0
-;    Rbra    L_GSPal
-    rts
-;; - - - - - - - - - - - - -
-    Lib_Def    GSPal
-    AmpLCallR  A_GSPal,a2
 ; - - - - - - - - - - - - -
-;    Rbsr    L_PalRout
-;    EcCall    SPal
-;    Rbne    L_EcWiErr
+    move.l    (a3)+,d1
+    Rbsr    L_GetEc
+    lea    EcPal(a0),a0
+    Rbra    L_GSPal
+; - - - - - - - - - - - - -
+    Lib_Def    GSPal
+; - - - - - - - - - - - - -
+    Rbsr    L_PalRout
+    EcCall    SPal
+    Rbne    L_EcWiErr
     rts
-;; - - - - - - - - - - - - -
+; - - - - - - - - - - - - -
     Lib_Def    PalRout
-;; - - - - - - - - - - - - -
-;    tst.w    ScOn(a5)
-;    Rbeq    L_ScNOp
-;    move.l    Buffer(a5),a1
-;    moveq    #0,d0
-;PalR1:    move.w    #$FFFF,(a1)
-;    btst    d0,d3
-;    beq.s    PalR2
-;    move.w    (a0),(a1)
-;PalR2:    addq.l    #2,a0
-;    addq.l    #2,a1
-;    addq.w    #1,d0
-;    cmp.w    #32,d0
-;    bcs.s    PalR1
-;    move.l    Buffer(a5),a1
+; - - - - - - - - - - - - -
+    tst.w    ScOn(a5)
+    Rbeq    L_ScNOp
+    move.l    Buffer(a5),a1
+    moveq    #0,d0
+PalR1:    move.w    #$FFFF,(a1)
+    btst    d0,d3
+    beq.s    PalR2
+    move.w    (a0),(a1)
+PalR2:    addq.l    #2,a0
+    addq.l    #2,a1
+    addq.w    #1,d0
+    cmp.w    #32,d0
+    bcs.s    PalR1
+    move.l    Buffer(a5),a1
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -8520,8 +9034,7 @@ ShD3:    move.l    (a3)+,d2
     cmp.w    d3,d1
     bcc.s    IBx1
     subq.w    #2,d1
-IBx1:
-    moveq    #4,d0
+IBx1    moveq    #4,d0
     move.w    #PolyDraw,d5
     Rbsr    L_GfxFunc
     rts
@@ -9140,7 +9653,94 @@ ScNoDef    moveq    #28,d0
 ;                     Routine SCREEN COPY
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Sco0
-    AmpLCallR  A_ScreenCopy0,a2
+; - - - - - - - - - - - - -
+    movem.l    a3/a6,-(sp)
+    tst.w    d0
+    bpl.s    Sco1
+    sub.w    d0,d2
+    clr.w    d0
+Sco1:    tst.w    d1
+    bpl.s    Sco2
+    sub.w    d1,d3
+    clr.w    d1
+Sco2:    tst.w    d2
+    bpl.s    Sco3
+    sub.w    d2,d0
+    clr.w    d2
+Sco3:    tst.w    d3
+    bpl.s    Sco4
+    sub.w    d3,d1
+    clr.w    d3
+Sco4:    cmp.w    EcTx(a0),d0
+    bcc    ScoX
+    cmp.w    EcTy(a0),d1
+    bcc    ScoX
+    cmp.w    EcTx(a1),d2
+    bcc    ScoX
+    cmp.w    EcTy(a1),d3
+    bcc    ScoX
+
+    tst.w    d4
+    bmi    ScoX
+    cmp.w    EcTx(a0),d4
+    bls.s    Sco5
+    move.w    EcTx(a0),d4
+Sco5:    tst.w    d5
+    bmi    ScoX
+    cmp.w    EcTy(a0),d5
+    bls.s    Sco6
+    move.w    EcTy(a0),d5
+Sco6:    sub.w    d0,d4
+    bls    ScoX
+    sub.w    d1,d5
+    bls    ScoX
+
+    move.w    d2,d7
+    add.w    d4,d7
+    sub.w    EcTx(a1),d7
+    bls.s    Sco7    
+    sub.w    d7,d4
+    bls    ScoX
+Sco7:    move.w    d3,d7
+    add.w    d5,d7
+    sub.w    EcTy(a1),d7
+    bls.s    Sco8
+    sub.w    d7,d5
+    bls.s    ScoX
+Sco8:    ext.l    d0
+    ext.l    d1
+    ext.l    d2
+    ext.l    d3
+    ext.l    d4
+    ext.l    d5
+; Cree des faux bitmaps
+    move.l    T_ChipBuf(a5),a2    Buffer en CHIP
+    lea    40(a2),a3
+    move.w    EcTLigne(a0),(a2)+
+    move.w    EcTLigne(a1),(a3)+
+    move.w    EcTy(a0),(a2)+
+    move.w    EcTy(a1),(a3)+
+    move.w    EcNPlan(a0),(a2)+
+    move.w    EcNPlan(a1),(a3)+
+    clr.w    (a2)+
+    clr.w    (a3)+
+    move.l    SccEcO(a5),a0
+    move.l    SccEcD(a5),a1
+    moveq    #5,d7
+.BM    move.l    (a0)+,(a2)+
+    move.l    (a1)+,(a3)+
+    dbra    d7,.BM    
+; Appelle les routines
+    move.l    T_ChipBuf(a5),a0
+    lea    40(a0),a1
+    lea    40(a1),a2
+    move.l    T_EcVect(a5),a6
+    jsr    ScCpyW*4(a6)
+    beq.s    ScoX
+    moveq    #-1,d7
+    move.l    T_GfxBase(a5),a6
+    jsr    BltBitMap(a6)
+ScoX    movem.l    (sp)+,a3/a6
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -9705,7 +10305,7 @@ ZooZ3    move.w    #-1,(a0)+
     addq.l    #1,d3
     tst.w    ScOn(a5)
     Rbeq    L_ScNOp
-    moveq    #8,d5            ??? Nb d''ecrans
+    moveq    #8,d5            ??? Nb d'ecrans
     SyCall    ZoGr
     tst.w    d0
     Rbne    L_EcWiErr
@@ -9735,7 +10335,7 @@ ZooZ3    move.w    #-1,(a0)+
     tst.w    ScOn(a5)
     Rbeq    L_ScNOp
     moveq    #8,d5
-    SyCall    ZoHd            ??? Nb d''ecrans
+    SyCall    ZoHd            ??? Nb d'ecrans
     tst.w    d0
     Rbne    L_EcWiErr
     move.l    d1,d3
@@ -9763,7 +10363,7 @@ ZooZ3    move.w    #-1,(a0)+
     addq.l    #1,d3
     tst.w    ScOn(a5)
     Rbeq    L_ScNOp
-    moveq    #8,d4            ??? Nb d''ecrans
+    moveq    #8,d4            ??? Nb d'ecrans
     SyCall    ScIn
     Rbne    L_EcWiErr
     move.l    d1,d3
@@ -9778,7 +10378,7 @@ ZooZ3    move.w    #-1,(a0)+
     Rbeq    L_ScNOp
     SyCall    XyMou
     moveq    #0,d3
-    moveq    #8,d4            ??? Nb d''ecrans
+    moveq    #8,d4            ??? Nb d'ecrans
     SyCall    ScIn
     move.l    d1,d3
     Ret_Int
@@ -9791,7 +10391,7 @@ ZooZ3    move.w    #-1,(a0)+
     Rbeq    L_ScNOp
     SyCall    XyMou
     moveq    #0,d3
-    moveq    #8,d5            ??? Nb d''ecrans
+    moveq    #8,d5            ??? Nb d'ecrans
     SyCall    ZoHd
     move.l    d1,d3
     Ret_Int
@@ -9974,7 +10574,7 @@ GrXy1:    cmp.l    #EntNul,d0
 GrXy2:    rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     Routines d''appel GFX avec AUTOBACK
+;                     Routines d'appel GFX avec AUTOBACK
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ; - - - - - - - - - - - - -
@@ -9988,7 +10588,7 @@ GrXy2:    rts
 ; - - - - - - - - - - - - -
     Lib_Def    GfxFunc
 ; - - - - - - - - - - - - -
-; Appel d''une fonction GFX avec autoback!
+; Appel d'une fonction GFX avec autoback!
     movem.l    a3-a6/d6-d7,-(sp)
     move.l    T_GfxBase(a5),a6
     lea    0(a6,d5.w),a3
@@ -10027,7 +10627,34 @@ GfxF2    jsr    (a3)
 ;                     Routine: #ecran D1 >>> adresse D0
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    GetEc
-    AmpLCallR  A_GetEc,a2
+; - - - - - - - - - - - - -
+    tst.l    d1
+    bmi.s    GtE1
+* >0 , <8
+    cmp.l    #8,d1
+    Rbcc    L_FonCall
+    EcCall    AdrEc
+    Rbeq    L_ScNOp
+    move.l    d0,a0
+    add.l    #EcLogic,d0
+    rts
+* <0
+GtE1    tst.w    d1
+    bpl.s    GtE2
+    move.l    ScOnAd(a5),d0
+    Rbeq    L_ScNOp
+    move.l    d0,a0
+    bra.s    GtE3
+GtE2    cmp.w    #8,d1
+    Rbcc    L_FonCall
+    EcCall    AdrEc
+    Rbeq    L_ScNOp
+    move.l    d0,a0
+GtE3    btst    #30,d1
+    bne.s    GtE4
+    add.l    #EcLogic,d0
+    rts
+GtE4    add.l    #EcPhysic,d0
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -10596,7 +11223,7 @@ InAMv2:    SyCall    AMALCre
     Rbra    L_EcWiErr
 .Exit    Rbsr    L_LoadRegs
     rts
-IAmE:    move.w    a0,PAmalE(a5)        * Offset de l''erreur
+IAmE:    move.w    a0,PAmalE(a5)        * Offset de l'erreur
     add.w    #SpEBase+2,d0
     Rbra    L_GoError
 
@@ -10878,7 +11505,7 @@ IAmRb:    SyCall    AMALReg
 ; - - - - - - - - - - - - -
     tst.w    ScOn(a5)
     Rbeq    L_ScNOp
-    SyCall    LimitMEc        ??? Nb d''ecrans
+    SyCall    LimitMEc        ??? Nb d'ecrans
     Rbne    L_EcWiErr
     rts
 ; - - - - - - - - - - - - -
@@ -11309,8 +11936,8 @@ FHc1    move.w    d3,d1
     move.l    a0,a2
     Rbsr    L_Bnk.EffBobA0
     bra.s    .Suite
-; Appelle l''agrandissement (soit pas banque, soit trop grand)
-.New    moveq    #1,d0            Recopier l''ancienne!
+; Appelle l'agrandissement (soit pas banque, soit trop grand)
+.New    moveq    #1,d0            Recopier l'ancienne!
     move.l    (a3),d1            Taille nouvelle banque
     Rbsr    L_Bnk.ResBob
     Rbne    L_OOfMem
@@ -11359,7 +11986,7 @@ FHc1    move.w    d3,d1
     move.l    a0,a2
     Rbsr    L_Bnk.EffBobA0
     bra.s    .Suite
-; Appelle l''agrandissement (soit pas banque, soit trop grand)
+; Appelle l'agrandissement (soit pas banque, soit trop grand)
 .New    moveq    #1,d0            Recopier la banque
     move.l    (a3),d1            Adresse nouvel icone
     Rbsr    L_Bnk.ResIco
@@ -11496,7 +12123,7 @@ FsBi2    move.l    (a2),d3
     Ret_Int
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-; Trouve l''adresse d''un bob / Icone, 
+; Trouve l'adresse d'un bob / Icone, 
 ; Avec gestion des erreurs
 ;     IN    D1=    Numero
 ;    OUT    A2=    Adresse
@@ -13053,7 +13680,7 @@ hx3:    Rjsr     L_LongToBin
 .Ch    move.l    d0,a0
 .Suite    move.l    (a3)+,d0
     Rble    L_FonCall
-; Appelle l''initialisation
+; Appelle l'initialisation
     clr.l    IDia_Error(a5)
     Rjsr    L_Dia_OpenChannel
     tst.w    d0
@@ -13419,7 +14046,7 @@ hx3:    Rjsr     L_LongToBin
     Rbsr    L_D_Read
     Rbne    L_DiskError
     Rbsr    L_D_Close
-; Pousse l''adresse
+; Pousse l'adresse
     move.l    TempBuffer(a5),-(a3)
     Rbra    L_IRText
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -13436,7 +14063,7 @@ hx3:    Rjsr     L_LongToBin
     Lib_Def    IRText
 ; - - - - - - - - - - - - -
     Rbsr    L_SaveRegs
-; De l''hypertexte?
+; De l'hypertexte?
 ; ~~~~~~~~~~~~~~~~
     moveq    #0,d0
     lsr.l    #4,d3            moyenne 16 par ligne    
@@ -13455,7 +14082,7 @@ hx3:    Rjsr     L_LongToBin
     addq.l    #8,(a3)
 .Skip    move.l    d0,-(a3)
     move.l    d3,-(a3)
-; Stocke le numero de l''ecran courant
+; Stocke le numero de l'ecran courant
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     moveq    #-1,d0
     move.l    T_EcCourant(a5),d1
@@ -13463,7 +14090,7 @@ hx3:    Rjsr     L_LongToBin
     move.l    d1,a0
     move.w    EcNumber(a0),d0
 .Skup    move.w    d0,TRd_OldEc(a5)
-; Ouverture de l''ecran
+; Ouverture de l'ecran
 ; ~~~~~~~~~~~~~~~~~~~~
     Rbsr    L_Dia_GetDefault
     move.l    a1,a0
@@ -13509,7 +14136,7 @@ hx3:    Rjsr     L_LongToBin
     Rjsr    L_Dia_RunProgram
     tst.l    d0
     bne    .OutM
-; Ouverture de l''ecran
+; Ouverture de l'ecran
 ; ~~~~~~~~~~~~~~~~~~~~
     move.l    d7,-(sp)
     move.l    T_EcAdr+EcFsel*4(a5),a2
@@ -13521,7 +14148,7 @@ hx3:    Rjsr     L_LongToBin
     add.w    d0,d5
     Rjsr    L_AppCentre
     move.l    (sp)+,d7
-; Animation de l''ecran, uniquement READ TEXT
+; Animation de l'ecran, uniquement READ TEXT
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l    ChVide(a5),ParamC(a5)
 .Loop    move.l    d7,-(sp)
@@ -13565,7 +14192,7 @@ hx3:    Rjsr     L_LongToBin
 .Quit    move.l    d0,-(sp)
     move.l    d7,d0
     Rjsr    L_Dia_CloseChannel
-; Fermeture de l''ecran
+; Fermeture de l'ecran
 ; ~~~~~~~~~~~~~~~~~~~~
     move.l    T_EcAdr+EcFsel*4(a5),a2
     move.w    PI_RtSpeed(a5),d7
@@ -13622,7 +14249,7 @@ hx3:    Rjsr     L_LongToBin
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Retourne l''adresse de la banque PUZZLE
+;     Retourne l'adresse de la banque PUZZLE
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_GetPuzzle
 ; - - - - - - - - - - - - -
@@ -14084,7 +14711,7 @@ OMnEx:    movem.l    (sp)+,d0/a1
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par InMenuToBank
 ; - - - - - - - - - - - - -
-* Taille de l''arbre de menu
+* Taille de l'arbre de menu
     move.l    MnBase(a5),d0
     Rbeq    L_FonCall
     sub.l    a1,a1
@@ -14135,7 +14762,7 @@ MnTb2    move.l    MnNext(a2),d0
     sub.l    d3,MnNext(a3)
     bra.s    MnTb
 MnTb3    rts
-* Copie d''un objet
+* Copie d'un objet
 MnTbC    move.l    (a0),d0
     beq.s    MnTbc2
     move.l    a1,(a0)
@@ -14450,7 +15077,7 @@ Imnbs2    rts
 ; - - - - - - - - - - - - -
     tst.l    MnBase(a5)
     Rbeq    L_MnNOp
-* Active l''ecran du menu!
+* Active l'ecran du menu!
     move.l    T_EcCourant(a5),a0
     move.w    EcNumber(a0),MnScOn(a5)
     move.l    MnAdEc(a5),d0
@@ -14463,7 +15090,7 @@ Imnbs2    rts
     EcCall    MnStart
 * Va calculer les coordonnees
     Rjsr    L_MnCalc
-* Remet l''ecran
+* Remet l'ecran
     Rjsr    L_MnEnd1
     rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -14497,8 +15124,8 @@ Imnbs2    rts
     movem.l    a0-a2/d0-d5,-(sp)    
     movem.l    a3-a6/d6-d7,-(sp)
     move.l    sp,MnRA3(a5)        Pour recupere les registres
-    clr.w    MnError(a5)        Pas d''erreur
-* Active l''ecran du menu!
+    clr.w    MnError(a5)        Pas d'erreur
+* Active l'ecran du menu!
     move.l    T_EcCourant(a5),a0
     move.w    EcNumber(a0),MnScOn(a5)
     move.l    MnAdEc(a5),d0
@@ -14602,7 +15229,7 @@ MnLp1:    move.w    d1,d4
     beq    MnExit
     btst    #0,d1
     bne    MnBGoch
-* Verifie que la nouvelle case n''est pas DEJA ouverte
+* Verifie que la nouvelle case n'est pas DEJA ouverte
 MnLp2    tst.w    d4
     beq.s    MnLp2a
     bsr    ZoToMn
@@ -14680,7 +15307,7 @@ MnEx3    move.l    MnAct(a5),a1
     move.w    #-1,MnChoice(a5)
 * Ferme tout
 MnExX    Rbsr    L_MnEnd
-* Remet l''ecran du moniteur
+* Remet l'ecran du moniteur
     move.l    Patch_ScFront(a5),d0
     beq.s    .Skip
     move.l    d0,a0
@@ -14692,7 +15319,7 @@ MnExX    Rbsr    L_MnEnd
     movem.l    d6/d7,Chr_Debug+4(a5)
     ENDC
     movem.l    (sp)+,a0-a2/d0-d5
-    moveq    #0,d0                Pas d''erreur!
+    moveq    #0,d0                Pas d'erreur!
     rts
 
 ;    CLIQUE AVEC LE BOUTON GAUCHE
@@ -14701,7 +15328,7 @@ MnBGoch
 * En dehors?
     tst.w    d4
     beq    MnLoop
-* Efface tout jusqu''a son niveau
+* Efface tout jusqu'a son niveau
     bsr    ZoToMn
     Rbsr    L_MnDEff
     tst.w    MnZoAct(a5)
@@ -14776,7 +15403,7 @@ MnMgL    bsr    MnMgD
     and.b    #3,d1
     cmp.b    #3,d1
     beq.s    MnMgL
-* Change les coordonnees relatives de l''objet/arbre
+* Change les coordonnees relatives de l'objet/arbre
 MnMgR    move.l    MnTDraw(a5),a0
     move.w    (a0)+,d2
     move.w    (a0)+,d3
@@ -14785,7 +15412,7 @@ MnMgR    move.l    MnTDraw(a5),a0
     add.w    d2,MnX(a2)
     add.w    d3,MnY(a2)
     bset    #MnFixed,MnFlag(a2)
-* Retabli l''objet suivant dans l''arbre
+* Retabli l'objet suivant dans l'arbre
     move.l    MnNext(a2),d0
     beq.s    MnMgR3
     btst    #MnFlat,MnFlag(a2)
@@ -14802,7 +15429,7 @@ MnMgR2    move.l    d0,a0
     sub.w    d2,MnX(a0)
     sub.w    d3,MnY(a0)
     bset    #MnFixed,MnFlag(a0)
-* Efface l''arbre
+* Efface l'arbre
 MnMgR3    bsr    MnMgF
     move.l    (sp)+,a2
     Rbsr    L_MnEBranch
@@ -14819,7 +15446,7 @@ MnMgR4    Rbsr    L_MnBranch
 MnMgX    movem.l    (sp)+,a3-a6/d4-d7
     bra    MnLoop
 
-;    Trouve l''adresse d''un zone
+;    Trouve l'adresse d'un zone
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;    D4= Zone
 ;    D5= Niveau sortie                     
@@ -14963,8 +15590,8 @@ MnErr    Rbsr    L_MnEnd
     movem.l    a0-a6/d0-d7,-(sp)
     moveq    #0,d1            * Efface toutes les zones
     SyCall    ResZone
-    EcCall    MnStop            * Remet l''ecran
-    move.w    MnScOn(a5),d1        * Reactive l''ecran courant
+    EcCall    MnStop            * Remet l'ecran
+    move.w    MnScOn(a5),d1        * Reactive l'ecran courant
     EcCall    Active
     clr.w    MnProc(a5)        * Plus de procedure!
     movem.l    (sp)+,a0-a6/d0-d7
@@ -15005,7 +15632,7 @@ MnEBr1    move.l    d0,a2
     SyCall    RazZone
     move.l    MnNext(a2),d0
     bne.s    MnEBr1
-* Restore l''image -en sens inverse!-
+* Restore l'image -en sens inverse!-
 MnEBr2    tst.l    MnAdSave(a2)
     beq.s    MnEBr3
     Rbsr    L_MnRest
@@ -15020,13 +15647,13 @@ MnEBr4    movem.l    (sp)+,a2/d0/d1/d7
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     MNCALC: Calcule les positions de l''arbre
+;     MNCALC: Calcule les positions de l'arbre
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    MnCalc
 ; - - - - - - - - - - - - -
     movem.l    d0-d7/a2,-(sp)
     clr.w    MnChange(a5)
-* Explore tout l''arbre
+* Explore tout l'arbre
     clr.w    MnNZone(a5)
     move.l    MnBase(a5),d0
     moveq    #0,d4
@@ -15070,10 +15697,10 @@ MnCa0a    move.l    d0,a2
     bne.s    MnCa1
     addq.w    #2,d4
     addq.w    #2,d5
-* Exploration d''un arbre
+* Exploration d'un arbre
 MnCa1    move.l    d0,a2
     addq.w    #1,MnNZone(a5)
-* Fixe les coordonnees d''un objet
+* Fixe les coordonnees d'un objet
     btst    #MnFixed,MnFlag(a2)
     bne.s    MnCa2
     move.w    d4,MnX(a2)
@@ -15088,7 +15715,7 @@ MnCa2    moveq    #0,d4
     move.w    d3,MnTy(a2)
     move.w    d0,d2
     move.w    d1,d3
-* Exploration recursive d''une collaterale
+* Exploration recursive d'une collaterale
     move.l    MnLat(a2),d0
     beq.s    MnCa7
     movem.w    d2-d5,-(sp)
@@ -15109,7 +15736,7 @@ MnCa7    btst    #MnBar,MnFlag(a2)        * Taille automatique!
 MnCa8    clr.w    d2
 MnCa9    move.w    d2,d4
     move.w    d3,d5
-* Passe a l''objet suivant
+* Passe a l'objet suivant
 MnCaN:    move.l    MnNext(a2),d0
     beq.s    MnCaNx
     move.l    d0,a2
@@ -15121,7 +15748,7 @@ MnCaNx    movem.l    (sp)+,a0-a2/d4-d7
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Dessin d''une branche de l''arbre
+;     Dessin d'une branche de l'arbre
 ;    FIXE LES ZONES!
 ;    A2=    Base a dessiner
 ;    D4/D5=    Coordonnee de base
@@ -15185,7 +15812,7 @@ MnBro2    SyCall    SetZone
 MnBrX:    movem.l    (sp)+,a0-a2/d0-d7
     rts
 
-;    Ramene les coord maxi d''une branche
+;    Ramene les coord maxi d'une branche
 ;    Poke les coordonnees des objets
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;    A2=     Base
@@ -15251,12 +15878,12 @@ MnMx7    movem.l    (sp),d0-d3/a2
     move.l    MnAdEc(a5),a2
     moveq    #0,d4
     move.w    EcTx(a2),d6
-* Poke la taille maxi de l''arbre
+* Poke la taille maxi de l'arbre
 MnMxX    movem.l    (sp)+,d0-d3/a2
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;    Dessin / Calcul taille d''une case de menu (A2) - D4/D5
+;    Dessin / Calcul taille d'une case de menu (A2) - D4/D5
 ;    #31 de D7->    Dessin(0) / Calcule(1)
 ;    #30 de D7->    Inactif(0) / Actif(1)
 ;    #29 de D7->    PasFond(0) / Fond(1)
@@ -15272,7 +15899,7 @@ MnMxX    movem.l    (sp)+,d0-d3/a2
     clr.w    d3
     clr.w    d6
     clr.w    d7
-* Imprime/Calcule l''objet de fond?
+* Imprime/Calcule l'objet de fond?
     tst.l    MnObF(a2)
     beq.s    MnDr1
     btst    #29,d7
@@ -15606,7 +16233,7 @@ MnOFont    move.w    (a4)+,d1
     EcCall    SFont
     rts
 
-;    Appel d''une fonction GFX
+;    Appel d'une fonction GFX
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 MnGfx    movem.l    a0/a1/d1/d6/a6,-(sp)
     move.w    a6,d6
@@ -15682,7 +16309,7 @@ MnORes    moveq    #0,d1
     bls.s    MnOR2
     tst.l    d7
     bpl.s    MnOR2
-* Reserve l''espace
+* Reserve l'espace
     move.l    a2,-(sp)
     move.l    MnDAd(a5),a2
     Rbsr    L_MnODVar
@@ -15716,7 +16343,7 @@ MnODV1    movem.l    (sp)+,d0/a1
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    MnSave
 ; - - - - - - - - - - - - -
-* Efface l''ancien
+* Efface l'ancien
     Rbsr    L_MnSaDel
     movem.l    a0-a3/d0-d7,-(sp)
     addq.w    #1,d6
@@ -16054,11 +16681,11 @@ MnRzX    clr.l    MnAdEc(a5)
 .Struc3    dc.l    0
     tst.w    MnProc(a5)        Procedure menu ouverte?
     beq.s    .Skip
-    move.w    #-1,ErrorOn(a5)        Force l''arret du programme!
+    move.w    #-1,ErrorOn(a5)        Force l'arret du programme!
 .Skip    rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Enleve l''objet a partir de (D0), et ses collaterales
+;     Enleve l'objet a partir de (D0), et ses collaterales
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    MnEff
 ; - - - - - - - - - - - - -
@@ -16078,12 +16705,12 @@ MnEf1:    move.l    MnNext(a2),d0
 MnEf2:    movem.l    (sp)+,a2/d0
     rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Enleve l''objet (A2)
+;     Enleve l'objet (A2)
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    MnDel
 ; - - - - - - - - - - - - -
     movem.l    a0-a2/d0-d2,-(sp)
-* Debut d''une collaterale?
+* Debut d'une collaterale?
     btst    #MnFlat,MnFlag(a2)
     beq.s    MnD3
     move.l    MnNext(a2),d1
@@ -16141,9 +16768,9 @@ MnD9:    Rbsr    L_MnSaDel
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Tokenisation objets de menu
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;    Interpreteur de definition d''objet!
+;    Interpreteur de definition d'objet!
 ;    A1    -> chaine a interpreter
-;    Retour    -> D0= adresse de l''objet
+;    Retour    -> D0= adresse de l'objet
 ; - - - - - - - - - - - - -
     Lib_Def    MnObjet
 ; - - - - - - - - - - - - -
@@ -16474,7 +17101,7 @@ MnKet3    move.w    d7,(a1)+
     lea    Fs_Error(pc),a0
     move.l    a0,Fs_ErrPatch(a5)
 
-; Stocke le numero de l''ecran courant
+; Stocke le numero de l'ecran courant
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     moveq    #-1,d0
     move.l    T_EcCourant(a5),d1
@@ -16504,7 +17131,7 @@ MnKet3    move.w    d7,(a1)+
     cmp.l    #32*1024,d0
     bcs    Fs_LowMemory
 
-; Ouverture de l''ecran
+; Ouverture de l'ecran
 ; ~~~~~~~~~~~~~~~~~~~~
     move.w    PI_FsDSx(a5),d1
     move.w    PI_FsDSy(a5),d2
@@ -16570,7 +17197,7 @@ MnKet3    move.w    d7,(a1)+
     bne    Fs_BadAPI
     bsr    FsI_SliStore
 
-; Apparition de l''écran
+; Apparition de l'écran
 ; ~~~~~~~~~~~~~~~~~~~~~
     bsr    Fs_Appear
     move.b    #1,Fs_Opened(a4)
@@ -16599,7 +17226,7 @@ MnKet3    move.w    d7,(a1)+
     clr.w    FillF32(a5)            Pas de 32
     bsr    Fs_First
 
-; Boucle d''attente...
+; Boucle d'attente...
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Fs_Loop
     tst.b    Fs_DirOn(a4)
@@ -16707,7 +17334,7 @@ Fs_GetFName
     bne.s    .Lp1
 .Ok1    move.l    a0,d1
     bra.s    .Lp1
-; Recopie l''eventuel pathname
+; Recopie l'eventuel pathname
 .Ex1    cmp.l    a1,d1
     beq.s    .Sk2
     move.l    a2,a0
@@ -16862,7 +17489,7 @@ Fs_StoreList
     bne.s    .Cp
     move.l    a2,d0
     lsr.l    #1,d0
-    bset    #31,d0            Pas de taille dans l''affichage
+    bset    #31,d0            Pas de taille dans l'affichage
     move.l    d0,124(a3)        Adresse de la structure
     moveq    #" ",d2            Va poker le nom dans la liste
     move.l    a3,a2
@@ -17110,7 +17737,7 @@ Fs_Error
     moveq    #0,d1            Y
     moveq    #0,d2            Variable 0
     move.l    (sp)+,d3
-    subq.w    #2,d3            Message d''erreur
+    subq.w    #2,d3            Message d'erreur
     moveq    #0,d4            Rien!
     moveq    #0,d5            Ne pas copier le programme
     move.l    #256,d6            Buffer
@@ -17157,18 +17784,18 @@ Fs_Close
 .LowM    move.l    #Fs_ChannelN,d0
     Rbsr    L_Dia_CloseChannel
 .NoChan
-; Referme l''écran
+; Referme l'écran
 ; ~~~~~~~~~~~~~~~
     tst.b    Fs_Opened(a4)
     beq.s    .PaFer
     move.l    Fs_AdEc(a4),a2
-; Recupere la position de l''écran
+; Recupere la position de l'écran
     move.w    EcAWX(a2),PI_FsDWx(a5)
     move.w    EcAWY(a2),PI_FsDWy(a5)
-; Referme l''écran
+; Referme l'écran
     bsr    Fs_DisAppear
 .PaFer
-; Detruit l''écran
+; Detruit l'écran
 ; ~~~~~~~~~~~~~~~
     tst.l    Fs_AdEc(a4)
     beq.s    .PaClo
@@ -17315,7 +17942,7 @@ Fs_DelLast
 .Exit    move.l    (sp)+,a2
     rts
     
-; Retourne l''element numero D0
+; Retourne l'element numero D0
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Fs_NumStore
     moveq    #0,d1
@@ -17332,7 +17959,7 @@ Fs_NumStore
 .Exit    move.l    d1,d0
     rts
 
-; Compte le nombre d''elements
+; Compte le nombre d'elements
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Fs_CptStore
     moveq    #0,d0
@@ -17400,7 +18027,7 @@ Fs_IllDName
 ;    DIFFERENTES ROUTINES
 ; ___________________________________________________________________
 
-; Effacement de tous les noms de l''écran
+; Effacement de tous les noms de l'écran
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Fs_New    Rbsr    L_FillFFree
     clr.b    Fs_DirOn(a4)
@@ -17522,7 +18149,7 @@ Fs_NomDir
     movem.l    (sp)+,a2/d2-d7
     rts
 
-; Retourne l''adresse de la banque FSEL
+; Retourne l'adresse de la banque FSEL
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Fs_GetPuzzle
     move.l    Sys_Resource(a5),a0
@@ -17543,7 +18170,7 @@ Fs_NewDir
     move.l    a0,-(sp)
     bsr    Fs_New
     move.l    (sp)+,a2        En plus...
-    move.l    Buffer(a5),a1        Path d''origine
+    move.l    Buffer(a5),a1        Path d'origine
     lea    512(a1),a1
     addq.w    #2,a1
     move.l    a1,d1
@@ -17589,7 +18216,7 @@ Fs_NewDir
     bsr    Fs_First        Lis le directory
     rts
 
-; Ouvre l''ecran du selecteur
+; Ouvre l'ecran du selecteur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Fs_ScOpen
     bsr    Fs_GetPuzzle
@@ -17642,7 +18269,7 @@ Fs_GetInputs
     move.l    a0,FsV_Path(a1)
     rts
 
-; Apparition de l''écran
+; Apparition de l'écran
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Fs_Appear
     move.l    Fs_AdEc(a4),a2
@@ -17656,7 +18283,7 @@ Fs_Appear
     add.w    d0,d5
     Rjsr    L_AppCentre
     rts
-; Disparition de l''ecran
+; Disparition de l'ecran
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Fs_DisAppear
     move.l    Fs_AdEc(a4),a2    
@@ -17674,17 +18301,17 @@ Fs_DisAppear
 ;    TACHE DE DIALOGUE
 ; ___________________________________________________________________
 
-; Boucle d''animation du selecteur
+; Boucle d'animation du selecteur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FsI_Entry
     move.l    TaskBase(pc),a5        Base des donnees
     move.l    Fs_Base(a5),a4
-; Boucle d''attente
+; Boucle d'attente
 ; ~~~~~~~~~~~~~~~~
 FsI_Loop
     move.w    Fs_Command(a4),d2    Une commande?
     bne.s    .Com
-; Animation de l''interface
+; Animation de l'interface
     bsr    Fs_Multi        Multitache
     moveq    #1,d0
     Rbsr    L_Dia_AutoTest2
@@ -17788,12 +18415,12 @@ FsI_Stop
 FsI_ReStart
     clr.w    Fs_Waiting(a4)
     rts
-; Provoque l''affichage du slider de store
+; Provoque l'affichage du slider de store
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FsI_SliStore
     bset    #1,Fs_Command+1(a4)
     rts
-; Provoque l''affichage des fichiers.
+; Provoque l'affichage des fichiers.
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    
 FsI_AffF
     bset    #0,Fs_Command+1(a4)
@@ -17885,7 +18512,7 @@ Fs_LowMemory
     move.w    2*2(a0),0*2(a0)
     move.w    3*2(a0),1*2(a0)
 
-; Ouverture d''un tout petit ecran
+; Ouverture d'un tout petit ecran
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.w    PI_FsDSx(a5),d2        Taille choisie
     ext.l    d2    
@@ -17927,7 +18554,7 @@ Fs_LowMemory
     tst.l    d0
     bne    Fs_OoMem
 
-; C''est fini!!!
+; C'est fini!!!
 ; ~~~~~~~~~~~~~
     cmp.l    #1,d1
     beq    Fs_Ok
@@ -18104,7 +18731,7 @@ _CtData
 ;_____________________________________________________________________________
 ;
 ;
-; Initialisation de l''éditeur ligne
+; Initialisation de l'éditeur ligne
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;    A0=     Buffer de donnees
 ;    A1=    Chaine à imprimer
@@ -18143,7 +18770,7 @@ _CtData
 .PSc    move.w    d1,LEd_Large(a3)
 .Skip    bclr    #2,LEd_Flags+1(a3)    Pas de curseur
     WiCalA    Print,.CuOff(pc)    Arret du vrai curseur!
-    move.l    T_EcCourant(a5),a0    Stocke le numero d''ecran
+    move.l    T_EcCourant(a5),a0    Stocke le numero d'ecran
     move.w    EcNumber(a0),LEd_Screen(a3)
     movem.l    (sp),a0-a3
     moveq    #-1,d0
@@ -18157,7 +18784,7 @@ _CtData
 .CuOff    dc.b    27,"C0",0
 
 
-;     Boucle de l''editeur ligne
+;     Boucle de l'editeur ligne
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;    A0=    Buffer de données
 ;    Sortie:
@@ -18237,13 +18864,13 @@ _CtData
     beq.s    .Rt    
     cmp.b    #32,d1            
     bcc.s    .Lt
-; Retour à l''appelant, avec le scancode eventuel en D1
+; Retour à l'appelant, avec le scancode eventuel en D1
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Out    btst    #LEd_FKeys,LEd_Flags(a3)
     beq    .Loop
     moveq    #0,d2
     bra.s    .Exit
-; Rien en retour. Retourner à l''appelant?
+; Rien en retour. Retourner à l'appelant?
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Rien    btst    #LEd_FOnce,LEd_Flags(a3)
     beq    .Loop
@@ -18401,7 +19028,7 @@ _CtData
     move.w    a2,LEd_Long(a3)
     move.w    a2,LEd_Cur(a3)
     clr.w    LEd_Start(a3)
-; Fin de l''impression...    
+; Fin de l'impression...    
     bset    #1,LEd_Flags+1(a3)
     Rbsr    L_LEd_Print
     move.l    a3,a0
@@ -18552,7 +19179,7 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
 
 ; ___________________________________________________________________________
 ; 
-;     Initialisation d''un canal de dialogue
+;     Initialisation d'un canal de dialogue
 ; ___________________________________________________________________________
 ;
 ; IN
@@ -18604,7 +19231,7 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
 ; Branche la routine ClearVar
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Rjsr    L_Dia_ClearVar
-; Stocke le Numero / Adresse de l''écran courant
+; Stocke le Numero / Adresse de l'écran courant
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l    T_EcCourant(a5),a0
     move.l    a0,Dia_Screen(a4)
@@ -18679,7 +19306,7 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
 ; Saute les parametres
     move.w    Dia_NParam-Dia_Instr-2(a0),d2
     beq.s    .NoPar
-; Appelle l''evaluation
+; Appelle l'evaluation
 .Param    bsr    .Evalue
     subq.w    #1,d2
     beq.s    .PFin
@@ -18701,7 +19328,7 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
     move.l    a3,Dia_Buffer(a4)
     move.l    a3,Dia_PBuffer(a4)
     clr.l    (a3)
-; Ok, pas d''erreur!
+; Ok, pas d'erreur!
 ; ~~~~~~~~~~~~~~~~~
     move.l    a4,a0
     lea    Dia_Vars(a4),a1
@@ -18721,7 +19348,7 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
     movem.l    (sp)+,a2-a6/d2-d7
     tst.l    d0
     rts
-; Messages d''erreur pendant verification
+; Messages d'erreur pendant verification
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .NPar    moveq    #EDia_NPar,d2
     bra.s    .Err2
@@ -18737,13 +19364,13 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
 ; Efface le buffer
     move.l    a4,a0
     Rbsr    L_Dia_CloseA0
-; Pointe l''erreur en D1
+; Pointe l'erreur en D1
     move.l    a6,d1
     move.l    d2,d0
     movem.l    (sp)+,a2-a6/d2-d7
     rts
 
-; Definition d''une instruction
+; Definition d'une instruction
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Inst    Rbsr    L_Dia_Chr
     beq    .Synt
@@ -18780,7 +19407,7 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
     bpl    .Synt
     addq.l    #4,a3
     Rbsr    L_Dia_FChif
-    move.l    (a3),d1            Jusqu''à 16 parametres
+    move.l    (a3),d1            Jusqu'à 16 parametres
     cmp.l    #9,d1
     bhi    .Synt
     move.w    d1,(a3)+
@@ -18825,7 +19452,7 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
     clr.l    (a3)
     subq.l    #1,(a3)
     bra    .INext
-; Appel d''un UI: saute les parametres
+; Appel d'un UI: saute les parametres
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .PaDef    Rbsr    L_Dia_Chr
     beq    .Synt
@@ -18835,7 +19462,7 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
     cmp.b    #",",d0
     beq.s    .Dloop
 .Dfin    bra    .INext
-; Evaluation d''une expression
+; Evaluation d'une expression
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~    
 .Evalue
 .ELoop    Rbsr    L_Dia_Chr        Premiere lettre
@@ -18892,7 +19519,7 @@ LEd_FauCu    dc.b    27,"I1",27,"W2"," ",27,"W0",27,"I0",29,0
     cmp.b    d0,d1
     bne.s    .Guil
     bra    .ELoop
-; On a fini l''expression
+; On a fini l'expression
 .EFini    rts
 ; Init des sliders par defaut
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -18935,7 +19562,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 
 ; ___________________________________________________________________________
 ;
-;    Active l''écran d''une boite de dialogue
+;    Active l'écran d'une boite de dialogue
 ; ___________________________________________________________________________
 ;
 ; IN
@@ -18947,7 +19574,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     Lib_Def    Dia_Active
 ; - - - - - - - - - - - - -
     movem.l    a0-a1/d1,-(sp)
-; Verifie la presence de l''écran, du meme!
+; Verifie la presence de l'écran, du meme!
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.w    Dia_ScreenNb(a4),d0
     lsl.w    #2,d0
@@ -18955,7 +19582,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     move.l    0(a5,d0.w),d0    
     cmp.l    Dia_Screen(a4),d0
     bne.s    .Err
-; Stocke l''ancien ecran
+; Stocke l'ancien ecran
 ; ~~~~~~~~~~~~~~~~~~~~~
     move.w    #-1,Dia_ScreenOld(a4)
     move.l    T_EcCourant(a5),a0
@@ -18976,7 +19603,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 ; ~~~
     moveq    #0,d0
     bra.s    .Out
-; Erreur, l''écran est modifie
+; Erreur, l'écran est modifie
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Err    moveq    #EDia_Screen,d0
 .Out    movem.l    (sp)+,a0-a1/d1
@@ -18984,7 +19611,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 
 ; ___________________________________________________________________________
 ;
-;    Re-Active l''ancien ecran
+;    Re-Active l'ancien ecran
 ; ___________________________________________________________________________
 ;
 ; IN
@@ -18994,7 +19621,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     Lib_Def    Dia_ReActive
 ; - - - - - - - - - - - - -
     movem.l    d0-d1/a0-a1,-(sp)
-; Une fenetre d''édition en route?
+; Une fenetre d'édition en route?
     move.l    Dia_Edited(a4),d0
     ble.s    .Skip
     move.l    d0,a0
@@ -19006,7 +19633,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     beq.s    .Meme
     move.w    d1,Dia_WindOn(a4)
     WiCall    QWindow
-; Remet l''ancien ecran
+; Remet l'ancien ecran
 .Meme    move.w    Dia_ScreenOld(a4),d1
     bmi.s    .Deja
     EcCall    Active
@@ -19055,7 +19682,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 
 ; ___________________________________________________________________________
 ;
-;    Effacement d''un canal de dialogue
+;    Effacement d'un canal de dialogue
 ; ___________________________________________________________________________
 ;
 ; IN
@@ -19138,7 +19765,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     move.l    d5,d3
     Rbsr    L_Dia_OpenChannel
     bne    .Err
-; Met les variables d''entree
+; Met les variables d'entree
     move.l    (sp)+,(a1)+
     move.l    (sp)+,(a1)+
     move.l    (sp)+,(a1)+
@@ -19160,7 +19787,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 
 ; _______________________________________________________________________
 ;
-;    Update d''une zone
+;    Update d'une zone
 ; _______________________________________________________________________
 ;
 ; IN
@@ -19191,9 +19818,9 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     bne.s    .NF
     Rbsr    L_Dia_ZUpdate
     Rbsr    L_Dia_ReActive
-    move.w    Dia_Error(a4),d0    Pas d''erreur, revient directement
+    move.w    Dia_Error(a4),d0    Pas d'erreur, revient directement
     beq.s    .Out
-    move.w    Dia_ErrorPos(a4),d1    Position de l''erreur
+    move.w    Dia_ErrorPos(a4),d1    Position de l'erreur
     ext.l    d1
 .Out    movem.l    (sp)+,d2-d7/a2-a6
     ext.l    d0
@@ -19203,7 +19830,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 
 ; _______________________________________________________________________
 ;
-;    Execution / Demarrage d''un dialogue
+;    Execution / Demarrage d'un dialogue
 ; _______________________________________________________________________
 ;
 ; IN
@@ -19223,7 +19850,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     move.l    d1,d4
 ; Va effacer une boite déja en route
     Rbsr    L_Dia_EffChannel
-; Trouve l''adresse du canal
+; Trouve l'adresse du canal
     move.l    d5,d0
     Rbsr    L_Dia_GetChannel
     beq    .ChanNF
@@ -19237,7 +19864,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     beq.s    .Sk2
     move.l    d3,Dia_BaseY(a4)
 .Sk2    
-; Trouve l''adresse du programme
+; Trouve l'adresse du programme
     move.l    Dia_Programs(a4),a6
     move.l    d4,d0
     bmi.s    .Palab
@@ -19265,7 +19892,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     clr.l    Dia_PUsers(a4)
     clr.w    Dia_NPUsers(a4)
     clr.l    Dia_Release(a4)
-; Active l''écran
+; Active l'écran
     Rbsr    L_Dia_Active
     bne.s    .Err
 ; Writing 0
@@ -19285,14 +19912,14 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 ; Initialise pour les tests
     Rbsr    L_Dia_EdFirst        Premiere ligne EDIT
     Rbsr    L_Dia_Patch
-    Rbsr    L_Dia_ReActive        Remet l''ancien ecran
-    move.w    Dia_Error(a4),d0    Pas d''erreur, revient directement
+    Rbsr    L_Dia_ReActive        Remet l'ancien ecran
+    move.w    Dia_Error(a4),d0    Pas d'erreur, revient directement
     beq.s    .OOut
 .Err    move.l    a4,a0            Erreur, efface ce qui a ete dessiné
     Rbsr    L_Dia_EffChanA0
-    move.w    Dia_Error(a4),d0    Type de l''erreur
+    move.w    Dia_Error(a4),d0    Type de l'erreur
     ext.l    d0
-.OErr    move.w    Dia_ErrorPos(a4),d1    Position de l''erreur
+.OErr    move.w    Dia_ErrorPos(a4),d1    Position de l'erreur
     ext.l    d1
 .OOut    movem.l    (sp)+,d2-d7/a2-a6
     rts
@@ -19385,7 +20012,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 
 ; _______________________________________________________________________
 ;
-;    Effacement d''un canal
+;    Effacement d'un canal
 ; _______________________________________________________________________
 ;
 ; IN
@@ -19414,15 +20041,15 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 ; Faut-il effacer?
     bclr    #0,Dia_RFlags(a4)
     beq    .PaEff
-; Active l''ancien ecran
+; Active l'ancien ecran
     Rbsr    L_Dia_Active
     bne    .PaEff
 ; Efface les fenetres / Zones réservées par le programme
     clr.l    -(sp)
     move.l    Dia_Buffer(a4),a6
     bra.s    .EIn
-; Une ligne d''edition
-.ELoop    cmp.w    #Dia_EdMark,2(a6)    Une ligne d''edition
+; Une ligne d'edition
+.ELoop    cmp.w    #Dia_EdMark,2(a6)    Une ligne d'edition
     bne.s    .PaEd
     move.l    a6,a0            Efface la fenetre
     Rbsr    L_Dia_EdEnd
@@ -19444,7 +20071,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 .PaTx    add.w    (a6),a6
 .EIn    tst.w    (a6)
     bne.s    .ELoop
-; Efface les blocs dans l''ordre inverse
+; Efface les blocs dans l'ordre inverse
     bra.s    .BlIn
 .BlLp    move.l    d0,a6
     moveq    #0,d1
@@ -19461,7 +20088,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 .BlIn    move.l    (sp)+,d0
     bne.s    .BlLp
     Rbsr    L_Dia_Patch
-; Remet l''ancien ecran
+; Remet l'ancien ecran
     clr.l    Dia_Edited(a4)
     Rbsr    L_Dia_ReActive
 ; Remet le buffer en place
@@ -19470,7 +20097,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 
 ; ___________________________________________________
 ;
-;    Retourne l''adresse de la variable D0/D1
+;    Retourne l'adresse de la variable D0/D1
 ; ___________________________________________________
 ;
 ; - - - - - - - - - - - - -
@@ -19558,7 +20185,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     move.l    a0,d1
     moveq    #2,d2
     bra.s    .Ok
-; Une ligne d''édition 
+; Une ligne d'édition 
 .Ed    cmp.w    #Dia_DiLong,(a0)
     beq.s    .Di
 ; Un texte
@@ -19581,7 +20208,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     bra.s    .Ok
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-; Retourne l''adresse de la zone Channel D0 / Zone D1 - D2
+; Retourne l'adresse de la zone Channel D0 / Zone D1 - D2
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_GetZoneAd
 ; - - - - - - - - - - - - -
@@ -19589,7 +20216,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     move.l    d1,d3
     Rbsr    L_Dia_GetChannel
     beq.s    .NFnd
-; Boucle d''exploration
+; Boucle d'exploration
     subq.w    #1,d2
     move.l    Dia_Buffer(a0),a1
     bra.s    .In
@@ -19651,7 +20278,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     rts
 
 ;
-; Retourne le parametre d''une boite de dialogue
+; Retourne le parametre d'une boite de dialogue
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; IN
 ;    D0=    Channel
@@ -19702,7 +20329,7 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     ext.l    d6
     move.w    (a1)+,d5        Mode
     and.l    #$8004,d5
-    tst.w    d4            Force l''interlaced?
+    tst.w    d4            Force l'interlaced?
     bmi.s    .Skm
     bclr    #2,d5
     tst.w    d4
@@ -19946,7 +20573,7 @@ Dia_Loop
 ; Sauvegarde de la pile
 ; ~~~~~~~~~~~~~~~~~~~~~
     move.l    sp,Dia_Sp(a4)
-; Boucle d''appel
+; Boucle d'appel
 ; ~~~~~~~~~~~~~~
 .INext    tst.w    Dia_Error(a4)        Sort si erreur
     Rbne    L_Dia_Quit
@@ -20033,7 +20660,7 @@ Dia_Loop
     bcc.s    .Call
     move.w    d0,-(sp)
     clr.w    -(sp)
-; Appelle l''evaluation
+; Appelle l'evaluation
 .Param    Rbsr    L_Dia_Evalue
 ; Pousse dans le bon registre
     move.w    (sp),d1
@@ -20058,7 +20685,7 @@ Dia_Loop
 ; Pas de parametres
 ; ~~~~~~~~~~~~~~~~~
 .NoPar    Rbsr    L_Dia_Chr
-; Appelle l''instruction
+; Appelle l'instruction
 ; ~~~~~~~~~~~~~~~~~~~~~
 .Call    move.l    (sp)+,a0
     jsr    (a0)
@@ -20285,7 +20912,7 @@ Dia_If    Rbsr    L_Dia_Chr
     move.l    Dia_Sp(a4),-(sp)
     bsr    Dia_Loop
     move.l    (sp)+,Dia_Sp(a4)
-; Saute l''instruction
+; Saute l'instruction
 ; ~~~~~~~~~~~~~~~~~~~
 .Skip    moveq    #1,d1
 .Loop    move.b    (a6)+,d0
@@ -20355,7 +20982,7 @@ Dia_Unpack
     add.w    d0,Dia_YB(a4)
     move.l    (sp)+,d2
     rts
-; Dessin d''une ligne d2X d3Y d4I d5X2
+; Dessin d'une ligne d2X d3Y d4I d5X2
 ; ~~~~~~~~~~~~~~~~~~
 Dia_Line
     movem.l    d2-d7,-(sp)
@@ -20384,7 +21011,7 @@ Dia_Line
     addq.l    #2,d4
     bsr    Dia_Unpack
     bra    Dia_BFin
-; Dessin d''une ligne verticale d2X d3Y d4I d5Y2
+; Dessin d'une ligne verticale d2X d3Y d4I d5Y2
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Dia_VLine
     movem.l    d2-d7,-(sp)
@@ -20412,7 +21039,7 @@ Dia_VLine
     addq.l    #2,d4
     bsr    Dia_Unpack
     bra    Dia_BFin
-; Dessin d''une boite d2X d3Y d4I d5X d6Y
+; Dessin d'une boite d2X d3Y d4I d5X d6Y
 ; ~~~~~~~~~~~~~~~~~~
 Dia_Box    
     movem.l    d2-d7,-(sp)
@@ -20707,7 +21334,7 @@ Dia_SFill
 
 ; ________________________________________________________________________
 ;
-;    Interface avec l''éditeur ligne
+;    Interface avec l'éditeur ligne
 ;
 ; DIgit    Numero,X,Y,Long,Valeur,Flag,Paper,Pen
 ; ~~~~~
@@ -20831,7 +21458,7 @@ Dia_Edit2
     Rbne    L_Dia_Fonc
     Rbsr    L_Dia_SetBuffer
     rts
-; Chaine d''init
+; Chaine d'init
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Init    dc.b    27,"C0",27,"B"
 .Paper    dc.b    "0",27,"P"
@@ -20841,7 +21468,7 @@ Dia_Edit2
 
 ; ________________________________________________________________________
 ;
-;    ZONE D''HYPER-TEXTE
+;    ZONE D'HYPER-TEXTE
 ;
 ; HText Numero X Y Tx Ty Txt Pos Zones Paper Pen; []
 ; ~~~~~
@@ -21061,7 +21688,7 @@ Dia_List
 ; Recupere la routine
     Rbsr    L_Dia_GetRout
     move.w    d1,Dia_ZoRChange(a2)
-; Trouve la longueur de l''affichage du tableau
+; Trouve la longueur de l'affichage du tableau
     moveq    #0,d0
     move.w    (sp)+,d0
     move.l    Dia_ABuffer(a4),a0
@@ -21075,7 +21702,7 @@ Dia_List
 ; Fini
     movem.l    (sp)+,a2/d2-d7
     rts
-; Chaine d''init fenetre
+; Chaine d'init fenetre
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Dia_WInit    dc.b    27,"C0",27,"B"
 Dia_WPaper    dc.b    "0",27,"P"
@@ -21310,7 +21937,7 @@ Dia_NWait
 ; Button Change, d2NUMBER d3POSITION
 ; ~~~~~~~~~~~~~~
 Dia_BChange
-; Peut-on effectuer l''instruction?
+; Peut-on effectuer l'instruction?
     move.l    Dia_Vars-3*4(a4),d0        Si appelé en dehors de la parenth
     Rbeq    L_Dia_Synt
     move.l    d0,a0
@@ -21348,9 +21975,9 @@ Dia_BChange
 ; ~~~~~~~~~~~
 Dia_ZChange
     movem.l    d4-d5,-(sp)
-; Peut-on effectuer l''instruction?
+; Peut-on effectuer l'instruction?
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    tst.l    Dia_Vars-3*4(a4)        Si appelé en dehors d''une parenth
+    tst.l    Dia_Vars-3*4(a4)        Si appelé en dehors d'une parenth
     Rbeq    L_Dia_Synt
     move.l    #EntNul,d4
     move.l    d4,d5
@@ -21381,7 +22008,7 @@ Dia_Run
 ; Active la premiere fenetre
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~
     Rbsr    L_Dia_EdFirst
-; Boucle d''attente
+; Boucle d'attente
 ; ~~~~~~~~~~~~~~~~
 .Loop    Rjsr    L_Sys_WaitMul
 ; Le timer
@@ -21411,7 +22038,7 @@ Dia_Run
 ; Sortie...
 ; ~~~~~~~~~
 .Exit0    clr.w    Dia_Return(a4)
-; Remet l''ecran du moniteur
+; Remet l'ecran du moniteur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Exit    tst.l    Patch_ScFront(a5)
     beq.s    .Exit1
@@ -21426,7 +22053,7 @@ Dia_Run
 
 ; ________________________________________________________________________
 ;
-;     EVALUATION D''EXPRESSION
+;     EVALUATION D'EXPRESSION
 ;
 ; - - - - - - - - - - - - -
     Lib_Def    Dia_Evalue
@@ -21454,7 +22081,7 @@ Dia_Run
 .Chiffre
     Rbsr    L_Dia_FChif
     bra.s    .Loop
-; On a fini l''expression
+; On a fini l'expression
 .Fini    cmp.w    #1,d7
     Rbne    L_Dia_Synt
     move.l    (a3)+,d0
@@ -21527,11 +22154,11 @@ Dia_FZVar
     addq.w    #1,d7
     move.l    Dia_Vars-3*4(a4),d0
     beq.s    .Ext
-; Variable à l''interieur de la zone
+; Variable à l'interieur de la zone
     move.l    d0,a0
     move.l    Dia_ZoVar(a0),-(a3)
     rts
-; Variable à l''exterieur de la zone
+; Variable à l'exterieur de la zone
 .Ext    move.l    Dia_NextZone(a4),-(a3)
     rts    
 ; = ZN Numero de la zone
@@ -21546,7 +22173,7 @@ Dia_FZNum
     addq.w    #1,d7
     rts
 
-; =tableau pos ARray Retourne le contenu d''une variable dans une tableau
+; =tableau pos ARray Retourne le contenu d'une variable dans une tableau
 ; ~~~~~~~~~~~~~~~~~~~
 Dia_FArray
     cmp.w    #2,d7    
@@ -21568,7 +22195,7 @@ Dia_FArray
     lea    4(a0,d1.l),a0
     move.l    (a0),(a3)
     rts
-; =tableau ArraySize Retourne la taille d''un tableau
+; =tableau ArraySize Retourne la taille d'un tableau
 ; ~~~~~~~~~~~~~~~~~~
 Dia_FASize
     cmp.w    #1,d7    
@@ -21799,7 +22426,7 @@ Dia_FMess
     move.l    a0,(a3)
     rts
 
-; Largeur d''un texte
+; Largeur d'un texte
 ; ~~~~~~~~~~~~~~~~~~
 Dia_FTw    
     tst.w    d7
@@ -21817,7 +22444,7 @@ Dia_FTw
     ext.l    d0
 .Skip    move.l    d0,(a3)
     rts
-; Centrage d''un texte
+; Centrage d'un texte
 ; ~~~~~~~~~~~~~~~~~~~
 Dia_FCx    
     bsr    Dia_FTw
@@ -21840,7 +22467,7 @@ Dia_FLTxt
     move.b    (a0)+,d0
     move.l    d0,(a3)
     rts
-; Hauteur d''un texte
+; Hauteur d'un texte
 ; ~~~~~~~~~~~~~~~~~~
 Dia_FTh
     move.l    T_RastPort(a5),a1
@@ -21850,7 +22477,7 @@ Dia_FTh
     addq.w    #1,d7
     rts
 
-; Copie d''une chaine terminee par zero ADR LONG MZ
+; Copie d'une chaine terminee par zero ADR LONG MZ
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Dia_FStZero
     cmp.w    #2,d7
@@ -21971,7 +22598,7 @@ Dia_FBP    move.l    Dia_Vars-1*4(a4),-(a3)
     Rbra    L_Dia_StFini
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Fixe le debut d''une chaine
+;     Fixe le debut d'une chaine
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_StDebut
 ; - - - - - - - - - - - - -
@@ -22002,7 +22629,7 @@ Dia_FBP    move.l    Dia_Vars-1*4(a4),-(a3)
     move.w    a0,(a1)            Longueur de la chaine
     rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     ROUTINES GESTIONS ZONE D''EDITION
+;     ROUTINES GESTIONS ZONE D'EDITION
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -22048,7 +22675,7 @@ Dia_FBP    move.l    Dia_Vars-1*4(a4),-(a3)
     lea    Dia_LEd(a0),a0
     Rbra    L_LEd_CuStoppe
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Active s''il faut, la fenetre D1
+;     Active s'il faut, la fenetre D1
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_WActive
 ; - - - - - - - - - - - - -
@@ -22071,7 +22698,7 @@ Dia_FBP    move.l    Dia_Vars-1*4(a4),-(a3)
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     ROUTINES DE GESTION DE L''HYPERTEXTE
+;     ROUTINES DE GESTION DE L'HYPERTEXTE
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -22102,7 +22729,7 @@ Dia_FBP    move.l    Dia_Vars-1*4(a4),-(a3)
     Lib_Def    Dia_TxDraw
 ; - - - - - - - - - - - - -
     movem.l    d2/d3,-(sp)
-; Boucle d''affichage
+; Boucle d'affichage
     move.w    Dia_TxPos(a2),d2
     move.w    Dia_TxTy(a2),d3
 .ALoop    move.w    d2,d0
@@ -22110,7 +22737,7 @@ Dia_FBP    move.l    Dia_Vars-1*4(a4),-(a3)
     addq.w    #1,d2
     subq.w    #1,d3
     bne.s    .ALoop
-; Plus d''actif!
+; Plus d'actif!
     clr.l    Dia_TxAct(a2)
     movem.l    (sp)+,d2/d3
     rts
@@ -22141,7 +22768,7 @@ Dia_FBP    move.l    Dia_Vars-1*4(a4),-(a3)
     lea    Dia_TxPp(a2),a1
     WiCall    Print
     WiCalD    ChrOut,26    
-; Trouve l''adresse de la ligne
+; Trouve l'adresse de la ligne
     cmp.w    Dia_TxNLine(a2),d3
     bcc    .Vide
     move.w    d3,d0
@@ -22179,7 +22806,7 @@ Dia_FBP    move.l    Dia_Vars-1*4(a4),-(a3)
     move.b    d4,(a6)
     cmp.b    #"{",d4
     bne    .Ouf
-; Affichage d''un segment actif
+; Affichage d'un segment actif
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l    a6,a1
     move.w    (sp),d0
@@ -22268,7 +22895,7 @@ Dia_FBP    move.l    Dia_Vars-1*4(a4),-(a3)
     clr.w    4(a3)
     lea    1(a6),a1
     bra    .CLoop
-; Ouf, c''est fini!
+; Ouf, c'est fini!
 ; ~~~~~~~~~~~~~~~~
 .Ouf    move.l    d7,a0
     move.b    d5,(a0)
@@ -22368,12 +22995,12 @@ Dia_HtActive
     rts
     
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Affichage du contenu d''une liste - A2=liste
+;     Affichage du contenu d'une liste - A2=liste
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_LiDraw
 ; - - - - - - - - - - - - -
     movem.l    d2/d3,-(sp)
-; Boucle d''affichage
+; Boucle d'affichage
     move.w    Dia_LiPos(a2),d2
     move.w    Dia_LiTy(a2),d3
 .ALoop    move.w    d2,d0
@@ -22385,7 +23012,7 @@ Dia_HtActive
     movem.l    (sp)+,d2/d3
     rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Affichage d''un des éléments de la liste - A2 structure - D0=#
+;     Affichage d'un des éléments de la liste - A2 structure - D0=#
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_LiAff
 ; - - - - - - - - - - - - -
@@ -22575,7 +23202,7 @@ Dia_HtActive
 .Zero    moveq    #0,d1
     rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Trouve la fin d''une parenthese
+;     Trouve la fin d'une parenthese
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_EndP
 ; - - - - - - - - - - - - -
@@ -22761,7 +23388,7 @@ Dia_HtActive
     rts
     
 ; 
-;     Trouve l''adresse du dialogue numero D0
+;     Trouve l'adresse du dialogue numero D0
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;    OUT    BEQ Pas trouve, BNE Trouve, D0=Flags / A1=Adresse
 ; - - - - - - - - - - - - -
@@ -22786,14 +23413,14 @@ Dia_HtActive
 
 ; ________________________________________________________________________
 ;
-;    ROUTINES D''ANIMATION DE L''ARBRE
+;    ROUTINES D'ANIMATION DE L'ARBRE
 ; 
-; Exploration de l''arbre par le test
+; Exploration de l'arbre par le test
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; - - - - - - - - - - - - -
     Lib_Def    Dia_AutoTest
 ; - - - - - - - - - - - - -
-    moveq    #127,d0                Teste jusqu''à 127 boites
+    moveq    #127,d0                Teste jusqu'à 127 boites
     Rbra    L_Dia_AutoTest2
 ; - - - - - - - - - - - - -
     Lib_Def    Dia_AutoTest2
@@ -22812,7 +23439,7 @@ Dia_HtActive
     beq.s    .Next
     btst    #2,Dia_RFlags(a4)        Canal FREEZE?
     bne.s    .Next
-    Rbsr    L_Dia_Active            Active l''écran
+    Rbsr    L_Dia_Active            Active l'écran
     bne.s    .Err
     move.l    Dia_Edited(a4),d0        Active la fenetre courante
     ble.s    .PaWi
@@ -22823,7 +23450,7 @@ Dia_HtActive
     beq.s    .Act
     move.l    a4,a0
     Rbsr    L_Dia_EffChanA0            Effacement du canal!
-.Act    Rbsr    L_Dia_ReActive            Remet l''ancien ecran
+.Act    Rbsr    L_Dia_ReActive            Remet l'ancien ecran
     move.w    Dia_Error(a4),d0        Une erreur?
     bne.s    .Err
 .Next    move.l    -8(a4),d0
@@ -22831,7 +23458,7 @@ Dia_HtActive
     dbra    d7,.Loop
 ; Terminé!
 ; ~~~~~~~~
-.Out    moveq    #0,d0                Pas d''erreur
+.Out    moveq    #0,d0                Pas d'erreur
 .Out2    movem.l    (sp)+,a2-a6/d2-d7
     rts
 ; Une erreur: met le canal en FREEZE, pour eviter la boucle
@@ -22841,7 +23468,7 @@ Dia_HtActive
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     UN TOUR DE L''ARBRE D''OBJETS
+;                     UN TOUR DE L'ARBRE D'OBJETS
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_Tests
 ; - - - - - - - - - - - - -
@@ -22920,7 +23547,7 @@ Dia_HtActive
     bgt.s    .Mj
     sub.b    #$20,d2
 .Mj    move.l    Dia_Buffer(a4),a2
-; Boucle d''exploration
+; Boucle d'exploration
 .KLoop    tst.w    (a2)
     beq    .ReEd
     cmp.w    #Dia_KyMark,2(a2)    Une definition de touche?
@@ -22973,8 +23600,8 @@ Dia_HtActive
 .Pa4    move.l    Dia_KyZone(a2),d0
     beq.s    .Mouse
     Rbsr    L_Dia_ClearKey        Nettoyage du buffer
-    moveq    #1,d4            Simule l''appui
-    move.l    d0,d5            Pointe l''objet à activer
+    moveq    #1,d4            Simule l'appui
+    move.l    d0,d5            Pointe l'objet à activer
     moveq    #0,d6
     moveq    #0,d7
     bra    .MousIn
@@ -23087,7 +23714,7 @@ Dia_HtActive
     beq    .MNext
     cmp.l    a2,d5
     bne    .MNext
-; Change l''édition courante    
+; Change l'édition courante    
     move.l    Dia_Edited(a4),d0
     move.l    a2,Dia_Edited(a4)
     cmp.l    d0,a2            Active la nouvelle fenetre
@@ -23261,13 +23888,13 @@ Dia_HtActive
     bra    .MNext
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Recherche une zone dans l''arbre
+;     Recherche une zone dans l'arbre
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_GetMouseZone
 ; - - - - - - - - - - - - -
     SyCall    XyMou            Coordonnées du curseur
     moveq    #0,d3
-    SyCall    XyScr            Dans l''écran
+    SyCall    XyScr            Dans l'écran
     Rbra    L_Dia_GetZ
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;     Trouve la zone D1/D2 (coords ecran)                    
@@ -23304,7 +23931,7 @@ Dia_HtActive
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     Activation de la premiere fenetre d''édition
+;     Activation de la premiere fenetre d'édition
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_EdFirst
 ; - - - - - - - - - - - - -
@@ -23331,7 +23958,7 @@ Edano    rts
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     ERREURS DE L''INTERPRETEUR
+;                     ERREURS DE L'INTERPRETEUR
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Dia_OBuffer
 ; - - - - - - - - - - - - -
@@ -23474,7 +24101,7 @@ Dia_Chr    moveq    #0,d0
     dc.b    %00001        * 89 "Y"
     dc.b    %00001        * 90 "Z"
     dc.b    %00011        * 91 "["
-    dc.b    %00011        * 92 "\" ; " <- Because Sublime text take \ as a comma cancelor (Java, etc.)
+    dc.b    %00011        * 92 "\"
     dc.b    %00011        * 93 "]"
     dc.b    %00011        * 94 "^"
     dc.b    %00011        * 95 " "
@@ -23614,7 +24241,7 @@ Dia_Chr    moveq    #0,d0
 ;
 ; __________________________________________________
 ;
-;    Initialisation d''une liste de boutons
+;    Initialisation d'une liste de boutons
 ; __________________________________________________
 ;
 ;    A0=    Premier bouton
@@ -23638,7 +24265,7 @@ Dia_Chr    moveq    #0,d0
 
 ; __________________________________________________
 ;
-;    Initialisation d''un bouton
+;    Initialisation d'un bouton
 ; __________________________________________________
 ;
 ;    A0=    Structure Bouton
@@ -23675,7 +24302,7 @@ Dia_Chr    moveq    #0,d0
 
 ; __________________________________________________
 ;
-;    Fin d''un bouton
+;    Fin d'un bouton
 ; __________________________________________________
 ;
 ;    A0=    Structure Bouton
@@ -23785,7 +24412,7 @@ RBt_Down
 ;
 ; __________________________________________________
 ;
-;    Initialisation d''un slider
+;    Initialisation d'un slider
 ; __________________________________________________
 ;
 ;    A0=    Structure slider
@@ -23831,7 +24458,7 @@ RBt_Down
     movem.l    (sp)+,d2-d5/a2
     rts
 
-; Appel d''une routine slider
+; Appel d'une routine slider
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; - - - - - - - - - - - - -
     Lib_Def    Sl_Call
@@ -23844,7 +24471,7 @@ RBt_Down
 
 ; __________________________________________________
 ;
-;    Gestion d''un slider
+;    Gestion d'un slider
 ; __________________________________________________
 ;
 ;    A0=    Structure slider
@@ -23994,7 +24621,7 @@ RBt_Down
     Rbsr    L_Sl_Draw
     movem.l    (sp)+,a2-a2/d2-d7
     rts
-; Routinette: XY Mouse dans l''ecran courant, dans le bon sens
+; Routinette: XY Mouse dans l'ecran courant, dans le bon sens
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Sl_XYMouEc
     SyCall    XyMou
@@ -24007,7 +24634,7 @@ Sl_XYMouEc
 
 ; __________________________________________________
 ;
-;    Dessin d''un slider
+;    Dessin d'un slider
 ; __________________________________________________
 ;
 ;    A0=    Structure slider
@@ -24182,8 +24809,59 @@ UPile:    equ 20
 ;
 ; - - - - - - - - - - - - -
     Lib_Def    UnPack_Screen
-    AmpLCallR  A_UnPack_Screen,a2
+; - - - - - - - - - - - - -
+    movem.l    a2-a6/d2-d7,-(sp)
+    cmp.l    #SCCode,PsCode(a0)
+    bne    .NoPac
+    move.w    d0,d1
+    moveq    #0,d2
+    moveq    #0,d3
+    moveq    #0,d4
+    moveq    #0,d5
+    move.w    PsTx(a0),d2
+    move.w    PsTy(a0),d3
+    move.w    PsNPlan(a0),d4
+    move.w    PsCon0(a0),d5
+    move.w    PsNbCol(a0),d6
+    lea    PsPal(a0),a1
+    move.l    a0,-(sp)
+    EcCall    Cree
+    move.l    a0,a1
+    move.l    (sp)+,a0
+    bne.s    .NoScreen
+* Enleve le curseur
+    movem.l    a0-a6/d0-d7,-(sp)
+    lea    .CuCu(pc),a1
+    WiCall    Print
+    movem.l    (sp)+,a0-a6/d0-d7
+* Change View/Offset
+    move.w    PsAWx(a0),EcAWX(a1)
+    move.w    PsAWy(a0),EcAWY(a1)
+    move.w    PsAWTx(a0),EcAWTX(a1)
+    move.w    PsAWTy(a0),EcAWTY(a1)
+    move.w    PsAVx(a0),EcAVX(a1)
+    move.w    PsAVy(a0),EcAVY(a1)
+    move.b    #%110,EcAW(a1)
+    move.b    #%110,EcAWT(a1)
+    move.b    #%110,EcAV(a1)
+* Unpack!
+    lea    PsLong(a0),a0
+    moveq    #0,d1
+    moveq    #0,d2
+    Rbsr    L_UnPack_Bitmap
+    move.l    a1,a0
+    bra.s    .Out
+.NoPac
+    moveq    #0,d0
+    moveq    #0,d1
+    bra.s    .Out
+.NoScreen    
+    moveq    #0,d0
+    moveq    #1,d1
+.Out    movem.l    (sp)+,d2-d7/a2-a6
     rts
+.CuCu    dc.b    27,"C0",0
+    even
 
 ; _________________________________________________
 ;
@@ -24198,7 +24876,117 @@ UPile:    equ 20
 ;
 ; - - - - - - - - - - - - -
     Lib_Def    UnPack_Bitmap
-    AmpLCallR  A_UnPack_Bitmap,a2
+; - - - - - - - - - - - - -
+    movem.l    a0-a6/d1-d7,-(sp)
+* Jump over SCREEN DEFINITION
+    cmp.l    #SCCode,(a0)
+    bne.s    dec0
+    lea    PsLong(a0),a0
+* Is it a packed bitmap?
+dec0    cmp.l    #BMCode,(a0)
+    bne    NoPac
+
+* Parameter preparation
+    lea    -UPile(sp),sp        * Space to work
+    lea    EcCurrent(a1),a2
+    move.l    a2,UAEc(sp)        * Bitmaps address
+        move.w     EcTLigne(a1),d7        * d7--> line size
+    move.w    EcNPlan(a1),d0        * How many bitplanes
+    cmp.w    Pknplan(a0),d0
+    bne    NoPac0
+    move.w    d0,UNPlan(sp)
+    move.w    Pktcar(a0),d6        * d6--> SY square
+
+    lsr.w    #3,d1            * > number of bytes
+        tst.l     d1            * Screen address in X
+        bpl.s     dec1
+        move.w     Pkdx(a0),d1
+dec1:   tst.l     d2            * In Y
+        bpl.s     dec2
+        move.w     Pkdy(a0),d2
+dec2:   move.w    Pktx(a0),d0
+    move.w    d0,USx(sp)        * Taille en X
+    add.w    d1,d0
+    cmp.w    d7,d0
+    bhi    NoPac0
+    move.w    Pkty(a0),d0
+    mulu    d6,d0
+    move.w    d0,USy(sp)        * Taille en Y
+    add.w    d2,d0
+    cmp.w    EcTy(a1),d0
+    bhi    NoPac0
+
+    mulu    d7,d2            * Screen address
+    ext.l    d1    
+    add.l    d2,d1
+    move.l    d1,UDEc(sp)
+    
+    move.w    d6,d0            * Size of one line
+        mulu     d7,d0
+        move     d0,UTLine(sp)
+
+        move.w     Pktx(a0),a3        * Size in X
+        subq.w    #1,a3
+        move.w     Pkty(a0),UITy(sp)    * in Y
+        lea     PkDatas1(a0),a4            * a4--> bytes table 1
+        move.l     a0,a5
+        move.l     a0,a6
+        add.l     PkDatas2(a0),a5         * a5--> bytes table 2
+        add.l     PkPoint2(a0),a6         * a6--> pointer table
+
+        moveq     #7,d0            
+        moveq     #7,d1
+        move.b     (a5)+,d2
+        move.b     (a4)+,d3
+        btst     d1,(a6)
+        beq.s     prep
+        move.b     (a5)+,d2
+prep:   subq.w     #1,d1
+
+* Unpack!
+dplan:  move.l     UAEc(sp),a2
+    addq.l    #4,UAEc(sp)
+    move.l    (a2),a2
+    add.l    UDEc(sp),a2
+        move.w     UITy(sp),UTy(sp)    * Y Heigth counter
+dligne: move.l     a2,a1
+        move.w     a3,d4
+dcarre: move.l     a1,a0
+        move.w     d6,d5           * Square height
+doctet1:subq.w     #1,d5
+        bmi.s     doct3
+        btst     d0,d2
+        beq.s     doct1
+        move.b     (a4)+,d3
+doct1:  move.b     d3,(a0)
+        add.w     d7,a0
+        dbra     d0,doctet1
+        moveq     #7,d0
+        btst     d1,(a6)
+        beq.s     doct2
+        move.b     (a5)+,d2
+doct2:  dbra     d1,doctet1
+        moveq     #7,d1
+        addq.l     #1,a6
+        bra.s     doctet1
+doct3:  addq.l    #1,a1               * Other squares?
+        dbra     d4,dcarre
+        add.w     UTLine(sp),a2              * Other square line?
+        subq.w     #1,UTy(sp)
+        bne.s     dligne
+        subq.w     #1,UNPlan(sp)
+        bne.s     dplan
+* Finished!
+    move.w    USy(sp),d0
+    swap    d0
+    move.w    USx(sp),d0
+    lsl.w    #3,d0
+        lea    UPile(sp),sp            * Restore the pile
+    movem.l    (sp)+,a0-a6/d1-d7
+    rts
+NoPac0     lea    UPile(sp),sp
+NoPac    moveq    #0,d0
+    movem.l    (sp)+,a0-a6/d1-d7
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -25662,7 +26450,7 @@ L3D730    move.l    a2,a0
     bclr    #5,$1b(a5)
     cmp.b    #2,$1b(a5)
     bne.s    .Exit
-; Si mode 2, enleve les "0" avant l''exposant!
+; Si mode 2, enleve les "0" avant l'exposant!
     moveq    #0,d1
     moveq    #0,d2
     move.l    $10(a5),a0

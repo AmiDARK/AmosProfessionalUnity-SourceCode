@@ -36,6 +36,8 @@ ROnly:		equ 	0
 
 		Include	"src/AmosProUnity_Debug.s" ; Just one flag
 		Include "src/AmosProUnity_Equ.s"
+        Include "src/AmosProUnity_Equates/ExtractedFromAmosPro_Lib_Equ.s" // Equates for AmosPro.lib method extracted to AmosProUnityECS.library
+
 		RsSet	DataLong
 		Include	"src/AmosProUnity_CEqu.s"
 		Include	"src/AmosProUnity_Library_Equ.s" 

@@ -32,6 +32,20 @@ amosprolib_functions:
     bra        AMP_IffFormSize
     bra        AMP_IffForm
     bra        AMP_IffFormLoad
+    bra        AMP_IffSaveScreen
+    bra        AMP_InScreenOpen
+    bra        AMP_InGetPalette2
+    bra        AMP_GSPal
+    bra        AMP_GetEc
+    bra        AMP_InScreenDisplay
+    bra        AMP_ScreenCopy0
+    bra        AMP_UnPack_Bitmap
+    bra        AMP_UnPack_Screen
+    bra        AMP_Bnk.SaveA0
+    bra        AMP_SHunk
+    bra        AMP_BnkUnRev
+    bra        AMP_BnkReserveIC2
+    bra        AMP_BnkEffA0
 ;   bra        .........
     dc.l       0
 ; *************************************************************************************
@@ -92,80 +106,6 @@ AMP_ResTempBuffer:
     dc.l    0
     moveq    #0,d0
     bra.s    AMP_ResTempBuffer
-
-
-; *************************************************************************************
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     ROUTINES DISQUE
-; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-; *************************************************************************************
-AMP_Open:
-; - - - - - - - - - - - - -
-    move.l     Name1(a5),d1
-;    Rbra       A_OpenD1
-; *************************************************************************************
-AMP_OpenD1:
-    move.l     a6,-(sp)
-    move.l     DosBase(a5),a6
-    jsr        _LVOOpen(a6)
-    move.l     (sp)+,a6
-    move.l     d0,Handle(a5)
-; Branche la routine de nettoyage en cas d''erreur
-    move.l     a2,-(sp)
-    lea        .Struc(pc),a1
-    lea        Sys_ErrorRoutines(a5),a2
-    bsr        WAddRoutine
-    lea        .Struc2(pc),a1
-    lea        Sys_ClearRoutines(a5),a2
-    bsr        WAddRoutine
-    move.l     (sp)+,a2
-    move.l     Handle(a5),d0
-    rts
-.Struc:
-    dc.l       0
-    bra        AMP_Close
-.Struc2:
-    bra        AMP_Close
-    dc.l       0
-    bra        AMP_Close
-; *************************************************************************************
-AMP_Read:
-    movem.l    d1/a0/a1/a6,-(sp)
-    move.l     Handle(a5),d1
-    move.l     DosBase(a5),a6
-    jsr        _LVORead(a6)
-    movem.l    (sp)+,d1/a0/a1/a6
-    cmp.l      d0,d3
-    rts
-; *************************************************************************************
-AMP_Write:
-    movem.l    d1/a0/a1/a6,-(sp)
-    move.l     Handle(a5),d1
-    move.l     DosBase(a5),a6
-    jsr        _LVOWrite(a6)
-    movem.l    (sp)+,d1/a0/a1/a6
-    cmp.l      d0,d3
-    rts
-; *************************************************************************************
-AMP_Seek:
-    move.l     Handle(a5),d1
-    move.l     a6,-(sp)
-    move.l     DosBase(a5),a6
-    jsr        _LVOSeek(a6)
-    move.l     (sp)+,a6
-    tst.l      d0
-    rts
-; *************************************************************************************
-AMP_Close:
-    movem.l    d0/d1/a0/a1/a6,-(sp)
-    move.l     Handle(a5),d1
-    beq.s      .Skip
-    clr.l      Handle(a5)
-    move.l     DosBase(a5),a6
-    jsr        _LVOClose(a6)
-.Skip:
-    movem.l    (sp)+,d0/d1/a0/a1/a6
-    rts
 
 
 ; *************************************************************************************
@@ -802,7 +742,7 @@ AMP_IffFormSize:
     sub.l      a1,a1
     moveq      #0,d4
     moveq      #0,d6
-* Boucle d'exploration
+* Boucle d''exploration
 .Loop:
     move.l     Buffer(a5),d2
     moveq      #12,d3
@@ -929,6 +869,283 @@ AMP_IffFormLoad:
 
 
 
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Sauvegarde d''ecran IFF
+;    D7    Compression
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_IffSaveScreen:
+; - - - - - - - - - - - - -
+    move.l     ScOnAd(a5),a2
+    move.l     Buffer(a5),a1
+    move.l     #"FORM",(a1)+        * FORM
+    clr.l      (a1)+            * Espace
+    move.l     #"ILBM",(a1)+        * ILBM
+    bsr        SaveA1
+    bsr        SaveBMHD
+    bsr        SaveCAMG
+    bsr        SaveAMSC
+    bsr        SaveCMAP
+    bsr        SaveBODY
+.Fin:
+    moveq      #-1,d3
+    moveq      #4,d2
+    bsr        AMP_Seek
+    subq.l     #8,d0
+    move.l     Buffer(a5),a1
+    move.l     d0,(a1)+
+    bsr        SaveA1
+    rts
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Sauve le BMHD
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SaveBMHD:
+; - - - - - - - - - - - - -
+    move.l     Buffer(a5),a1
+    move.l     #"BMHD",(a1)+
+    move.l     #20,(a1)+
+    move.w     EcTx(a2),(a1)+
+    move.w     EcTy(a2),(a1)+
+    clr.w      (a1)+
+    clr.w      (a1)+
+    move.b     EcNPlan+1(a2),(a1)+
+    clr.b      (a1)+
+    move.b     d7,(a1)+
+    clr.b      (a1)+
+    clr.w      (a1)+
+    moveq      #20,d0
+    moveq      #22,d1
+    move.w     EcWTx(a2),d2
+    move.w     EcWTy(a2),d3
+    move.w     EcCon0(a2),d4
+    bpl.s      Sbmhd1
+    lsr.w      #1,d0
+    lsl.w      #1,d2
+Sbmhd1:
+    btst       #2,d4
+    beq.s      Sbmhd2
+    lsr.w      #1,d1
+    lsl.w      #1,d3
+Sbmhd2:
+    move.b     d0,(a1)+
+    move.b     d1,(a1)+
+    move.w     d2,(a1)+
+    move.w     d3,(a1)+
+    bra        SaveA1
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Sauve la CMAP
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SaveCMAP:
+; - - - - - - - - - - - - -
+    move.l     Buffer(a5),a1
+    move.l     #"CMAP",(a1)+
+    move.l     #32*3,(a1)+
+    moveq      #31,d0
+    lea        EcPal(a2),a0
+SCm1:
+    move.w     (a0)+,d1
+    lsl.w      #4,d1
+    moveq      #2,d2
+SCm2:
+    rol.w      #4,d1
+    move.w     d1,d3
+    and.w      #$000F,d3
+    lsl.w      #4,d3
+    move.b     d3,(a1)+
+    dbra       d2,SCm2
+    dbra       d0,SCm1
+    bra        SaveA1
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Sauve la CAMG
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SaveCAMG:
+; - - - - - - - - - - - - -
+    move.l     Buffer(a5),a1
+    move.l     #"CAMG",(a1)+
+    move.l     #4,(a1)+
+    moveq      #0,d0
+    move.w     EcCon0(a2),d0
+    and.w      #%1000100000000110,d0
+    cmp.w      #64,EcNbCol(a2)
+    bne.s      SCa
+    btst       #11,d0
+    bne.s      SCa
+    bset       #7,d0
+SCa:
+    move.l     d0,(a1)+
+    bra        SaveA1
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Sauve le AMSC
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SaveAMSC:
+; - - - - - - - - - - - - -
+    move.l     Buffer(a5),a1
+    move.l     #"AMSC",(a1)+
+    move.l     #7*2,(a1)+
+    move.w     EcAWX(a2),(a1)+
+    move.w     EcAWY(a2),(a1)+
+    move.w     EcAWTX(a2),(a1)+
+    move.w     EcAWTY(a2),(a1)+    
+    move.w     EcAVX(a2),(a1)+
+    move.w     EcAVY(a2),(a1)+
+    move.w     EcFlags(a2),d0
+    and.w      #$8000,d0
+    move.w     d0,(a1)+
+    bra        SaveA1
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Sauve le BODY
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SaveBODY:
+; - - - - - - - - - - - - -
+    move.l     Buffer(a5),a1
+    move.l     #"BODY",(a1)+
+    tst.b      d7
+    bne.s      SBc
+* Non compacte
+    move.l     EcTPlan(a2),d0        * Entete
+    mulu       EcNPlan(a2),d0
+    move.l     d0,(a1)+
+    bsr        SaveA1
+    move.w     EcTy(a2),d7        * Image
+    moveq      #0,d3
+    move.w     EcTLigne(a2),d3
+    moveq      #0,d4
+SBo1:
+    move.w     EcNPlan(a2),d6
+    lea        EcLogic(a2),a0
+SBo2:
+    move.l     (a0)+,d2
+    add.l      d4,d2
+    bsr        AMP_Write
+    bne        DiskError
+    subq.w     #1,d6
+    bne.s      SBo2
+    add.l      d3,d4
+    subq.w     #1,d7
+    bne.s      SBo1
+    rts
+* Compacte!
+SBc:
+    clr.l      (a1)+
+    bsr        SaveA1
+    moveq      #0,d2            * Position dans le fichier
+    moveq      #0,d3
+    bsr        AMP_Seek
+    move.l     d0,-(sp)
+    moveq      #0,d7
+    move.w     EcTy(a2),d6
+    moveq      #0,d5
+    move.w     EcTLigne(a2),d5
+    moveq      #0,d4
+    move.l     a3,-(sp)
+    move.w     EcNPlan(a2),-(sp)
+    pea        EcLogic(a2)
+SBc1:
+    move.l     (sp),a2
+    move.w     4(sp),d3
+    move.l     Buffer(a5),a1
+SBc2:
+    move.w     d5,d2
+    move.l     (a2)+,a0
+    add.l      d4,a0
+SBc3:
+    moveq      #0,d1            
+    move.b     (a0)+,d0
+    subq.w     #1,d2
+    beq.s      SBc5a
+SBc4:
+    cmp.b      (a0),d0
+    bne.s      SBc5
+    addq.l     #1,d1
+    addq.l     #1,a0
+    cmp.w      #127,d1
+    bcc.s      SBc5
+    subq.w     #1,d2
+    bne.s      SBc4
+SBc5:
+    tst.w      d1
+    beq.s      SBc6
+    neg.b      d1
+    move.b     d1,(a1)+
+    move.b     d0,(a1)+
+    tst.w      d2
+    bne.s      SBc3
+    bra.s      SBc10
+SBc5a:
+    clr.b      (a1)+
+    move.b     d0,(a1)+
+    bra.s      SBc10
+SBc6:
+    move.l     a1,a3
+    moveq      #0,d1
+    clr.b      (a1)+
+    move.b     d0,(a1)+
+SBc7:
+    move.b     (a0),d0
+    cmp.b      1(a0),d0
+    bne.s      SBc8
+    cmp.b      2(a0),d0
+    beq.s      SBc9
+SBc8:
+    move.b     (a0)+,(a1)+
+    addq.w     #1,d1
+    subq.w     #1,d2
+    beq.s      SBc9
+    cmp.w      #127,d1
+    bcs.s      SBc7
+SBc9:
+    move.b     d1,(a3)
+    tst.w      d2
+    bne.s      SBc3
+* Autre plan?
+SBc10:
+    subq.w     #1,d3
+    bne.s      SBc2
+* Sauve le buffer
+    move.l     Buffer(a5),d2
+    move.l     a1,d3
+    sub.l      d2,d3
+    add.l      d3,d7
+    bsr        AMP_Write
+    bne        DiskError
+* Encore une ligne?
+    add.l      d5,d4
+    subq.w     #1,d6
+    bne        SBc1
+* A y est!
+    addq.l     #6,sp
+    move.l     (sp)+,a3
+* Rend le chunk pair
+    btst       #0,d7
+    beq.s      SBc11
+    move.l     Buffer(a5),a1
+    clr.b      (a1)
+    move.l     a1,d2
+    moveq      #1,d3
+    bsr        AMP_Write
+    bne        DiskError
+    addq.l     #1,d7
+* Marque la longueur du chunk!
+SBc11:
+    move.l     (sp)+,d2        * Debut du chunk
+    subq.l     #4,d2
+    moveq      #-1,d3
+    bsr        AMP_Seek
+    move.l     d0,-(sp)
+    move.l     Buffer(a5),a1        * Sauve la longueur
+    move.l     d7,(a1)
+    move.l     a1,d2
+    moveq      #4,d3
+    bsr        AMP_Write
+    bne        DiskError
+    move.l     (sp)+,d2        * Remet a la fin
+    moveq      #-1,d3
+    bsr        AMP_Seek
+    rts
 
 
 
@@ -937,6 +1154,962 @@ AMP_IffFormLoad:
 
 
 
+
+
+
+
+
+
+; *************************************************************************************
+;                     SCREEN OPEN
+AMP_InScreenOpen:
+    bsr        SaveRegs
+    move.l     d3,d5            * Mode
+    and.l      #$8004,d5
+* Ham?
+    move.l     (a3)+,d6
+    cmp.l      #4096,d6
+    bne.s      ScOo0
+    tst.w      d5            * Lowres only!
+    bmi        FonCall
+    moveq      #6,d4
+    or.w       #$0800,d5
+    moveq      #64,d6
+    bra.s      ScOo2
+* Nombre de couleurs-> plans
+ScOo0:
+    moveq      #1,d4            * Nb de plans
+    moveq      #2,d1
+ScOo1:
+    cmp.l      d1,d6
+    beq.s      ScOo2
+    lsl.w      #1,d1
+    addq.w     #1,d4
+    cmp.w      #7,d4
+    bcs.s      ScOo1
+IlNCo:
+    moveq      #5,d0            * Illegal number of colours
+    bra        EcWiErr
+ScOo2:
+    move.l     (a3)+,d3        * TY
+    move.l     (a3)+,d2        * TX
+    move.l     (a3)+,d1        * Numero
+    bsr        CheckScreenNumber
+    tst.w      d5            * Si HIRES, pas plus de 16 couleurs
+    bpl.s      ScOo3
+    cmp.w      #4,d4
+    bhi        FonCall    
+ScOo3:
+    lea        DefPal(a5),a1
+    EcCall     Cree
+    bne        EcWiErr
+    move.l     a0,ScOnAd(a5)
+    move.w     EcNumber(a0),ScOn(a5)
+    addq.w     #1,ScOn(a5)
+* Fait flasher la couleur 3 (si plus de 2 couleurs)
+    cmp.w      #1,d4
+    beq.s      ScOo4
+    moveq      #3,d1
+    moveq      #46,d0
+    Bsr        Sys_GetMessage
+    move.l     a0,a1
+    EcCall     Flash
+ScOo4:
+    bsr        LoadRegs
+    rts
+
+; **************************************************************************************************
+;     Verification du parametre ecran D1
+CheckScreenNumber:
+    tst.b      Prg_Accessory(a5)
+    bne.s      .Skip
+    cmp.l      #8,d1
+    bcc        IllScN
+    rts
+.Skip:
+    cmp.l      #10,d1
+    bcc        IllScN
+    rts
+
+; **************************************************************************************************
+Sys_GetMessage:
+    move.l     Sys_Messages(a5),a0
+GetMessage:
+    move.w     d1,-(sp)
+    clr.w      d1
+    cmp.l      #0,a0
+    beq.s      .Big
+    addq.l     #1,a0
+    bra.s      .In
+.Loop:
+    move.b     (a0),d1
+    cmp.b      #$ff,d1
+    beq.s      .Big
+    lea        2(a0,d1.w),a0
+.In:
+    subq.w     #1,d0
+    bgt.s      .Loop
+.Out:
+    move.w     (sp)+,d1
+    move.b     (a0)+,d0
+    rts
+.Big:
+    lea        .Fake(pc),a0
+    bra.s      .Out
+.Fake:
+    dc.b       0,0,0,0
+
+
+; **************************************************************************************************
+AMP_InGetPalette2:
+    move.l     (a3)+,d1
+    bsr        AMP_GetEc
+    lea        EcPal(a0),a0
+;    bra        AMP_GSPal
+; **************************************************************************************************
+AMP_GSPal:
+    bsr        PalRout
+    EcCall     SPal
+    bne        EcWiErr
+    rts
+; **************************************************************************************************
+PalRout:
+    tst.w      ScOn(a5)
+    beq        ScNOp
+    move.l     Buffer(a5),a1
+    moveq      #0,d0
+PalR1:
+    move.w     #$FFFF,(a1)
+    btst       d0,d3
+    beq.s      PalR2
+    move.w     (a0),(a1)
+PalR2:
+    addq.l     #2,a0
+    addq.l     #2,a1
+    addq.w     #1,d0
+    cmp.w      #32,d0
+    bcs.s      PalR1
+    move.l     Buffer(a5),a1
+    rts
+
+; **************************************************************************************************
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Routine: #ecran D1 >>> adresse D0
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_GetEc:
+; - - - - - - - - - - - - -
+    tst.l      d1
+    bmi.s      GtE1
+* >0 , <8
+    cmp.l      #8,d1
+    bcc        FonCall
+    EcCall     AdrEc
+    beq        ScNOp
+    move.l     d0,a0
+    add.l      #EcLogic,d0
+    rts
+* <0
+GtE1:
+    tst.w      d1
+    bpl.s      GtE2
+    move.l     ScOnAd(a5),d0
+    beq        ScNOp
+    move.l     d0,a0
+    bra.s      GtE3
+GtE2:
+    cmp.w      #8,d1
+    bcc        FonCall
+    EcCall     AdrEc
+    beq        ScNOp
+    move.l     d0,a0
+GtE3:
+    btst       #30,d1
+    bne.s      GtE4
+    add.l      #EcLogic,d0
+    rts
+GtE4:
+    add.l      #EcPhysic,d0
+    rts
+
+; - - - - - - - - - - - - -
+AMP_InScreenDisplay:
+    move.l     d3,d5
+    move.l     (a3)+,d4
+    move.l     (a3)+,d3
+    move.l     (a3)+,d2
+    move.l     (a3)+,d1
+    bsr        CheckScreenNumber
+    EcCall     AView
+    bne        EcWiErr
+    rts
+
+
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Routine SCREEN COPY
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_ScreenCopy0:                       ; Sco0
+; - - - - - - - - - - - - -
+    movem.l    a3/a6,-(sp)
+    tst.w      d0
+    bpl.s      Sco1
+    sub.w      d0,d2
+    clr.w      d0
+Sco1:
+    tst.w      d1
+    bpl.s      Sco2
+    sub.w      d1,d3
+    clr.w      d1
+Sco2:
+    tst.w      d2
+    bpl.s      Sco3
+    sub.w      d2,d0
+    clr.w      d2
+Sco3:
+    tst.w      d3
+    bpl.s      Sco4
+    sub.w      d3,d1
+    clr.w      d3
+Sco4:
+    cmp.w      EcTx(a0),d0
+    bcc        ScoX
+    cmp.w      EcTy(a0),d1
+    bcc        ScoX
+    cmp.w      EcTx(a1),d2
+    bcc        ScoX
+    cmp.w      EcTy(a1),d3
+    bcc        ScoX
+    tst.w      d4
+    bmi        ScoX
+    cmp.w      EcTx(a0),d4
+    bls.s      Sco5
+    move.w     EcTx(a0),d4
+Sco5:
+    tst.w      d5
+    bmi        ScoX
+    cmp.w      EcTy(a0),d5
+    bls.s      Sco6
+    move.w     EcTy(a0),d5
+Sco6:
+    sub.w      d0,d4
+    bls        ScoX
+    sub.w      d1,d5
+    bls        ScoX
+    move.w     d2,d7
+    add.w      d4,d7
+    sub.w      EcTx(a1),d7
+    bls.s      Sco7    
+    sub.w      d7,d4
+    bls        ScoX
+Sco7:
+    move.w     d3,d7
+    add.w      d5,d7
+    sub.w      EcTy(a1),d7
+    bls.s      Sco8
+    sub.w      d7,d5
+    bls.s      ScoX
+Sco8:
+    ext.l      d0
+    ext.l      d1
+    ext.l      d2
+    ext.l      d3
+    ext.l      d4
+    ext.l      d5
+; Cree des faux bitmaps
+    move.l     T_ChipBuf(a5),a2    Buffer en CHIP
+    lea        40(a2),a3
+    move.w     EcTLigne(a0),(a2)+
+    move.w     EcTLigne(a1),(a3)+
+    move.w     EcTy(a0),(a2)+
+    move.w     EcTy(a1),(a3)+
+    move.w     EcNPlan(a0),(a2)+
+    move.w     EcNPlan(a1),(a3)+
+    clr.w      (a2)+
+    clr.w      (a3)+
+    move.l     SccEcO(a5),a0
+    move.l     SccEcD(a5),a1
+    moveq      #5,d7
+.BM:
+    move.l     (a0)+,(a2)+
+    move.l     (a1)+,(a3)+
+    dbra       d7,.BM    
+; Appelle les routines
+    move.l     T_ChipBuf(a5),a0
+    lea        40(a0),a1
+    lea        40(a1),a2
+    move.l     T_EcVect(a5),a6
+    jsr        ScCpyW*4(a6)
+    beq.s      ScoX
+    moveq      #-1,d7
+    move.l     T_GfxBase(a5),a6
+    jsr        BltBitMap(a6)
+ScoX:
+    movem.l    (sp)+,a3/a6
+    rts
+
+
+
+
+
+
+
+
+
+
+
+
+
+; _____________________________________________________________________________
+;            
+;                                Unpacker
+;______________________________________________________________________________
+;
+UAEc:          equ      0
+UDEc:          equ      4
+UITy:          equ      8
+UTy:           equ     10
+UTLine:        equ     12
+UNPlan:        equ     14
+USx            equ     16
+USy            equ     18
+UPile:         equ     20
+
+; _________________________________________________
+;
+;    Unpacker Screen
+; _________________________________________________
+;
+;    A0=    Packed picture
+;    D0=    Destination Screen
+; _________________________________
+;
+; - - - - - - - - - - - - -
+AMP_UnPack_Screen:
+    movem.l    a2-a6/d2-d7,-(sp)
+    cmp.l      #SCCode,PsCode(a0)
+    bne        .NoPac
+    move.w     d0,d1
+    moveq      #0,d2
+    moveq      #0,d3
+    moveq      #0,d4
+    moveq      #0,d5
+    move.w     PsTx(a0),d2
+    move.w     PsTy(a0),d3
+    move.w     PsNPlan(a0),d4
+    move.w     PsCon0(a0),d5
+    move.w     PsNbCol(a0),d6
+    lea        PsPal(a0),a1
+    move.l     a0,-(sp)
+    EcCall     Cree
+    move.l     a0,a1
+    move.l     (sp)+,a0
+    bne.s      .NoScreen
+* Enleve le curseur
+    movem.l    a0-a6/d0-d7,-(sp)
+    lea        .CuCp(pc),a1
+    WiCall     Print
+    movem.l    (sp)+,a0-a6/d0-d7
+* Change View/Offset
+    move.w     PsAWx(a0),EcAWX(a1)
+    move.w     PsAWy(a0),EcAWY(a1)
+    move.w     PsAWTx(a0),EcAWTX(a1)
+    move.w     PsAWTy(a0),EcAWTY(a1)
+    move.w     PsAVx(a0),EcAVX(a1)
+    move.w     PsAVy(a0),EcAVY(a1)
+    move.b     #%110,EcAW(a1)
+    move.b     #%110,EcAWT(a1)
+    move.b     #%110,EcAV(a1)
+* Unpack!
+    lea        PsLong(a0),a0
+    moveq      #0,d1
+    moveq      #0,d2
+    bsr        AMP_UnPack_Bitmap
+    move.l     a1,a0
+    bra.s      .Out
+.NoPac:
+    moveq      #0,d0
+    moveq      #0,d1
+    bra.s      .Out
+.NoScreen:
+    moveq      #0,d0
+    moveq      #1,d1
+.Out:
+    movem.l    (sp)+,d2-d7/a2-a6
+    rts
+.CuCp:
+    dc.b       27,"C0",0
+    even
+; _________________________________________________
+;
+;    Unpacker Bitmap
+; _________________________________________________
+;
+;    A0=    Packed picture
+;    A1=    Destination Screen
+;    D1=    X
+;    D2=    Y
+; _________________________________
+;
+; - - - - - - - - - - - - -
+AMP_UnPack_Bitmap:
+; - - - - - - - - - - - - -
+    movem.l    a0-a6/d1-d7,-(sp)
+* Jump over SCREEN DEFINITION
+    cmp.l      #SCCode,(a0)
+    bne.s      dec0
+    lea        PsLong(a0),a0
+* Is it a packed bitmap?
+dec0:
+    cmp.l      #BMCode,(a0)
+    bne        NoPac
+
+* Parameter preparation
+    lea        -UPile(sp),sp        * Space to work
+    lea        EcCurrent(a1),a2
+    move.l     a2,UAEc(sp)        * Bitmaps address
+    move.w     EcTLigne(a1),d7        * d7--> line size
+    move.w     EcNPlan(a1),d0        * How many bitplanes
+    cmp.w      Pknplan(a0),d0
+    bne        NoPac0
+    move.w     d0,UNPlan(sp)
+    move.w     Pktcar(a0),d6        * d6--> SY square
+
+    lsr.w      #3,d1            * > number of bytes
+    tst.l      d1            * Screen address in X
+    bpl.s      dec1
+    move.w     Pkdx(a0),d1
+dec1:
+    tst.l      d2            * In Y
+    bpl.s      dec2
+    move.w     Pkdy(a0),d2
+dec2:
+    move.w     Pktx(a0),d0
+    move.w     d0,USx(sp)        * Taille en X
+    add.w      d1,d0
+    cmp.w      d7,d0
+    bhi        NoPac0
+    move.w     Pkty(a0),d0
+    mulu       d6,d0
+    move.w     d0,USy(sp)        * Taille en Y
+    add.w      d2,d0
+    cmp.w      EcTy(a1),d0
+    bhi        NoPac0
+    mulu       d7,d2            * Screen address
+    ext.l      d1    
+    add.l      d2,d1
+    move.l     d1,UDEc(sp)
+    move.w     d6,d0            * Size of one line
+    mulu       d7,d0
+    move       d0,UTLine(sp)
+    move.w     Pktx(a0),a3        * Size in X
+    subq.w     #1,a3
+    move.w     Pkty(a0),UITy(sp)    * in Y
+    lea        PkDatas1(a0),a4            * a4--> bytes table 1
+    move.l     a0,a5
+    move.l     a0,a6
+    add.l      PkDatas2(a0),a5         * a5--> bytes table 2
+    add.l      PkPoint2(a0),a6         * a6--> pointer table
+    moveq      #7,d0            
+    moveq      #7,d1
+    move.b     (a5)+,d2
+    move.b     (a4)+,d3
+    btst       d1,(a6)
+    beq.s      prep
+    move.b     (a5)+,d2
+prep:
+    subq.w     #1,d1
+* Unpack!
+dplan:
+    move.l     UAEc(sp),a2
+    addq.l     #4,UAEc(sp)
+    move.l     (a2),a2
+    add.l      UDEc(sp),a2
+    move.w     UITy(sp),UTy(sp)    * Y Heigth counter
+dligne:
+    move.l     a2,a1
+    move.w     a3,d4
+dcarre:
+    move.l     a1,a0
+    move.w     d6,d5           * Square height
+doctet1:
+    subq.w     #1,d5
+    bmi.s      doct3
+    btst       d0,d2
+    beq.s      doct1
+    move.b     (a4)+,d3
+doct1:
+    move.b     d3,(a0)
+    add.w      d7,a0
+    dbra       d0,doctet1
+    moveq      #7,d0
+    btst       d1,(a6)
+    beq.s      doct2
+    move.b     (a5)+,d2
+doct2:
+    dbra       d1,doctet1
+    moveq      #7,d1
+    addq.l     #1,a6
+    bra.s      doctet1
+doct3:
+    addq.l     #1,a1               * Other squares?
+    dbra       d4,dcarre
+    add.w      UTLine(sp),a2              * Other square line?
+    subq.w     #1,UTy(sp)
+    bne.s      dligne
+    subq.w     #1,UNPlan(sp)
+    bne.s      dplan
+* Finished!
+    move.w     USy(sp),d0
+    swap       d0
+    move.w     USx(sp),d0
+    lsl.w      #3,d0
+    lea        UPile(sp),sp            * Restore the pile
+    movem.l    (sp)+,a0-a6/d1-d7
+    rts
+NoPac0:
+     lea       UPile(sp),sp
+NoPac:
+    moveq       #0,d0
+    movem.l    (sp)+,a0-a6/d1-d7
+    rts
+
+
+
+
+
+
+
+
+
+
+
+
+AMP_Bnk.SaveA0:
+; - - - - - - - - - - - - -
+    movem.l    a2/a3/d2-d4,-(sp)
+    move.l     a0,a2
+    move.w     -16+4(a2),d2        Flags
+    btst       #Bnk_BitBob,d2
+    bne.s      SB_Bob
+    btst       #Bnk_BitIcon,d2
+    bne.s      SB_Icon
+; Sauve une banque normale!
+; ~~~~~~~~~~~~~~~~~~~~~~~~~
+    moveq      #1,d0            AmBk
+    bsr        AMP_SHunk
+    bne        SB_Err
+    move.l     Buffer(a5),a0
+    move.w     -8*2+2(a2),(a0)        NUMERO.W
+    clr.w      2(a0)            0-> CHIP / 1-> FAST
+    btst       #Bnk_BitChip,d2
+    bne.s      .Chp
+    addq.w     #1,2(a0)
+.Chp:
+    move.l     -8*3+4(a2),d4        Taille banque
+    subq.l     #8,d4            Moins header
+    move.l     d4,4(a0)        Puis LONGUEUR.L
+    btst       #Bnk_BitData,d2        Data / Work?
+    beq.s      .Wrk
+    bset       #7,4(a0)
+.Wrk:
+    move.l     a0,d2
+    moveq      #8,d3
+    bsr        AMP_Write
+    bne        SB_Err
+    lea        -8(a2),a2        Pointe le nom
+    move.l     a2,d2
+    move.l     d4,d3
+    bsr        AMP_Write
+    bne.s      SB_Err
+    bra.s      SB_Ok
+;    Sauve une banque d''icones
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SB_Icon:
+    moveq      #4,d0            AmIc
+    bra.s      SB_Sp
+;     Sauve une banque de sprites
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SB_Bob:
+    moveq      #2,d0            AmSp
+SB_Sp:
+    bsr        AMP_SHunk
+    bne.s      SB_Err
+    move.l     a2,a0            Remet les sprites droit
+    bsr        AMP_BnkUnRev
+    move.l     a2,d2    
+    moveq      #2,d3
+    bsr        AMP_Write
+    bne.s      SB_Err
+    move.l     Buffer(a5),a3
+    clr.l      (a3)
+    clr.l      4(a3)
+    clr.w      8(a3)
+    move.w     (a2)+,d4
+    subq.w     #1,d4
+    bmi.s      .NoSpr
+; Sprite vide
+.SS1:
+    move.l     (a2),d0
+    bne.s      .SS2
+    move.l     a3,d2
+    moveq      #10,d3
+    bsr        AMP_Write
+    bne.s      SB_Err
+    bra.s      .SS3
+; Un sprite
+.SS2:
+    move.l     d0,a0
+    move.l     d0,d2
+    move.w     (a0)+,d3
+    mulu       (a0)+,d3
+    mulu       (a0)+,d3
+    lsl.w      #1,d3
+    add.l      #10,d3
+    bsr        AMP_Write
+    bne.s      SB_Err
+; Suivant
+.SS3:
+    addq.l     #8,a2
+    dbra       d4,.SS1
+; Sauve la palette
+; ~~~~~~~~~~~~~~~~
+.NoSpr:
+    move.l     a2,d2
+    moveq      #32*2,d3
+    bsr        AMP_Write
+    bne.s      SB_Err
+SB_Ok:
+    moveq      #0,d0
+    bra.s      SB_Out
+SB_Err:
+    moveq      #-1,d0
+SB_Out:
+    movem.l    (sp)+,a2/a3/d2-d4
+    rts
+
+AMP_SHunk:
+; - - - - - - - - - - - - -
+    movem.l    a0/d0/d2/d3,-(sp)
+    lea        NHunk(pc),a0
+    lsl.w      #2,d0
+    lea        -4(a0,d0.w),a0
+    move.l     a0,d2
+    moveq      #4,d3
+    bsr        AMP_Write
+    movem.l    (sp)+,a0/d0/d2/d3
+    rts
+; - - - - - - - - - - - - -
+NHunk:
+; - - - - - - - - - - - - -
+    dc.b     "AmBk"
+    dc.b     "AmSp"
+    dc.b     "AmBs"
+    dc.b     "AmIc"
+    dc.l     0
+
+
+AMP_BnkUnRev:
+; - - - - - - - - - - - - -
+    movem.l    d0-d7/a0-a6,-(sp)
+    move.l     a0,a2
+    move.w     (a2)+,d2
+    subq.w     #1,d2
+    bmi.s      .URbx
+; Va retourner
+; ~~~~~~~~~~~~
+.URb1:
+    move.l     a2,a1
+    moveq      #0,d1
+    EcCall     DoRev
+; Remet le point chaud, si negatif!!!
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    move.l     (a2),d0        
+    beq.s      .URb2
+    move.l     d0,a0
+    move.w     6(a0),d0
+    lsl.w      #2,d0
+    asr.w      #2,d0
+    move.w     d0,6(a0)
+.URb2:
+    lea        8(a2),a2
+    dbra       d2,.URb1
+.URbx:
+    movem.l    (sp)+,d0-d7/a0-a6
+    rts
+
+
+
+
+
+; *************************************************************************
+AMP_BnkReserveIC2:
+; - - - - - - - - - - - - -
+    move.w     d2,d4
+    moveq      #0,d3
+    move.w     d1,d3
+    move.l     d0,d2
+    move.l     a1,a3
+; Reserve une nouvelle table de pointeurs
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    move.l     d3,d0
+    lsl.l      #3,d0
+    add.l      #8*2+2+64,d0
+    move.l     Cur_Banks(a5),a0
+    bsr        AMP_ListNew
+    beq        .Err
+    lea        8(a1),a2
+; Entete de la banque
+; ~~~~~~~~~~~~~~~~~~~
+    moveq      #1,d0            Numero (1 ou 2)
+    lea        BkSpr(pc),a0
+    btst       #Bnk_BitIcon,d4
+    beq.s      .Pai
+    moveq      #2,d0
+    lea        BkIco(pc),a0
+.Pai:
+    move.l     d0,(a2)+        Numero        
+    move.w     d4,(a2)+        Flag
+    clr.w      (a2)+            Vide!
+    move.l     (a0)+,(a2)+        Nom
+    move.l     (a0)+,(a2)+
+    move.l     a2,a1
+; Recopier l''ancienne banque?
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    move.w     d3,(a1)+        Nombre de bobs
+    tst.w      d2            Negatif>>> copie la palette
+    bmi.s      .ECop
+    beq        .PaCopy
+    move.l     a3,d0
+    beq.s      .PaCopy
+    move.l     a3,a0
+    move.w     (a0)+,d0    
+    cmp.w      d3,d0            Moins de bobs dans la nouvelle?
+    bls.s      .Paplu
+    move.w     d3,d0
+.Paplu:
+    subq.w     #1,d0            Copie des bobs
+    bmi.s      .ECop
+.BCop:
+    move.l     (a0),(a1)+        Efface leur origine,
+    clr.l      (a0)+            car la banque sera effacee!
+    move.l     (a0),(a1)+
+    clr.l      (a0)+
+    dbra       d0,.BCop
+.ECop:
+    move.w     (a3),d0            Copie de la palette
+    lsl.w      #3,d0
+    lea        2(a3,d0.w),a0
+    bra.s      .PPal
+; Pas de recopie de l''ancienne banque
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.PaCopy:
+    lea        DefPal(a5),a0
+    move.l     ScOnAd(a5),d0
+    beq.s      .PPal
+    move.l     d0,a0
+    lea        EcPal(a0),a0
+.PPal:
+    move.w     d3,d1
+    lsl.w      #3,d1
+    lea        2(a2,d1.w),a1
+    moveq      #32-1,d0
+.CPal:
+    move.w     (a0)+,(a1)+
+    dbra       d0,.CPal
+; Efface l''ancienne banque
+; ~~~~~~~~~~~~~~~~~~~~~~~~
+.EBank:
+    tst.w      d2    
+    bmi.s      .Paeff
+    move.l     a3,d0
+    beq.s      .Paeff
+    move.l     d0,a0
+    bsr        AMP_BnkEffA0
+.Paeff:
+; Pas d''erreur
+; ~~~~~~~~~~~~
+    move.l     a2,a0
+    move.l     a3,a1
+    moveq      #0,d0
+    bra.s      .Out
+; Out of mem!
+; ~~~~~~~~~~~
+.Err:
+    sub.l      a0,a0
+    moveq      #-1,d0
+; Sortie, envoie l''adresse des bobs à la trappe
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.Out:
+    rts
+
+BkSpr:
+    dc.b       "Sprites "
+    dc.l       0
+
+BkIco:
+    dc.b       "Icons   "
+    dc.l       0
+
+; **************************************************************
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     EFFACEMENT BANQUE A0=Adresse
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_BnkEffA0:
+    move.w     -16+4(a0),d0
+    btst       #Bnk_BitIcon,d0
+    bne.s      .Spr
+    btst       #Bnk_BitBob,d0
+    beq.s      .Nor
+; Une banque de Sprites / Icones
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.Spr:
+    movem.l    a0/a2/d2,-(sp)
+    move.l     a0,a2
+; Efface les sprites
+    move.w     (a2)+,d2        Nombre de bobs
+    subq.w     #1,d2
+    bmi.s      .Skip
+.Loop:
+    move.l     a2,a0            Va effacer la definition
+    bsr        AMP_BnkEffBobA0
+    addq.l     #8,a2
+    dbra       d2,.Loop
+.Skip:
+    movem.l    (sp)+,a0/a2/d2        Recharge les pointeurs zone de def
+; Une banque normale
+; ~~~~~~~~~~~~~~~~~~
+.Nor:
+    clr.l      -8(a0)            Efface le NOM de la banque    
+    clr.l      -8+4(a0)
+    lea        -8*3(a0),a1        Pointe le debut dans la liste
+    move.l     Cur_Banks(a5),a0
+    bsr        AMP_ListDel
+    rts
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     EFFACEMENT BOBS/ICONS A0=Adresse
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_BnkEffBobA0:
+    movem.l    a0/a1/a2/d0/d1,-(sp)
+    move.l     a0,a2
+; Efface le bob
+    move.l     (a2),d1
+    beq.s      .No1
+    move.l     d1,a1
+    move.w     (a1),d0
+    mulu       2(a1),d0
+    lsl.l      #1,d0
+    mulu       4(a1),d0
+    add.l      #10,d0
+    SyCall     MemFree
+; Efface le masque
+.No1:
+    move.l     4(a2),d1
+    ble.s      .No2
+    move.l     d1,a1
+    move.l     (a1),d0
+    SyCall     MemFree
+.No2:
+    clr.l      (a2)+
+    clr.l      (a2)+
+    movem.l    (sp)+,a0/a1/a2/d0/d1
+    rts
+
+
+
+
+; Cree un element de liste en CHIP MEM
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+AMP_ListChipNew:
+    move.l     #Chip|Clear|Public,d1
+    bra.s      AMP_ListCree
+; Cree une element de liste en FAST MEM
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+AMP_ListNew:
+    move.l    #Clear|Public,d1
+; Cree un élément en tete de liste A0 / longueur D0 / Memoire D1
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+AMP_ListCree:
+    movem.l    a0/d0,-(sp)
+    addq.l     #8,d0
+    SyCall     MemReserve
+    move.l     a0,a1
+    movem.l    (sp)+,a0/d1
+    beq.s      .Out
+    move.l     (a0),(a1)
+    move.l     a1,(a0)
+    move.l     d1,4(a1)
+    move.l     a1,d0
+.Out:
+    rts        
+
+; Efface un élément de liste A1 / Debut liste A0
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+AMP_ListDel:
+    movem.l    a0/d0-d2,-(sp)
+    move.l     a1,d0
+    move.l     a0,a1
+    move.l     (a1),d2
+    beq.s      .NFound
+.Loop:
+    move.l     a1,d1
+    move.l     d2,a1
+    cmp.l      d0,a1
+    beq.s      .Found
+    move.l     (a1),d2
+    bne.s      .Loop
+    bra.s      .NFound
+; Enleve de la liste
+.Found:
+    move.l     d1,a0
+    move.l     (a1),(a0)
+    move.l     4(a1),d0
+    addq.l     #8,d0
+    SyCall     MemFree
+.NFound:
+    movem.l    (sp)+,a0/d0-d2
+    rts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+; *************************************************************************************
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     ROUTINES LOAD / SAVE REGISTERS
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+; *************************************************************************************
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Sauvegarde les registres D5-D7
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SaveRegs:
+; - - - - - - - - - - - - -
+    movem.l    d6-d7,ErrorSave(a5)
+    move.b     #1,ErrorRegs(a5)
+    rts
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Recupere les registres D5-D7
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+LoadRegs:
+; - - - - - - - - - - - - -
+    movem.l    ErrorSave(a5),d6-d7
+    clr.b      ErrorRegs(a5)
+    rts
+
+; *************************************************************************************
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     ROUTINES ERREURS
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ; *************************************************************************************
 DiskError:
     move.l     a6,-(sp)
@@ -980,6 +2153,7 @@ ScNOp:
     moveq      #3,d0
     bra        EcWiErr
 IffFor:
+IffFor2:
     moveq      #30,d0
     bra        GoError
 IffCmp:
@@ -998,3 +2172,87 @@ OOfMem:
 ;    bra       GoError
 GoError:
     Rjmp       L_Error
+
+; *************************************************************************************
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     ROUTINES DISQUE
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+; *************************************************************************************
+AMP_Open:
+; - - - - - - - - - - - - -
+    move.l     Name1(a5),d1
+;    Rbra       A_OpenD1
+; *************************************************************************************
+AMP_OpenD1:
+    move.l     a6,-(sp)
+    move.l     DosBase(a5),a6
+    jsr        _LVOOpen(a6)
+    move.l     (sp)+,a6
+    move.l     d0,Handle(a5)
+; Branche la routine de nettoyage en cas d''erreur
+    move.l     a2,-(sp)
+    lea        .Struc(pc),a1
+    lea        Sys_ErrorRoutines(a5),a2
+    bsr        WAddRoutine
+    lea        .Struc2(pc),a1
+    lea        Sys_ClearRoutines(a5),a2
+    bsr        WAddRoutine
+    move.l     (sp)+,a2
+    move.l     Handle(a5),d0
+    rts
+.Struc:
+    dc.l       0
+    bra        AMP_Close
+.Struc2:
+    bra        AMP_Close
+    dc.l       0
+    bra        AMP_Close
+; *************************************************************************************
+AMP_Read:
+    movem.l    d1/a0/a1/a6,-(sp)
+    move.l     Handle(a5),d1
+    move.l     DosBase(a5),a6
+    jsr        _LVORead(a6)
+    movem.l    (sp)+,d1/a0/a1/a6
+    cmp.l      d0,d3
+    rts
+; *************************************************************************************
+AMP_Write:
+    movem.l    d1/a0/a1/a6,-(sp)
+    move.l     Handle(a5),d1
+    move.l     DosBase(a5),a6
+    jsr        _LVOWrite(a6)
+    movem.l    (sp)+,d1/a0/a1/a6
+    cmp.l      d0,d3
+    rts
+; *************************************************************************************
+AMP_Seek:
+    move.l     Handle(a5),d1
+    move.l     a6,-(sp)
+    move.l     DosBase(a5),a6
+    jsr        _LVOSeek(a6)
+    move.l     (sp)+,a6
+    tst.l      d0
+    rts
+; *************************************************************************************
+AMP_Close:
+    movem.l    d0/d1/a0/a1/a6,-(sp)
+    move.l     Handle(a5),d1
+    beq.s      .Skip
+    clr.l      Handle(a5)
+    move.l     DosBase(a5),a6
+    jsr        _LVOClose(a6)
+.Skip:
+    movem.l    (sp)+,d0/d1/a0/a1/a6
+    rts
+; *************************************************************************************
+SaveA1:
+; - - - - - - - - - - - - -
+    move.l     Buffer(a5),d2
+    move.l     a1,d3
+    sub.l      d2,d3
+    beq        .Skip
+    bsr        AMP_Write
+    bne        DiskError
+.Skip:
+    rts

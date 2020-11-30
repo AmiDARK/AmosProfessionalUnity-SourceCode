@@ -14,6 +14,20 @@ A_IffFormPlay          equ   9
 A_IffFormSize          equ  10
 A_IffForm              equ  11
 A_IffFormLoad          equ  12
+A_IffSaveScreen        equ  13
+A_InScreenOpen         equ  14
+A_InGetPalette2        equ  15
+A_GSPal                equ  16
+A_GetEc                equ  17
+A_InScreenDisplay      equ  18
+A_ScreenCopy0          equ  19         ; Sco0 method from AmosProLib.s
+A_UnPack_Bitmap        equ  20
+A_UnPack_Screen        equ  21
+A_Bnk.SaveA0           equ  22
+A_SHunk                equ  23
+A_BnkUnRev             equ  24
+A_BnkReserveIC2        equ  25
+A_BnkEffA0             equ  26
 
 
 ; ************************************************************

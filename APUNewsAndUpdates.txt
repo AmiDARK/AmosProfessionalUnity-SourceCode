@@ -1,17 +1,35 @@
 
 
+; ************************************************************************
+; Méthodes modifiées sous l'Amos Professional AGA (The X Project)
+; Bnk.SaveA0, Bnk.Load, Bnk.Ric2
+; IffScreen, IffPal, SaveCMAP
+; InIffAnim2
+; InScreenOpen, InGetPalette1, InGetPalette2, GSPal, PalRout, InScreenDisplay, Sco0
+; InPen
+; UnPack_Screen, UnPack_Bitmap
+; Created : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
+; ************************************************************************
+
+; *************************************************************
+; 2020.11.30
+; - Extracted Bnk.SaveA0, SHunk and NHunk, Bnk.UnRev to push them into AmosProUnityECS.library
+; - Extracted Bnk.Ric2
+; - Copied AmosProUnity_Loaders.s/Lst.*** methods to AmosProUnityECS.library to makes them availbale for the Bnk.*** method exported
+
+; *************************************************************
+; 2020.11.25
+; - Moved IffSaveScreen, SaveBMHD, SaveCAMG, SaveAMSC, SaveCMAP, SaveBODY to AmosProUnityECS.library
+; - Moved InScreenOpen, InGetPalette2, GSPal, PalRout, GetEc, InScreenDisplay to AmosProUnityECS.library
+; - AmosProUnity_Lib.s/L_InIffAnim2 not exported as graphical works are done inside exported methods calls.
+; - Moved UnPack_Screen, UnPack_Bitmap to AmosProUnityECS.library
+
 ; *************************************************************
 ; 2020.11.24
 ; Reversed all changes concerning AmosProUnity_Lib.s extraction (restored)
 ; Extracted ResTempBuffer to push it into AmosProUnityECS.library
 ; Copied D_Open, D_OpenD1, D_Read, D_Write, D_Seek and D_Close from AmosPro_lib.s -> AmosProUnityEcs.library_ExtractedFromAmosPro_lib.s
 ; Imported : L_IffRead, L_IffSeek, L_IffFormPlay, L_IffFormSize, L_IffForm and L_IffFormLoad inside AmosProUnityECS.library ( As A_.... )
-
-; *************************************************************
-; 2020.11.21
-; - AmosProUnity_Lib.s : Added remplacement calls for InSaveIff
-; - Removed IffSaveScreen from replacement list as it is in fact internally used by InSaveIff2->InSaveIff
-; - AmosProUnity_Lib.s : Updated methods to call extracted ones : FnFormLoad3, FnFormLength1, FnFormPlay2, FnFormSkip1, 
 
 ; *************************************************************
 ; 2020.11.20

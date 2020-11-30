@@ -37,7 +37,7 @@
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;     FIN DE L'INITIALISATION
+;     FIN DE L''INITIALISATION
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Init_Fin
 ; - - - - - - - - - - - - -
@@ -57,15 +57,15 @@ Init_Fin
     JJsr    L_Prg_Load
     bne    .NoProg
     moveq    #-1,d0            Semi Init Graphique
-    lea    RunErr_RunOnly,a1    En cas d'erreur
+    lea    RunErr_RunOnly,a1    En cas d''erreur
     sub.l    a2,a2
     JJsr    L_Prg_RunIt        Revient si out of memory!
 
-; Pas de programme: on se branche à l'editeur
+; Pas de programme: on se branche à l''editeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.NoProg    jsr    Sys_VerInstall        Verification de l'installation
+.NoProg    jsr    Sys_VerInstall        Verification de l''installation
     beq    TheEnd_Install
-    jsr    Edit_Load        Charge l'editeur
+    jsr    Edit_Load        Charge l''editeur
     bne.s    TheEnd_Editor
     moveq    #-1,d0            DefRun normal
     JJsr    L_Prg_New            
@@ -76,7 +76,7 @@ Init_Fin
     JJsr    L_Ed_Title        Le titre
     JJmp    L_Ed_Loop        Branche à la boucle
 
-;     Message d'erreur panique residents
+;     Message d''erreur panique residents
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TheEnd_Editor
     lea    Panic_Editor(pc),a0    Cannot load editor
@@ -109,7 +109,7 @@ TheEnd
 
     JJsr    L_Includes_Clear    Les includes du dernier programme
 
-    tst.l    Edit_Segment(a5)    Arrete l'editeur
+    tst.l    Edit_Segment(a5)    Arrete l''editeur
     beq.s    .NEd
     JJsr    L_Ed_End
 .NEd
@@ -130,7 +130,7 @@ TheEnd
     move.l    Prg_List(a5),d0
     bne.s    .PrgL
 .PrgX
-    bsr    Edit_Free        Enleve l'editeur
+    bsr    Edit_Free        Enleve l''editeur
     bsr    Mon_Free        Enleve le moniteur + banque
     bsr    EffFSel            Enleve la resource file selector
     bsr    EffMouse        Enleve la souris
@@ -151,7 +151,7 @@ TheEnd
     jsr    A5_Free
     lea    PathAct(a5),a0        Enleve pathact
     jsr    A5_Free
-    move.l    AdrIcon(a5),d0        Enleve l'icone
+    move.l    AdrIcon(a5),d0        Enleve l''icone
     beq.s    .SkipI
     move.l    d0,a0
     move.l    IconBase(a5),a6
@@ -177,7 +177,7 @@ TheEnd
     move.l    Sys_WSegment(a5),d1
     jsr    _LVOUnLoadSeg(a6)
 
-    move.l    DosBase(a5),a3        Affiche le message d'erreur
+    move.l    DosBase(a5),a3        Affiche le message d''erreur
     move.l    T_IntBase(a5),a4
     move.l    Sys_Message(a5),d7    
     bsr    Panic_Message
@@ -199,7 +199,7 @@ TheEnd
     move.l    $4.w,a6            Liberation directe!
     jsr    _LVOFreeMem(a6)
 
-; Sortie d'AMOSPro!
+; Sortie d''AMOSPro!
 ; ~~~~~~~~~~~~~~~~~
 Get_Out    move.l    SaveSp(pc),a7
     tst.l    d7
@@ -235,7 +235,7 @@ Math_Close
 .SkipM4    move.l    (sp)+,a6
     rts
 
-; Imprime le message d'erreur dans l'entree courante
+; Imprime le message d''erreur dans l''entree courante
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;    A3=    DosBase
 ;    A4=    IntBase
@@ -347,13 +347,13 @@ VersionN:    dc.b    " Version "
         dc.b    0,"$VER: "
         Version
 
-;         Messages d'erreur
+;         Messages d''erreur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Panic_OOMem    dc.b    "Not enough free memory",0
 Panic_Editor    dc.b    "Cannot load editor",0
 Panic_Install    dc.b    'Program not installed, start "Install.AMOS" first',0
 
-; Charge l'editeur
+; Charge l''editeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Edit_Load
     lea    Edit_Segment(a5),a0
@@ -363,7 +363,7 @@ Edit_Load
     bsr    Program_Load
 .Err    rts    
 
-; Efface l'editeur
+; Efface l''editeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Edit_Free
     lea    Edit_Segment(a5),a0
@@ -397,7 +397,7 @@ Mon_Load
     bne    .Err
     bsr    D_Close
 .Skip2
-; Ok, pas d'erreur
+; Ok, pas d''erreur
 ; ~~~~~~~~~~~~~~~~
     move.l    (sp)+,Cur_Banks(a5)
     moveq    #0,d0
@@ -467,7 +467,7 @@ Program_Load
     move.l    d1,-(a1)
 .In    move.l    (a0)+,d1
     bne.s    .Loop
-; OK, pas d'erreur
+; OK, pas d''erreur
 ; ~~~~~~~~~~~~~~~~
     moveq    #0,d0
     rts
@@ -571,7 +571,7 @@ GetMessage
 .Fake    dc.b    0,0,0,0
 
 
-; Verification de l'installation
+; Verification de l''installation
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Sys_VerInstall
     move.w    d0,-(sp)
@@ -872,7 +872,7 @@ InKillEditor
     bsr    Prg_FirstRun        Autorise?
     tst.l    Edit_Segment(a5)    Deja ferme?
     beq.s    KEExit
-; Fait un close editor d'abord
+; Fait un close editor d''abord
     tst.b    PI_CloseEd(a5)        Autorise?
     beq.s    CloCloX
     Ijsr    L_Ed_CloseEditor
@@ -883,7 +883,7 @@ InKillEditor
     bne.s    CloCloX
     Ijsr    L_Ed_KillEditor
     bsr    Edit_Free        Enleve de la memoire
-    bsr    Mon_Free        Tant qu'à faire...
+    bsr    Mon_Free        Tant qu''à faire...
     lea    RunErr_NoEditor(pc),a0
     move.l    a0,Prg_JError(a5)    Branchement en fin de programme
      clr.w    T_AMOState(a5)        Mode RUN-ONLY
@@ -911,7 +911,7 @@ InCloseEditor
     Ijsr    L_Ed_CloseEditor
     bra.s    CloCloX
     
-; Peut-on fermer l'editeur ?
+; Peut-on fermer l''editeur ?
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~
 Prg_FirstRun
     tst.w    Direct(a5)
@@ -951,7 +951,7 @@ RunErr_Reload
     bsr    Sys_VerInstall        Si pas installe!
     beq    TheEnd
     bsr    Reset_Request        Requester back to AMOS
-    bsr    Edit_Load        Charge l'editeur
+    bsr    Edit_Load        Charge l''editeur
     bne    .Again
     JJsr    L_Ed_Cold
     beq.s    .Ok            
@@ -978,7 +978,7 @@ RunErr_Reload
     bne    TheEnd_Editor
     JJsr    L_Ed_Cold
     bne    TheEnd_Editor            Tant pis!
-; Branche à l'editeur
+; Branche à l''editeur
 .Ok    tst.l    Edt_Runned(a5)            Pas de programme >>> coldcold
     bne.s    .Go
     move.l    Edt_List(a5),Edt_Runned(a5)    Donc, un seul prg!
@@ -1016,7 +1016,7 @@ MemMaximum
     bsr    Mon_Free
 .Skip    rts
 
-;     Ligne de confirmation de l'effacement du programme courant...
+;     Ligne de confirmation de l''effacement du programme courant...
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 MemDelBanks
     movem.l    a2-a6/d2-d7,-(sp)
@@ -1025,7 +1025,7 @@ MemDelBanks
     add.l    d1,d0
     beq    .Tanpi            Si zero: on ne fait rien!
 
-    bsr    .Puzzle            Ouvre l'ecran
+    bsr    .Puzzle            Ouvre l''ecran
     move.l    a1,a0
     moveq    #EcFsel,d0
     move.l    #640,d1
@@ -1048,7 +1048,7 @@ MemDelBanks
     JJsrR    L_Dia_RunQuick,a3
 
     movem.l    d0/d1,-(sp)
-    EcCalD    Del,EcFsel        Efface l'ecran
+    EcCalD    Del,EcFsel        Efface l''ecran
     movem.l    (sp)+,d0/d1
 
     tst.l    d0
@@ -1085,7 +1085,7 @@ MemDelBanks
     dc.b    "EX;",0
 .Fin    even
 
-; Fait passer l'AMOS en 1er juste avant le lancement du programme
+; Fait passer l''AMOS en 1er juste avant le lancement du programme
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 WOption    tst.b    WBench(a5)
     beq.s    .Skip
@@ -1592,7 +1592,7 @@ CommandX:
     lea    -32(a0),a0
     move.l    a0,BufLabel(a5)        Buffer label expression
     lea    -BbLong(a0),a0
-    move.l    a0,BufBob(a5)        Buffer dessin d'un bob
+    move.l    a0,BufBob(a5)        Buffer dessin d''un bob
     lea    -12*2(a0),a0
     move.l    a0,MnTDraw(a5)        Buffer outline menus
     lea    -(AAreaSize*5+6)(a0),a0
@@ -1652,7 +1652,7 @@ CommandX:
     move.w    $14(a0),WB2.0(a5)
 .Pa20
 
-; Charge la configuration de l'interpreteur
+; Charge la configuration de l''interpreteur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l    #1005,d2
     lea    SP_Config(sp),a0        Option -C" "
@@ -1892,11 +1892,11 @@ CommandX:
     JJsr    L_WB_Close
 .NoWB
 
-; Branchement à la fin de l'initialisation
+; Branchement à la fin de l''initialisation
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     jmp    Init_Fin
 
-; Relai de saut dans l'autre Hunk
+; Relai de saut dans l''autre Hunk
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 JTheEnd_OOMem
     jmp    TheEnd_OOMem
@@ -2061,7 +2061,7 @@ LdFSel    moveq    #8,d0
     JJsr    L_Bnk.Load
     bne    JTheEnd_OOMem
     jsr    D_Close
-; Met l'adresse de la banque de resource
+; Met l''adresse de la banque de resource
     moveq    #16,d0
     JJsr    L_Bnk.GetAdr
     cmp.l    #"Reso",-8(a0)
@@ -2139,7 +2139,7 @@ Libraries_Init
 .Err    rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                CHARGEMENT D'UNE LIBRAIRIE
+;                CHARGEMENT D''UNE LIBRAIRIE
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;    Name1=    Nom
 ;    A0=    Command line
@@ -2159,7 +2159,7 @@ Library_Load
     move.l    #1005,d2
     jsr    D_Open
     beq    Ll_Disc
-; Lis l'entete dans le buffer
+; Lis l''entete dans le buffer
     move.l    Buffer(a5),d2
     move.l    #$20+18,d3
     jsr    D_Read
@@ -2212,7 +2212,7 @@ Library_Load
     move.l    a0,d2
     jsr    D_Read            des routines
     bne    Ll_Disc
-; Fabrique la table d'adresse des routines internes
+; Fabrique la table d''adresse des routines internes
     move.w    d5,d0
     subq.w    #1,d0
     move.l    a2,d1            Base des tokens
@@ -2245,7 +2245,7 @@ Library_Load
     add.l    a2,d0
     move.l    d0,LB_Title(a2)        Adresse du titre
     move.l    a4,LB_Command(a2)    Command line
-; Pas d'erreur
+; Pas d''erreur
     moveq    #0,d0
     bra    Ll_Out
 
@@ -2275,7 +2275,7 @@ Library_Patch
     bra    Ll_Out
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                RELOCATION D'UNE LIBRAIRIE
+;                RELOCATION D''UNE LIBRAIRIE
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;    D0=    Numero
 ; - - - - - - - - - - - - - - - -
@@ -2431,7 +2431,7 @@ Library_Reloc
     cmp.l    #"KwiK",(a0)        Le code?
     bne.s    .NoKwik
     lea    4(a0),a0
-    move.l    a0,LB_Verif(a3)        Poke l'adresse...
+    move.l    a0,LB_Verif(a3)        Poke l''adresse...
 .NoKwik
 
 .Fin20
@@ -2556,7 +2556,7 @@ GRouJ    cmp.b    #C_CodeJ,2(a0)
     lea    AdTokens(a5),a1
     move.l    0(a1,d1.w),d1
     beq    Ll_BadExt
-    move.l    d1,a1            Adresse des tokens de l'extension
+    move.l    d1,a1            Adresse des tokens de l''extension
     btst    #LBF_20,LB_Flags(a3)
     bne.s    .New
     bsr    Ext_OldLabel        Converti en ancien label
@@ -2590,7 +2590,7 @@ GRouD    cmp.w    #C_CodeD,2(a0)
     move.w    d0,(a0)+
     move.w    d0,(a0)+
     bra    GRouN
-; Fini, pas d'erreur
+; Fini, pas d''erreur
 GRouX    jsr    Sys_ClearCache        Nettoie les caches
     moveq    #0,d0
     bra    Ll_Out
@@ -2763,7 +2763,7 @@ Library_GetParams
     cmp.w    #6,d1            Entier
     bcs.s    .Doke
     moveq    #5,d1
-; Doke l'adresse de la fonction
+; Doke l''adresse de la fonction
 .Doke    add.w    d5,d1            Plus offset general aux routines
     lsl.w    #1,d1            Pointe la table des adresses
     move.w    0(a3,d1.w),d1        Delta au debut
@@ -2784,7 +2784,7 @@ Library_GetParams
 .Exit    rts
     
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                INITIALISATION D'UNE LIBRAIRIE
+;                INITIALISATION D''UNE LIBRAIRIE
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Library_Init
 ; - - - - - - - - - - - - - - - -
@@ -2810,7 +2810,7 @@ Library_Init
     move.l    a0,d0            Un message?
     bra    Ll_Mess            Oui,
 .Nomi    ext.w    d0
-    cmp.w    d0,d3            Bon numero d'extension?
+    cmp.w    d0,d3            Bon numero d''extension?
     bne    Ll_BadExt
     moveq    #0,d0
     bra    Ll_Out
@@ -2846,12 +2846,12 @@ TheEndM    move.l    a0,Panic
 ; Erreur avec datazone non réservée
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Boot_Fatal
-; Libere amos.library s'il faut
+; Libere amos.library s''il faut
     move.l    SP_DosBase(sp),a6
     move.l    SP_WSegment(sp),d1
     beq.s    .Skip
     jsr    _LVOUnLoadSeg(a6)
-; Affiche le message d'erreur
+; Affiche le message d''erreur
 .Skip    move.l    SP_DosBase(sp),a3
     move.l    SP_IntBase(sp),a4
     move.l    SP_Message(sp),d7
@@ -2870,51 +2870,79 @@ Boot_Fatal
 
 ;        Data initialisation
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Nom_W        ds.b    32
-NDatas2        dc.b     "s:"
-NDatas1        dc.b     "AMOSProUnity_Interpreter_Config",0
-NDatas3        dc.b     "s/AMOSProUnity_Interpreter_Config",0
-LibName1    dc.b    "libs:AmosProUnityECS.library",0
-LibName2    dc.b    "APUSystem/AmosProUnityECS.library",0
-LibName3    dc.b    "libs/AmosProUnityECS.library",0
-IconName:    dc.b     "icon.library",0
-FloatName:    dc.b     "mathffp.library",0
-IntName:    dc.b     "intuition.library",0
-GfxName:    dc.b     "graphics.library",0
+Nom_W:
+    ds.b       32
+NDatas2:
+    dc.b       "s:"
+NDatas1:
+    dc.b       "AMOSProUnity_Interpreter_Config",0
+NDatas3:
+    dc.b       "s/AMOSProUnity_Interpreter_Config",0
+LibName1:
+    dc.b       "libs:AmosProUnityECS.library",0
+LibName2:
+    dc.b       "APUSystem/AmosProUnityECS.library",0
+LibName3:
+    dc.b       "libs/AmosProUnityECS.library",0
+IconName:
+    dc.b        "icon.library",0
+FloatName:
+    dc.b        "mathffp.library",0
+IntName:
+    dc.b        "intuition.library",0
+GfxName:
+    dc.b       "graphics.library",0
 
-AssInst        dc.b    "c:assign",0
-AssCall        dc.b    "c:assign ",0 
-Ass0        dc.b    "AMOSProUnity_System:",0
-        dc.b    0
-Ass1        dc.b    "AMOSProUnity_Accessories:",0
-        dc.b    "APUAccessories",0
-Ass2        dc.b    "AMOSProUnity_Productivity1:",0
-        dc.b    "APUProductivity",0
-Ass3        dc.b    "AMOSProUnity_Productivity2:",0
-        dc.b    "APUProductivity",0
-Ass4        dc.b    "AMOSProUnity_Tutorial:",0
-        dc.b    "APUTutorial",0
-Ass5        dc.b    "AMOSProUnity_Examples:",0
-        dc.b    "APUExamples",0
-Ass6        dc.b    "AMOSProUnity_Compiler:",0
-        dc.b    "APUCompiler",0
-Ass7        dc.b    "AMOSProUnity_Extras:",0
-        dc.b    "APUExtras",0
-AssCon        dc.b    "NIL:",0
+AssInst:
+    dc.b       "c:assign",0
+AssCall:
+    dc.b       "c:assign ",0 
+Ass0:
+    dc.b       "AMOSProUnity_System:",0
+    dc.b       0
+Ass1:
+    dc.b       "AMOSProUnity_Accessories:",0
+    dc.b       "APUAccessories",0
+Ass2:
+    dc.b       "AMOSProUnity_Productivity1:",0
+    dc.b       "APUProductivity",0
+Ass3:
+    dc.b       "AMOSProUnity_Productivity2:",0
+    dc.b       "APUProductivity",0
+Ass4:
+    dc.b       "AMOSProUnity_Tutorial:",0
+    dc.b       "APUTutorial",0
+Ass5:
+    dc.b       "AMOSProUnity_Examples:",0
+    dc.b       "APUExamples",0
+Ass6:
+    dc.b       "AMOSProUnity_Compiler:",0
+    dc.b       "APUCompiler",0
+Ass7:
+    dc.b       "AMOSProUnity_Extras:",0
+    dc.b       "APUExtras",0
+AssCon:
+    dc.b       "NIL:",0
 
-;        Messages d'erreur d'alerte
+;        Messages d''erreur d''alerte
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Panic_APSystem    dc.b    "Cannot find APUSystem folder.",0
-Panic_Lib    dc.b    "Cannot find AmosProUnityECS.library.",0
-Panic_Config    dc.b    "Cannot find AMOSProUnity_Interpreter_Config.",0
-Panic_Command    dc.b    "Bad command line.",0
-Panic_Cantread    dc.b    "Cannot read system files: check APUSystem folder.",0
-Panic_Badext    dc.b    "Cannot load extension: use default interpreter config.",0
-Panic_Version    dc.b    "I need AmosProUnityECS.library V2.0 or over!",0
-        even
+Panic_APSystem:
+    dc.b       "Cannot find APUSystem folder.",0
+Panic_Lib:
+    dc.b       "Cannot find AmosProUnityECS.library.",0
+Panic_Config:
+    dc.b       "Cannot find AMOSProUnity_Interpreter_Config.",0
+Panic_Command:
+    dc.b       "Bad command line.",0
+Panic_Cantread:
+    dc.b       "Cannot read system files: check APUSystem folder.",0
+Panic_Badext:
+    dc.b       "Cannot load extension: use default interpreter config.",0
+Panic_Version:
+    dc.b       "I need AmosProUnityECS.library V2.0 or over!",0
+    even
 
 ;        Adresses des routines accessibles aux extensions
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-AMOSJmps    Include    "tmpCompil/Internal_Jumps.s"
-
-
+AMOSJmps:
+    Include    "tmpCompil/Internal_Jumps.s"
