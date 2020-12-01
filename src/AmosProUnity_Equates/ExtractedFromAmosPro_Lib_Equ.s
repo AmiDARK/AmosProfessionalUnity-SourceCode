@@ -32,6 +32,14 @@ A_BnkEffBobA0          equ  27
 A_InPen                equ  28
 A_WnPp                 equ  29
 A_GoWn                 equ  30
+A_PacPar               equ  31
+A_Pack                 equ  32
+A_GetSize              equ  33
+A_BnkReserve           equ  34
+A_BnkGetAdr            equ  35
+A_ResBank              equ  36
+A_InSPack6             equ  37
+
 
 ; ************************************************************
 ; Function to use to call the methods.

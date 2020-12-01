@@ -50,6 +50,13 @@ amosprolib_functions:
     bra        AMP_InPen               ;  28 A_InPen
     bra        AMP_WnPp                ;  29 A_WnPp
     bra        AMP_GoWn                ;  30 A_GoWn
+    bra        AMP_PacPar              ;  31 A_PacPar
+    bra        AMP_Pack                ;  32 A_Pack
+    bra        AMP_GetSize             ;  33 A_GetSize
+    bra        AMP_BnkReserve          ;  34 A_BnkReserve
+    bra        AMP_BnkGetAdr           ;  35 A_BnkGetAdr
+    bra        AMP_ResBank             ;  36 A_ResBank
+    bra        AMP_InSPack6            ;  37 A_InSPack6
 
 ;   bra        .........
     dc.l       0
@@ -2095,6 +2102,477 @@ AMP_ListDel:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;    Unpile parameters
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_PacPar:
+; - - - - - - - - - - - - -
+    move.l     d3,d5
+    move.l     (a3)+,d4
+    move.l     (a3)+,d3
+    move.l     (a3)+,d2
+    lsr.w      #3,d4
+    lsr.w      #3,d2
+* Screen
+    move.l     4(a3),d1
+    bsr        AMP_GetEc               ; Original : Rjsr L_GetEc
+    move.l     d0,a2
+    cmp.w      EcTLigne(a0),d4
+    bls.s      PacP1
+    move.w     EcTLigne(a0),d4
+PacP1:
+    cmp.w      EcTy(a0),d5
+    bls.s      PacP2
+    move.w     EcTy(a0),d5
+PacP2:
+    sub.w      d2,d4
+    ble        JFoncall
+    sub.w      d3,d5
+    ble        JFoncall
+; Number of memory bank
+    move.l     (a3)+,a1
+    cmp.l      #$10000,a1
+    bcc        JFoncall
+    addq.l     #4,a3
+    rts
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;    REAL PACKING!!!
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_Pack:
+* Header of the packed bitmap
+    move.l     a5,-(sp)
+
+* Packed bitmap header
+    move.l     #BMCode,Pkcode(a1)
+    move.w     d2,Pkdx(a1)
+    move.w     d3,Pkdy(a1)  
+    move.w     d4,Pktx(a1)  
+    move.w     d5,Pkty(a1)   
+    move.w     d1,Pktcar(a1)  
+    move.w     EcNPlan(a0),Pknplan(a1)
+
+* Reserve intermediate table space
+    move.w     d1,d0
+    mulu       d4,d0
+    mulu       d5,d0
+    mulu       EcNPlan(a0),d0
+    lsr.l      #3,d0
+    addq.l     #2,d0
+    move.l     d0,-(sp)
+    move.l     a0,-(sp)
+    SyCall     MemFast
+    move.l     a0,d0
+    move.l     (sp)+,a0
+    beq        OOfMem
+    move.l     d0,a6
+    move.l     d0,-(sp)
+* Prepare registers
+    move.l     a2,a4                ;a4--> picture address
+    lea        PkDatas1(a1),a5            ;a5--> main datas
+    move.w     EcTLigne(a0),d7
+    move.w     d7,d5
+    mulu       d1,d5            ;d5--> SY line of square
+    move.w     Pkdy(a1),d3
+    mulu       d7,d3
+    move.w     Pkdx(a1),d0
+    ext.l      d0
+    add.l      d0,d3
+    move.w     EcNPlan(a0),-(sp)
+* Main packing
+    moveq      #7,d1                  * Bit pointer
+    moveq      #0,d0
+    clr.b      (a5)                  * First byte to zero
+    clr.b      (a6)              
+plan:
+    move.l     (a4)+,a3
+    add.l      d3,a3
+    move.w     Pkty(a1),d6
+    subq.w     #1,d6
+ligne:
+    move.l     a3,a2
+    move.w     Pktx(a1),d4
+    subq.w     #1,d4
+carre:
+    move.l     a2,a0
+    move.w     Pktcar(a1),d2
+    subq.w     #1,d2
+oct0:
+    cmp.b      (a0),d0             * Compactage d''un carre
+    beq.s      oct1
+    move.b     (a0),d0
+    addq.l     #1,a5
+    move.b     d0,(a5)
+    bset       d1,(a6)
+oct1:
+    dbra       d1,oct2
+    moveq      #7,d1
+    addq.l     #1,a6
+    clr.b      (a6)
+oct2:
+    add.w      d7,a0
+    dbra       d2,oct0
+    addq.l     #1,a2            * Carre suivant en X
+    dbra       d4,carre    
+    add.l      d5,a3            * Ligne suivante
+    dbra       d6,ligne     
+    subq.w     #1,(sp)            * Plan couleur suivant
+    bne.s      plan
+    addq.l     #2,sp
+    addq.l     #1,a5
+; Packing of first pointers table
+    move.l     a5,d0
+    sub.l      a1,d0
+    move.l     d0,PkPoint2(a1)
+    move.l     a5,a6
+    move.l     4(sp),d0
+    move.l     d0,d2
+    subq.w     #1,d2
+    lsr.w      #3,d0
+    addq.w     #2,d0
+    add.w      d0,a5
+    move.l     a5,d0
+    sub.l      a1,d0
+    move.l     d0,PkDatas2(a1)
+    move.l     (sp),a0
+    moveq      #0,d0
+    moveq      #7,d1
+    clr.b      (a5)
+    clr.b      (a6)
+comp2:
+    cmp.b      (a0)+,d0
+    beq.s      comp2a
+    move.b     -1(a0),d0
+    addq.l     #1,a5
+    move.b     d0,(a5)
+    bset       d1,(a6)
+comp2a:
+    dbra       d1,comp2b
+    moveq      #7,d1
+    addq.l     #1,a6
+    clr.b      (a6)
+comp2b:
+    dbra       d2,comp2
+* Free intermediate memory
+    move.l     (sp)+,a1
+    move.l     (sp)+,d0
+    move.l     (sp)+,a5
+    SyCall     MemFree
+    rts
+
+***************************************************************************
+* 
+*       BITMAP COMPACTOR
+*                       A0: Origin screen datas
+*                       A1: Destination zone
+*                       A2: Origin screen bitmap
+*                       D2: DX in BYTES
+*                       D3: DY in LINES
+*                       D4: TX in BYTES
+*                       D5: TY in LINES
+*
+***************************************************************************
+*     ESTIMATE THE SIZE OF A PICTURE
+
+******* Makes differents tries
+*    And finds the best square size in D1
+; - - - - - - - - - - - - -
+AMP_GetSize:
+; - - - - - - - - - - - - -
+    movem.l     a1-a3/d6-d7,-(sp)
+    lea         TSize(pc),a3
+    move.l      Buffer(a5),a1
+    moveq       #0,d7
+    move.w      d5,d7
+    clr.w       -(sp)
+    move.l      #$10000000,-(sp)
+GSize1:
+    move.l      d7,d5
+    move.w      (a3)+,d1
+    beq.s       GSize2
+    divu        d1,d5
+    swap        d5
+    tst.w       d5
+    bne.s       GSize1
+    swap        d5
+    bsr         PacSize
+    cmp.l       (sp),d0
+    bcc.s       GSize1
+    move.l      d0,(sp)
+    move.w      d1,4(sp)
+    bra.s       GSize1
+GSize2:
+    move.l      (sp)+,d0
+    move.w      (sp)+,d1
+    move.l      d7,d5
+    divu        d1,d5
+    movem.l     (sp)+,a1-a3/d6-d7
+    rts
+
+******* Simulate a packing
+PacSize:
+    movem.l     d1-d7/a0-a4/a6,-(sp)
+    move.l      a5,-(sp)
+* Fake data zone
+    move.w      d2,Pkdx(a1)
+    move.w      d3,Pkdy(a1)  
+    move.w      d4,Pktx(a1)  
+    move.w      d5,Pkty(a1)   
+    move.w      d1,Pktcar(a1)  
+* Reserve intermediate table space
+    move.w      d1,d0
+    mulu        d4,d0
+    mulu        d5,d0
+    mulu        EcNPlan(a0),d0
+    lsr.l       #3,d0
+    addq.l      #2,d0
+    move.l      d0,-(sp)
+    move.l      a0,-(sp)
+    SyCall      MemFast
+    move.l      a0,d0
+    move.l      (sp)+,a0
+    beq         JOOfMem
+    move.l      d0,a6
+    move.l      d0,-(sp)
+* Prepare registers
+    move.l      a2,a4                ;a4--> picture address
+    lea         PkDatas1(a1),a5            ;a5--> main datas
+    move.w      EcTLigne(a0),d7
+    move.w      d7,d5
+    mulu        d1,d5            ;d5--> SY line of square
+    move.w      Pkdy(a1),d3
+    mulu        d7,d3
+    move.w      Pkdx(a1),d0
+    ext.l       d0
+    add.l       d0,d3
+    move.w      EcNPlan(a0),-(sp)
+* Main packing
+    moveq       #7,d1                  * Bit pointer
+    moveq       #0,d0
+Iplan:
+    move.l      (a4)+,a3
+    add.l       d3,a3
+    move.w      Pkty(a1),d6
+    subq.w      #1,d6
+Iligne:
+    move.l      a3,a2
+    move.w      Pktx(a1),d4
+    subq.w      #1,d4
+Icarre:
+    move.l      a2,a0
+    move.w      Pktcar(a1),d2
+    subq.w      #1,d2
+Ioct0:
+    cmp.b       (a0),d0             * Compactage d''un carre
+    beq.s       Ioct1
+    move.b      (a0),d0
+    addq.l      #1,a5
+    bset        d1,(a6)
+Ioct1:
+    dbra        d1,Ioct2
+    moveq       #7,d1
+    addq.l      #1,a6
+    clr.b       (a6)
+Ioct2:
+    add.w       d7,a0
+    dbra        d2,Ioct0
+    addq.l      #1,a2    
+    dbra        d4,Icarre    
+    add.l       d5,a3    
+    dbra        d6,Iligne    
+    subq.w      #1,(sp)
+    bne.s       Iplan
+    addq.l      #2,sp
+    addq.l      #1,a5
+* Packing of first pointers table
+    move.l      a5,a6
+    move.l      4(sp),d2
+    move.l      d2,d0
+    subq.w      #1,d2
+    lsr.w       #3,d0
+    addq.w      #2,d0
+    add.w       d0,a5
+    move.l      (sp),a0
+    moveq       #0,d0
+    moveq       #7,d1
+Icomp2:
+    cmp.b       (a0)+,d0
+    beq.s       Icomp2a
+    move.b      -1(a0),d0
+    addq.l      #1,a5
+Icomp2a:
+    dbra        d2,Icomp2
+* Final size (EVEN!)
+    move.l      a5,d2
+    sub.l       a1,d2
+    addq.l      #3,d2
+    and.l       #$FFFFFFFE,d2
+* Free intermediate memory
+    move.l      (sp)+,a1
+    move.l      (sp)+,d0
+    move.l      (sp)+,a5
+    SyCall      MemFree
+* Finished!
+    move.l      d2,d0
+    movem.l     (sp)+,d1-d7/a0-a4/a6
+    rts
+******* Packing methods
+TSize:
+    dc.w        1,2,3,4,5,6,7,8,12,16,24,32,48,64,0
+    even
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;    SPACK Screen,Bank#,X1,Y1 TO X2,Y2
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_InSPack6:
+; - - - - - - - - - - - - -
+    bsr         AMP_PacPar
+    bsr         AMP_GetSize
+    add.l       #PsLong,d0
+    bsr         AMP_ResBank
+* Screen definition header
+    move.l      #SCCode,(a1)
+    move.w      EcTx(a0),PsTx(a1)
+    move.w      EcTy(a0),PsTy(a1)
+    move.w      EcNbCol(a0),PsNbCol(a1)
+    move.w      EcNPlan(a0),PsNPlan(a1)
+    move.w      EcCon0(a0),PsCon0(a1)
+    move.w      EcAWX(a0),PsAWx(a1)
+    move.w      EcAWY(a0),PsAWy(a1)
+    move.w      EcAWTX(a0),PsAWTx(a1)
+    move.w      EcAWTY(a0),PsAWTy(a1)
+    move.w      EcAVX(a0),PsAVx(a1)
+    move.w      EcAVY(a0),PsAVy(a1)
+    movem.l     a0/a1,-(sp)
+    moveq       #31,d0
+    lea         EcPal(a0),a0
+    lea         PsPal(a1),a1
+SPac1:
+    move.w      (a0)+,(a1)+
+    dbra        d0,SPac1
+    movem.l     (sp)+,a0/a1
+    lea         PsLong(a1),a1
+* Finish packing!
+;    movem.l     d1-d7/a0-a4/a6,-(sp)   ; Required like these movem were available in the original method start/end
+;    bsr         AMP_Pack
+;    movem.l     (sp)+,d1-d7/a0-a4/a6   ; Required like these movem were available in the original method start/end
+    rts
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;    Reserves memory bank, A1= number
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_ResBank:
+; - - - - - - - - - - - - -
+    movem.l    a0/d1/d2,-(sp)
+    move.l     d0,d2
+    moveq      #(1<<Bnk_BitData),d1
+    move.l     a1,d0
+    lea        BkPac(pc),a0
+    bsr        AMP_BnkReserve          ; Rjsr L_Bnk.Reserve
+    beq        JOOfMem
+    move.l     a0,a1 
+    movem.l    (sp)+,a0/d1/d2
+    rts
+; Definition packed picture bank
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BkPac:
+    dc.b       "Pac.Pic."
+    even
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     RESERVE BANK
+;    D0=    Numero
+;    D1=    Flags 
+;    D2=     Longueur
+;    A0=    Nom de la banque
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_BnkReserve:
+    movem.l     a2/d2-d5,-(sp)
+    moveq       #0,d4
+    move.w      d0,d4
+    move.l      d1,d5
+    move.l      a0,a2
+; Efface la banque si déja définie
+    move.l      d4,d0
+    bsr         AMP_BnkGetAdr
+    beq.s       .Pares
+    bsr         AMP_BnkEffA0
+.Pares:
+; Reserve
+    add.l       #16,d2            Flags + Nom
+    move.l      d2,d0
+    move.l      #Public|Clear,d1
+    btst        #Bnk_BitChip,d5
+    beq.s       .SkipC
+    move.l      #Public|Clear|Chip,d1
+.SkipC:
+    move.l      Cur_Banks(a5),a0
+    bsr         AMP_ListCree
+    beq.s       .Err
+; Poke les entetes
+    addq.l      #8,a1
+    move.l      d4,(a1)+
+    move.w      d5,(a1)+
+    clr.w       (a1)+
+; Poke le nom
+    moveq       #7,d0
+.Loo:
+    move.b      (a2)+,(a1)+
+    dbra        d0,.Loo
+; Ok!
+    move.l      a1,a0
+    move.l      a0,d0
+    bra.s       .Out
+.Err:
+    moveq       #0,d0
+.Out:
+    movem.l     (sp)+,a2/d2-d5
+    rts
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     TROUVE L''ADRESSE DE LA BANQUE D0
+;    OUT    BEQ Pas trouve, BNE Trouve, D0=Flags / A1=Adresse
+;    Ne pas changer sans voir GETBOB / GETICON
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_BnkGetAdr:
+; - - - - - - - - - - - - -
+    move.l      Cur_Banks(a5),a0    ; Banks list pointer
+    move.l      (a0),d1             ; D1 = Pointer to the current bank list
+    beq.s       .Nof                ; null = no banks in memory
+.Loop
+    move.l      d1,a1               ; A1 = Pointer to the current bank list
+    cmp.l       8(a1),d0            ; If (A1,8)=D0  ( D0 = flag for bobs or icons )
+    beq.s       .Fnd                ; = -> Correct bank found -> jump .fnd
+    move.l      (a1),d1             ; D1 = Next bank pointer
+    bne.s       .Loop               ; Continue search through banks
+.Nof                               ; D1 = null
+    sub.l       a1,a1               ; A1 = 0
+    move.l      a1,a0               ; A0 = 0
+    rts                            ; Return (not found)
+.Fnd
+;    move.l     a1,a2               ; *****************  2020.04.30 Backup Bank into A2
+    move.w      8+4(a1),d0          ; D0 = Current Bank Adress + 12
+    lea         8*3(a1),a0          ; A0 = Current Bank Adress + 24
+    move.l      a0,a1               ; A1 = A0
+    move.w      #%00000,CCR         ; Clear CCR
+    rts                            ; Return (found)
+
+
+
 ; *************************************************************************************
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     ROUTINES LOAD / SAVE REGISTERS
@@ -2170,6 +2648,7 @@ IffFor2:
 IffCmp:
     moveq      #31,d0
     bra        GoError
+JFoncall:                              ; This one is from compact.lib
 FonCall:
     moveq      #23,d0
     bra        GoError
@@ -2178,6 +2657,7 @@ EcWiErr:
     beq        OOfMem
     add.w      #EcEBase-1,d0
     bra        GoError
+JOOfMem:                               ; This one is from compact.lib
 OOfMem:
     moveq      #24,d0
 ;    bra       GoError

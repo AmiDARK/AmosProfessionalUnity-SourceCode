@@ -1,14 +1,22 @@
 
 
 ; ************************************************************************
-; Méthodes modifiées sous l'Amos Professional AGA (The X Project)
-; Bnk.SaveA0*, Bnk.Load*, Bnk.Ric2*
+; Méthodes modifiées sous l'Amos Professional AGA (The X Project):
+; 1. AmosPro.lib :
+; *Bnk.SaveA0, *Bnk.Load, *Bnk.Ric2
 ; *IffScreen*, *IffPal*, *SaveCMAP*
-; InScreenOpen*, InGetPalette1, InGetPalette2*, GSPal*, PalRout*, InScreenDisplay*, Sco0*
-; InPen
-; UnPack_Screen*, UnPack_Bitmap*
+; *InScreenOpen, *InGetPalette2, *GSPal, *PalRout, *InScreenDisplay, *Sco0
+; *InPen
+; *UnPack_Screen, *UnPack_Bitmap
 ; Created : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
+; 2. Compact.lib :
+; *InSPack6
 ; ************************************************************************
+
+; *************************************************************
+; 2020.12.01
+; - Extracted PacPar, Pack, InSPack6 from compact.lib to push them into AmosProUnityECS.library
+; - Extracted Bnk.Reserve and Bnk.GetAdr from AmosPro.lib to push them into AmosProUnityECS.library
 
 ; *************************************************************
 ; 2020.11.30
@@ -16,7 +24,6 @@
 ; - Extracted Bnk.Ric2, AMP_BnkEffA0, AMP_BnkEffBobA0
 ; - Copied AmosProUnity_Loaders.s/Lst.*** methods to AmosProUnityECS.library to makes them availbale for the Bnk.*** method exported
 ; - Extracted InPen, WnPp, GoWn to push them into AmosProUnityECS.library
-
 
 ; *************************************************************
 ; 2020.11.25

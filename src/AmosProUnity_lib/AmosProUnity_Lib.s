@@ -7802,15 +7802,6 @@ FsApp3:    cmp.w    d4,d6
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InScreenDisplay
     AmpLCallR  A_InScreenDisplay,a2
-; - - - - - - - - - - - - -
-;    move.l    d3,d5
-;    move.l    (a3)+,d4
-;    move.l    (a3)+,d3
-;    move.l    (a3)+,d2
-;    move.l    (a3)+,d1
-;    Rbsr    L_CheckScreenNumber
-;    EcCall    AView
-;    Rbne    L_EcWiErr
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
