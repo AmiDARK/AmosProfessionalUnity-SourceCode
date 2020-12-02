@@ -17,9 +17,7 @@
 ; EcAdres =                 A1(ScreenPointer) = Get Scrren Pointer( D0(ScreenID) )
 ;
 ; EcSCol =                  Colour D1(ColorIndex), D2(RGB12)
-; EcSCol24Bits =            Colour D1(ColorIndex), D2(RGB24)
 ; EcGCol =                  D1(RGB12) = Colour( D1(ColorIndex) )
-; getAGAPaletteColour =     D1(RGB12) = Colour( D1(ColorIndex>3) )
 ; EcSPal =                  Set Palette A1(32ColorsRGB12PalettePointer)
 ; EcMarch =                 Set Current Screen D1(ScreenID)
 ; EcGet =                   Get Current Screen( D1(ScreenID) )
@@ -1018,11 +1016,45 @@ EcAdres cmp.w   #8,d1
     rts
 
 ******* SET COLOUR D1,D2
-EcSCol: move.l  T_EcCourant(a5),a0
-    and.w   #31,d1
-    lsl.w   #1,d1
-    and.w   #$FFF,d2
-    move.w  d2,EcPal(a0,d1.w)
+EcSCol:
+    move.l     T_EcCourant(a5),a0
+    and.w      #31,d1
+    lsl.w      #1,d1
+; **************** 2020.12.02 Check if color is sent using 12bits or 24bits. 24bits required to have $01000000 set - START
+    btst       #24,d2                  ; Check if Bit 24 of d2 is set for RGB24 mode
+    bne.s      .rgb24                  ; If we are with a RGB24 color value, we separate it in 2 RGB12 slot (Low & High bits)
+; ******** Under RGB12 mode, copy RGB12 color from D2 (High Bits) to D3 (Low Bits)
+    and.w      #$FFF,d2
+    move.l     d2,d3                   ; D3 = D2 = R4G4B4
+    bra        .updtCol                ; Directly jump to the update of the color registers and screen copper marks.
+; ******** if data is send using 24 Bits, then we transform it into 12 bits data.
+.rgb24:
+    move.l     d2,d3                   ; D3 = D2 = RGB24 Color value
+; ******** Calculate high bits of the RGB24 color palette
+    and.l      #$F0F0F0,d2             ; d2 = ..R.G.B.
+    moveq      #0,d0                   ; d0 = 0
+    lsr.l      #4,d2                   ; d2 = ...R.G.B
+    move.b     d2,d0                   ; d0 = .......B
+    lsr.l      #4,d2                   ; d2 = ....R.G.
+    or.b       d2,d0                   ; d0 = ......GB
+    lsr.l      #4,d2                   ; d2 = .....R.G
+    and.l      #$F00,d2                ; d2 = .....R..
+    or.w       d0,d2                   ; d2 = .....RGB
+; ******** Calculate low bits of the RGB24 color palette
+    moveq      #0,d0                   ; d0 = 0
+    and.l      #$0F0F0F,d3             ; d3 = ...R.G.B
+    move.b     d3,d0                   ; d0 = .......B
+    lsr.l      #4,d3                   ; d3 = ....R.G.
+    or.b       d3,d0                   ; d0 = ......GB
+    lsr.l      #4,d3                   ; d3 = .....R.G
+    and.l      #$F00,d3                ; d3 = .....R..
+    or.w       d0,d3                   ; d3 = .....RGB
+.updtCol:
+    move.w  d2,EcPal(a0,d1.w)          ; Save High bits of the RGB24 color value
+    move.l  a0,a1
+    adda.l  #EcPalL,a1
+    move.w  d3,(a1,d1.w)               ; Save low bits of the RGB24 color value
+; **************** 2020.12.02 Check if color is sent using 12bits or 24bits. 24bits required to have $01000000 set - END
 * Poke dans le copper
     lsl.w   #1,d1
     move.w  EcNumber(a0),d0
@@ -1032,20 +1064,50 @@ EcSCol: move.l  T_EcCourant(a5),a0
     cmp.w   #PalMax*4,d1
     bcs.s   ECol0
     lea 64(a0),a0
-ECol0:  move.l  (a0)+,d0
+ECol0:
+    move.l  (a0)+,d0
     beq.s   ECol1
     move.l  d0,a1
     move.w  d2,2(a1,d1.w)
     bra.s   ECol0
-ECol1:  moveq   #0,d0
+ECol1:
+  moveq   #0,d0
     rts
 
 ******* GET COLOUR D1
-EcGCol: move.l  T_EcCourant(a5),a0
-    and.l   #31,d1
-    lsl.w   #1,d1
-    move.w  EcPal(a0,d1.w),d1
-    moveq   #0,d0
+EcGCol:
+    move.l     T_EcCourant(a5),a0
+    and.l      #31,d1
+    lsl.w      #1,d1
+; **************** 2020.12.02 Always return a RGB24 color value - START
+    move.l     a0,a1
+; ******** Get Low Bits for the RGB24 color value returned
+    adda.l     #EcPalL,a1
+    move.w     (a1,d1.w),d3            ; d3 = .....RGB Low Bits
+    and.l      #$FFF,d3                ; d3 = .....RGB Useless as color is always in RGB12 format in .w saves
+    move.l     d3,d2                   ; d2 = .....RGB
+    lsl.l      #4,d2                   ; d2 = ....RGB.
+    move.b     d3,d2                   ; d2 = ....RGGB
+    lsl.l      #4,d2                   ; d2 = ...RGGB.
+    and.b      #$0F,d3                 ; d3 = .......B
+    or.b       d3,d2                   ; d2 = ...RGGBB
+    and.l      #$F0F0F,d2             ; d2 = ...R.G.B = Low bits for RGB24 color
+; ******** Get High bits for the RGB24 color value returned
+    move.w     EcPal(a0,d1.w),d1       ; d1 = .....RGB High Bits
+    and.l      #$FFF,d1                ; d1 = .....RGB Useless as color is always in RGB12 format in .w saves
+    move.l     d1,d3                   ; d3 = .....RGB
+    lsl.l      #4,d1                   ; d1 = ....RGB.
+    move.b     d3,d1                   ; d1 = ....RGGB
+    lsl.l      #4,d1                   ; d1 = ...RGGB.
+    and.b      #$0F,d3                 ; d3 = .......B
+    or.b       d3,d1                   ; d1 = ...RGGBB
+    lsl.l      #4,d1                   ; d1 = ..RGGBB.#$F0F0F0,d1             ; d1 = ..R.G.B. = High bits for RGB24 color
+    and.l      
+; ******** Mix Low and High bits to compose the RGB24 colors, and set bit 24 to tell it''s RGB24 output !
+    or.l       d2,d1                   ; d1 = ..R8G8B8
+    bset       #24,d1                  ; d1 = .1R8G8B8 = Mode RGB24 enabled as output.
+; **************** 2020.12.02 Always return a RGB24 color value - END
+    moveq      #0,d0
     rts
 
 ******* SET PALETTE A1

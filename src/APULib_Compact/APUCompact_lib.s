@@ -191,7 +191,7 @@ BadVer    moveq    #-1,d0            * Bad version number
     move.w       d0,-(sp)
     EcCall       AutoBack3        * Third step
     bra.s        ABPac2
-ABPac1;
+ABPac1:
     Rjsr         L_UnPack_Bitmap        * SINGLE BUFFER autobacked
     move.w       d0,-(sp)
     EcCall       AutoBack4

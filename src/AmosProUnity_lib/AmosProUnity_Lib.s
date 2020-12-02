@@ -7978,12 +7978,12 @@ FsApp3:    cmp.w    d4,d6
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par InColour
 ; - - - - - - - - - - - - -
-    tst.w    ScOn(a5)
-    Rbeq    L_ScNOp
-    move.l    d3,d2
-    move.l    (a3)+,d1
-    EcCall    SCol
-    Rbne    L_EcWiErr
+    tst.w      ScOn(a5)
+    Rbeq       L_ScNOp
+    move.l     d3,d2
+    move.l     (a3)+,d1
+    EcCall     SCol
+    Rbne       L_EcWiErr
     rts
 ; - - - - - - - - - - - - -
     Lib_Par FnColour

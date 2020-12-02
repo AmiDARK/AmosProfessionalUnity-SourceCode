@@ -11,7 +11,12 @@
 ; Created : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 ; 2. Compact.lib :
 ; *InSPack6
+
 ; ************************************************************************
+; 2020.12.02
+; - Updated EcSCol (Colour INDEX,RGB) to handle both RGB12 and RGB24 (with bit 24 set to 1)
+; - Updated EcGColor ( = Colour(INDEX) ) now always return RGB24 value (with bit 24 set to 1)
+
 
 ; *************************************************************
 ; 2020.12.01
