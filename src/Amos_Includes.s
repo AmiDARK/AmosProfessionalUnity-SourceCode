@@ -37,6 +37,7 @@ ROnly:		equ 	0
 		Include	"src/AmosProUnity_Debug.s" ; Just one flag
 		Include "src/AmosProUnity_Equ.s"
         Include "src/AmosProUnity_Equates/ExtractedFromAmosPro_Lib_Equ.s" // Equates for AmosPro.lib method extracted to AmosProUnityECS.library
+        Include "src/AmosProUnity_Equates/ColorSupport_Equ.s" // Equates for RGB12,RGB15 & RGB24 colors datas conversions methods
 
 		RsSet	DataLong
 		Include	"src/AmosProUnity_CEqu.s"

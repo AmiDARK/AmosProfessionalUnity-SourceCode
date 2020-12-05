@@ -4132,6 +4132,8 @@ WErF:    move.l    (sp)+,d0
 
     include "src/AmosProUnityECS_library/ExtractedFromAmosPro_lib.s"
 
+    include "src/AmosProUnityECS_library/NewColorSupport.s"
+
 ***********************************************************
 
     include "src/AmosProUnityAGA_library/BraList_Controls.s"

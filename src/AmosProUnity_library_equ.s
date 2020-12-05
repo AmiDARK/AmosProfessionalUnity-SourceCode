@@ -33,7 +33,8 @@ GfxA5        MACRO
         Rl    SyVect,1
         Rl    EcVect,1
         Rl    WiVect,1
-        Rl    AmpLVect,1
+        Rl    AmpLVect,1               ; 2020.12    Added for methods (graphics dependant) extracted from AmosPro.lib
+        Rl    ColorSupport,1           ; 2020.12.05 Added for advanced color support (conversions)
 
 ***************************************************************
 *        ADRESSES AMOS / COMPILER
@@ -126,6 +127,13 @@ LShift:        equ     2+2+4+2+2+2
         Rl    FadeCop,1
         Rb    FadeCol,8*32
 
+***********************************************************************************************************
+*        2020.12.05 AMOS PROFESSIONAL UNITY - SUPPORT FOR COLOR CONVERTION RGB24 / RGB12
+***********************************************************************************************************
+        Rl    rgbInput,1
+        Rl    rgbOutput,1
+        Rw    rgb12High,1
+        Rw    rgb12Low,1
 ***************************************************************
 *        GESTION COPPER
 ***************************************************************

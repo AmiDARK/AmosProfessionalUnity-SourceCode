@@ -1,6 +1,5 @@
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; AMOSPro Internal Library Definition on the 06-12-2020 00:25:43
+; AMOSPro Unity Main Library Size on the 06-12-2020 00:25:43
 ;
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	Lib_Ini	 0
-	Lib_Pos	500
+Lib_Size		equ	 1536

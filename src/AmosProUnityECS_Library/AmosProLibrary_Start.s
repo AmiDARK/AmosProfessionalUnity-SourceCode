@@ -234,6 +234,7 @@ StartAll
     bsr    CpInit            Copper
     bsr    EcInit            Ecrans
     bsr    ampLib_Init             ; 2020.11.22 Setup AmosProLib_ExtractedMethods branchment list
+    bsr    colorSupport_Init       ; 2020.12.05 Setup for Advanced Color Support for Colors Datas Format Conversions
     bsr    SyInit            Systeme
     bsr    VBLInit            Interruptions VBL
     bsr    WiInit            Windows
