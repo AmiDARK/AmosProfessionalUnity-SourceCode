@@ -12,12 +12,19 @@
 ; 2. Compact.lib :
 ; *InSPack6
 
+
+; ************************************************************************
+; 2020.12.16
+- Added method 'ForceToRGB24' with its current set for 'F24_InputIsRGB12','F24_InputIsRGB15' and 'F24_InputIsRGB24'
+- Extracted RGB15(=R5G5B5) convertion to RGB24 from 'InputIsR5G5B5' to makes it being useable from other methods as stand alone 'convertRGB15toRGB24' method
+- Updated AmosPro_ECS.library:SetRainbow(TRSet) to handle RGB24 bit for default color settings.
+
 ; ************************************************************************
 ; 2020.12.05
 ; - Added new set of methods to allow multiple color format using long value $CCDDDDDD where $CC = Color Format and $DDDDDD = Color Datas
 ; - Added colorSupport_Init to setup the newColorSupport.s file list of methods that can be called
-; - Added method SeparateRGBComponents with its current set for : InputIsRGB12, InputIsRGB15 and InputIsRGB24
-; - Added method MergeRGBComponents with its current set for : OutputIsRGB12,OutputIsRGB15 and OutputIsRGB24
+; - Added method 'SeparateRGBComponents' with its current set for : 'InputIsRGB12', 'InputIsRGB15' and 'InputIsRGB24'
+; - Added method 'MergeRGBComponents' with its current set for : 'OutputIsRGB12', 'OutputIsRGB15' and 'OutputIsRGB24'
 ; - Added equates with the 2 methods calls
 ; - Added Macro PushToRGB24 Rgb12H, Rgb12L, Rgb24Output
 ; - Added Macro getRGB12Datas Rgb24Input, Rgb12HOutput, Rgb12LOutput

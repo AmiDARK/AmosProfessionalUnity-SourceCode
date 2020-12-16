@@ -136,7 +136,8 @@ Adh1:
     ; **************** Here, AMOS Do a Mulu #10,d1 using 4 lines - End
     add.l      d0,d1                   ; D1 = D1 + D0                  | D1 = PrevNum * 10 + NewNum (D0)
     bra.s      Adh1                    ; Jump Adh1 to read another number to complete the full number
-Adh2: ; Number reading is finished.
+Adh2:
+; ******** Number reading is finished.
     subq.l     #1,a0                   ; A0 = A0 -1
     tst        d3                      ; Test D3
     beq.s      AdhX                    ; if D3 = 0 Then Jump AdhX

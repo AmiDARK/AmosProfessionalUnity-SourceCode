@@ -146,21 +146,23 @@ EcTCop        equ      1024
         Rl    CopPos,1
         Rl    CopLong,1
 
-* Rainbows
-NbRain        equ    4
+***************************************************************
+*        GESTION RAINBOWS
+***************************************************************
+NbRain: equ   4
         RsReset
-RnDY        rs.w    1
-RnFY        rs.w    1
-RnTY        rs.w    1
-RnBase        rs.w    1
-RnColor        rs.w    1
-RnLong        rs.w    1
-RnBuf        rs.l    1
-RnAct        rs.w    1
-RnX        rs.w    1
-RnY        rs.w    1
-RnI        rs.w    1
-RainLong    rs.w    1
+RnDY    rs.w  1
+RnFY    rs.w  1
+RnTY    rs.w  1
+RnBase  rs.w  1
+RnColor rs.w  1
+RnLong  rs.w  1
+RnBuf   rs.l  1
+RnAct   rs.w  1
+RnX     rs.w  1
+RnY     rs.w  1
+RnI     rs.w  1
+RainLong rs.w  1
         Rb    RainTable,RainLong*NbRain
         Rw    RainBow,1
         Rw    OldRain,1
@@ -300,9 +302,9 @@ HsLong:        equ     20
 * Sauvegarde de la fonte systeme
         Rb    Libre5,14+4        Libre!
 * Interrupt VBL
-Lis        equ    $16
-Lio        equ    $30
-Lmsg        equ    $20
+Lis:    equ   $16
+Lio:    equ   $30
+Lmsg:   equ   $20
         Rb    VBL_Is,Lis
 * Interrupt clavier
         Rb    IoDevice,Lio+Lmsg+8

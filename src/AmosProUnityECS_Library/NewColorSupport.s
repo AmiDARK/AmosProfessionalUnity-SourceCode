@@ -12,6 +12,7 @@ colorSupport_Init:
 colorSupport_Functions:
     bra        SeparateRGBComponents
     bra        MergeRGBComponents
+    bra        ForceToRGB24
 
 ; ************************************ Separate RGB12, RGB15 and RGB24 color data into 2 RGB12 outputs.
 SeparateRGBComponents:
@@ -34,47 +35,16 @@ inputFormats:
     bra        InputIsR5G5B5           ; 15 bits (R5,G5,B5)
 ; ************************************ Read R4G4B4 and push it into 2 R4G4B4 registers for High/Low bits
 InputIsRGB12:
-   move.l      T_rgbInput(a5),d0       ; Load the RGB input data
-   move.w      d0,T_rgb12High(a5)      ; On RGB12 input, Low and High bits are the same
-   move.w      d0,T_rgb12Low(a5)       ; On RGB12 input, Low and High bits are the same
-   rts
+    move.l      T_rgbInput(a5),d0       ; Load the RGB input data
+    move.w      d0,T_rgb12High(a5)      ; On RGB12 input, Low and High bits are the same
+    move.w      d0,T_rgb12Low(a5)       ; On RGB12 input, Low and High bits are the same
+    rts
 ; ************************************ Read R5G5B5 and push it into 2 R4G4B4 registers for High/Low bits
 InputIsR5G5B5:
-   move.l      T_rgbInput(a5),d0       ; R5G5B5 must be converted in R8G8B8 then separated
-   move.l      #$01000000,T_rgbOutput(a5) ; Clear the input and prepare it to receive RGB24 value
-   ; ******** Extract the B5 component to create a B8 one
-   move.l      d0,d1
-   and.l       #%11111,d1              ; Look for the Blue component
-   cmp.b       #0,d1
-   beq.s       .part2                  ; If B=0 -> No conversion from B5-> B8
-   add.l       #1,d1                   ; D1 = interval { 1-32 }
-   lsl.l       #3,d1                   ; D1 = D1 * 8
-   sub.l       #1,d1                   ; D1 = D1 -1 = interval { 15-255 }
-   move.b      d1,T_rgbOutput+3(a5)    ; T_rgbOutput(a5) = ......B8
-.part2:
-   ; ******** Extract the G5 component to create a G8 one
-   move.l      d0,d1
-   and.l       #%1111100000,d1         ; Look for the green component
-   cmp.l       #0,d1
-   beq.s       .part3
-   add.l       #32,d1
-   lsl.l       #3,d1
-   sub.l       #32,d1
-   move.b      d1,T_rgbOutput+2(a5)
-.part3:
-   ; ******** Extract the R5 component to create a R8 one
-   move.l      d0,d1
-   and.l       #%111110000000000,d1    ; Look for the green component
-   cmp.l       #0,d1
-   beq.s       .part4
-   add.l       #1024,d1
-   lsl.l       #3,d1
-   sub.l       #1024,d1
-   move.b      d1,T_rgbOutput+1(a5)
-.part4:
-   ; ******** Update the input with the new R8G8B8 version of the color to use RGB24 components separation methods
-   move.l      T_rgbOutput(a5),T_rgbInput(a5) ; Update input with new version in R8G8B8.
-   ; ******** Continue with RGB24 -> RGB12H + RGB12L conversion
+    bsr        convertRGB15toRGB24
+    ; ******** Update the input with the new R8G8B8 version of the color to use RGB24 components separation methods
+    move.l      T_rgbOutput(a5),T_rgbInput(a5) ; Update input with new version in R8G8B8.
+    ; ******** Continue with RGB24 -> RGB12H + RGB12L conversion
 InputIsRGB24:
 ; ******** Calculate high bits of the RGB24 color palette
     move.l     T_rgbInput(a5),d1
@@ -186,4 +156,83 @@ OutputIsRGB24:
     and.l      #$F0F0F0,d1             ; d1 = ..R.G.B. = High bits for RGB24 color
     or.l       d1,T_rgbOutput(a5)      ; Push R4hG4hB4h components in rgbOutput
 ; Job Finished
+    rts
+
+
+
+
+; ************************************ Separate RGB12, RGB15 and RGB24 color data into 2 RGB12 outputs.
+ForceToRGB24:
+    movem.l    d0-d1/a0,-(sp)
+    move.l     T_rgbInput(a5),d0
+    move.l     d0,d1                   ; d0 = RGB input (which format do we have ?)
+    swap       d1                      ; d1 = theorically GGBBCCRR where CC is color format
+    lsr.w      #8,d1                   ; d1 = GGBB..CC
+    and.l      #$0F,d1                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
+    lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
+    lea        F24_inputFormats(pc),a0
+    adda.l     d1,a0                   ; a0 = Pointer to the method to callable
+    jsr        (a0)                    ; Call the input method
+    movem.l    (sp)+,d0-d1/a0
+    rts
+; ************************************ RGB Input format supported
+F24_inputFormats:
+    bra        F24_InputIsRGB12            ; 12 Bits (R4,G4,B4)
+    bra        F24_InputIsRGB24            ; 24 bits (R8,G8,B8)
+    bra        F24_InputIsR5G5B5           ; 15 bits (R5,G5,B5)
+; ***********************************
+F24_InputIsRGB12:
+    bsr         InputIsRGB12             ; Push RGB12 to be 2x RGB12 (Low & High Bits) 
+    bsr         OutputIsRGB24            ; Merge RGB12 Low & RGB12 High to create full RGB24
+    rts
+; ***********************************
+F24_InputIsR5G5B5:
+    bsr         convertRGB15toRGB24      ; Simply convert RGB15 (R5G5B5) to RGB24
+    rts
+; ***********************************
+F24_InputIsRGB24:
+    move.l      T_rgbInput(a5),T_rgbOutput(a5) ; Input and Output are under the same format
+    rts
+
+
+
+
+
+
+
+
+; ************************************ Simply Convert RGB15 (R5G5B5) to RGB24
+convertRGB15toRGB24:
+    move.l      T_rgbInput(a5),d0       ; R5G5B5 must be converted in R8G8B8 then separated
+    move.l      #modeRgb24,T_rgbOutput(a5) ; Clear the input and prepare it to receive RGB24 value
+    ; ******** Extract the B5 component to create a B8 one
+    move.l      d0,d1
+    and.l       #%11111,d1              ; Look for the Blue component
+    cmp.b       #0,d1
+    beq.s       .part2                  ; If B=0 -> No conversion from B5-> B8
+    add.l       #1,d1                   ; D1 = interval { 1-32 }
+    lsl.l       #3,d1                   ; D1 = D1 * 8
+    sub.l       #1,d1                   ; D1 = D1 -1 = interval { 15-255 }
+    move.b      d1,T_rgbOutput+3(a5)    ; T_rgbOutput(a5) = ......B8
+.part2:
+    ; ******** Extract the G5 component to create a G8 one
+    move.l      d0,d1
+    and.l       #%1111100000,d1         ; Look for the green component
+    cmp.l       #0,d1
+    beq.s       .part3                  ; If G=0 -> No conversion from G5-> G8
+    add.l       #32,d1
+    lsl.l       #3,d1
+    sub.l       #32,d1
+    move.b      d1,T_rgbOutput+2(a5)
+.part3:
+    ; ******** Extract the R5 component to create a R8 one
+    move.l      d0,d1
+    and.l       #%111110000000000,d1    ; Look for the green component
+    cmp.l       #0,d1
+    beq.s       .part4                  ; If R=0 -> No conversion from R5-> R8
+    add.l       #1024,d1
+    lsl.l       #3,d1
+    sub.l       #1024,d1
+    move.b      d1,T_rgbOutput+1(a5)
+.part4:
     rts

@@ -1,5 +1,10 @@
 ;
 ; *****************************************************************************************************************************
+; 
+; This file contains methods for the Amos Professional Rainbow System.
+; Method name with mention -> use this format : OriginalMethodName -> NewMethodName
+;
+; *****************************************************************************************************************************
 ; *************************************************************
 ; * Method Name : TRHide / Hide Rainbow                       *
 ; *-----------------------------------------------------------*
@@ -87,7 +92,6 @@ RainAct:
 ; *****************************************************************************************************************************
 ; *************************************************************
 ; * Method Name : TRVar -> L_InRain/LFnRain (.lib)            *
-; * Source : AmosProAGA_lib.s/InRain & FnRain                 *
 ; *-----------------------------------------------------------*
 ; * Description : Is double sided as in fact it return in A0  *
 ; *               The memory position of a specific rainbow   *
@@ -120,7 +124,6 @@ TRVar:
 ; *****************************************************************************************************************************
 ; *************************************************************
 ; * Method Name : TRSet -> SetRainbow                         *
-; * Source : AmosProAGA_lib.s/InSetRainbow6 & InSetRainbow7   *
 ; *-----------------------------------------------------------*
 ; * Description : This method create a new rainbow            *
 ; *                                                           *
@@ -148,7 +151,11 @@ SetRainbow:
     cmp.w      #PalMax,d3              ; D3 > PalMax(=16) ?
     bcc        TRSyntaxError           ; Jump -> TRSyntaxError
     move.w     d3,RnColor(a1)          ; RnColor(a1) = Rainbow Color Index
-    move.w     d7,d3                   ; D3 = Start Value
+; ******** 2020.12.16 Convert to RGB24 if not - START
+    ForceToRGB24 d7,d7                 ; Force D7 to be a RGB24 color data whatever it was before (RGB12,RGB15(=R5G5B5) or RGB24)
+; ******** 2020.12.16 Convert to RGB24 if not - END
+;    move.w     d7,d3                   ; D3 = Start Value
+    move.l     d7,d3                   ; D3 = Start Value / 2020.12.16 Updated using .l for RGB24 format
     move.w     d2,d0                   ; D0 = D2 = Size Of Table
     ext.l      d0                      ; D0 < 32700 so Ext.l d0 Will makes D0.l being positive
     lsl.l      #1,d0                   ; D0 = D0 * 2
@@ -175,8 +182,12 @@ SetRainbow:
     clr.w     -(sp)                    ;  6(sp)-> Speed = 0
     move.w    #1,-(sp)                 ;  4(sp)-> Cpt = 1
     clr.w     -(sp)                    ;  2(sp)-> Plus = 0
-    move.w    d3,d0                    ; D0 = D3 = Start Value
-    and.w     #$000F,d0                ; D0 = D0 && 15 (Get Rgb Blue Start Value)
+;    move.w    d3,d0                    ; D0 = D3 = Start Value
+    move.l     d3,d0                   ; D0 = Start Value / 2020.12.16 Updated using .l for RGB24 format
+; ******** 2020.12.16 Update to handle B8 instead of B4 - START
+;    and.w     #$000F,d0                ; Removed
+    and.w     #$00FF,d0                ; 2020.12.16 Update to force the use of B8 on RGB24 color mode
+; ******** 2020.12.16 Update to handle B8 instead of B4 - END
     move.w    d0,-(sp)                 ;  0(sp)-> Value (Get Rgb Blue Start Value)
     move.l    d6,a0                    ;  A0 = Pointer to the string containing Blue components data
     bsr       RainbowTokenisation
@@ -188,9 +199,14 @@ SetRainbow:
     clr.w     -(sp)                    ;  6(sp)-> Speed = 0
     move.w    #1,-(sp)                 ;  4(sp)-> Cpt = 1
     clr.w     -(sp)                    ;  2(sp)-> Plus = 0
-    move.w    d3,d0                    ; D0 = D3 = Rainbow Color Index
-    lsr.w     #4,d0                    ; D0 = D0 / 16
-    and.w     #$000F,d0                ; D0 = D0 && 15 (Get Rgb Green Start Value)
+;    move.w    d3,d0                    ; D0 = D3 = Rainbow Color Index
+    move.l     d3,d0                   ; D0 = Start Value / 2020.12.16 Updated using .l for RGB24 format
+; ******** 2020.12.16 Update to shift with the correct amount of bits for RGB12/RGB24 modes and handle G8 instead of G4 - START
+;    lsr.w     #4,d0                   ; Removed
+;    and.w     #$000F,d0               ; Removed
+    lsr.w     #8,d0                    ; D0 = D0 / 256
+    and.w     #$00FF,d0                ; 
+; ******** 2020.12.16 Update to shift with the correct amount of bits for RGB12/RGB24 modes and handle G8 instead of G4 - END
     move.w    d0,-(sp)                 ;  0(sp)-> Value (Get Rgb Green Start Value)
     move.l    d5,a0                    ;  A0 = Pointer to the string containing Green components data
     bsr       RainbowTokenisation
@@ -202,8 +218,14 @@ SetRainbow:
     clr.w     -(sp)                    ;  6(sp)-> Speed = 0
     move.w    #1,-(sp)                 ;  4(sp)-> Cpt = 1
     clr.w     -(sp)                    ;  2(sp)-> Plus = 0
-    lsr.w     #8,d3                    ; D3 = D3 / 256
-    and.w     #$000F,d3                ; D3 = D3 && 15 (Get Rgb Red Start Value)
+
+; ******** 2020.12.16 Update to shift with the correct amount of bits for RGB12/RGB24 modes and handle R8 instead of R4 - START
+;    and.w     #$000F,d3                ; Remove
+;    lsr.w     #8,d3                    ; D3 = D3 / 256
+    lsr.l     #8,d3                    ; D3 = D3 / 256
+    lsr.l     #8,d3                    ; 2nd Shift for RGB24 makes total = D3/65536
+    and.l     #$00FF,d3                ; 2020.12.16 Automatically filter using the selected RGB24 mode
+; ******** 2020.12.16 Update to shift with the correct amount of bits for RGB12/RGB24 modes and handle R8 instead of R4 - END
     move.w    d3,-(sp)                 ;  0(sp)-> Value (Get Rgb Red Start Value)
     move.l    d4,a0                    ;  A0 = Pointer to the string containing Red components data
     bsr       RainbowTokenisation
@@ -221,7 +243,7 @@ Trs2:
     move.w    6(a0),4(a0)              ; 4(a0).w = 6(a0).w                ; Cpt = Speed
     move.w    2(a0),d1                 ; d1 = 2(a0).w
     add.w     (a0),d1                  ; d1 = d1 + (a0).w
-    and.w     #$000F,d1                ; d1 = d1 && $F                                     ; Check if content in not reversed regarding what I have noted here.
+    and.w     #$000F,d1                ; d1 = d1 && $F                    ; Check if content in not reversed regarding what I have noted here.
     move.w    d1,(a0)                  ; (a0).w = d1
     tst.w     8(a0)                    ; 8(a0).w = 0 ?                    ; Numbers of movements = 0 ?
     beq.s     Trs5                     ; Yes -> Jump Trs5

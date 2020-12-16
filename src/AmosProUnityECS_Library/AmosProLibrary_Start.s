@@ -212,78 +212,93 @@ StartAll
     jsr    _LVODoIo(a6)
     move.w    #-1,T_DevHere(a5)
 
-; Parametres par defaut des ecrans
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    move.l    (sp),a0    
-    move.w    #129,T_DefWX(a5)
-    move.w    #129-16,T_DefWX2(a5)
-    move.w    10(a0),T_DefWY(a5)
-    move.w    10(a0),T_DefWY2(a5)
-    subq.w    #8,T_DefWY2(a5)
+; ***************************************
+; Default screens parameters 
+; ***************************************
+    move.l     (sp),a0    
+    move.w     #129,T_DefWX(a5)
+    move.w     #129-16,T_DefWX2(a5)
+    move.w     10(a0),T_DefWY(a5)
+    move.w     10(a0),T_DefWY2(a5)
+    subq.w     #8,T_DefWY2(a5)
 
-    lea     Circuits,a6
-    move.l    (sp),a0
-    move.l    16(a0),d0
-    bsr    HsInit            Hard sprites
-    move.l    (sp),a0
-    move.w    8(a0),d0
-    bsr    BbInit            Bobs
-    bsr    RbInit            Retourneur de bobs
-    move.l    (sp),a0
-    move.l    12(a0),d0
-    bsr    CpInit            Copper
-    bsr    EcInit            Ecrans
-    bsr    ampLib_Init             ; 2020.11.22 Setup AmosProLib_ExtractedMethods branchment list
-    bsr    colorSupport_Init       ; 2020.12.05 Setup for Advanced Color Support for Colors Datas Format Conversions
-    bsr    SyInit            Systeme
-    bsr    VBLInit            Interruptions VBL
-    bsr    WiInit            Windows
+    lea        Circuits,a6
+    move.l     (sp),a0
+    move.l     16(a0),d0
+    bsr        HsInit                  ; Init Hard Sprites
+    move.l     (sp),a0
+    move.w     8(a0),d0
+    bsr        BbInit                  ; Blitter Objects (Bobs) Init
+    bsr        RbInit                  ; Blitter Objects (Bobs) Reverser (French : Retourneur)
+    move.l     (sp),a0
+    move.l     12(a0),d0
+    bsr        CpInit                  ; Setup Copper
+    bsr        EcInit                  ; Setup Screens
+    bsr        ampLib_Init             ; 2020.11.22 Setup AmosProLib_ExtractedMethods branchment list
+    bsr        colorSupport_Init       ; 2020.12.05 Setup for Advanced Color Support for Colors Datas Format Conversions
+    bsr        SyInit                  ; System Setup
+    bsr        VBLInit                 ; VBL Interrupts Setup 
+    bsr        WiInit                  ; Windows Setup
 
-;    Si AA, change le vecteur LOADVIEW
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    btst    #WFlag_LoadView,T_WFlags(a5)    Si LoadView en route
-    beq.s    .NoLoadView
-    lea    AMOS_LoadView(pc),a0
-    lea    T_AMOSHere(a5),a1        Adresse du test
-    move.l    a1,2(a0)            >>> dans le source...
-    move.l    a0,d0                Nouvelle fonction
-    move.w    #-222,a0            LOADVIEW
-    move.l    T_GfxBase(a5),a1        Librairie
-    move.l    $4.w,a6
-    jsr    -420(a6)            Set function
-    lea    Old_LoadView(pc),a0        Ancien vecteur
-    move.l    d0,(a0)
-    bsr    Sys_ClearCache            Nettoie les caches!
+; ***************************************
+; If AA, modify the LOADVIEW Vector
+; ***************************************
+    btst       #WFlag_LoadView,T_WFlags(a5)    Si LoadView en route
+    beq.s      .NoLoadView
+    lea        AMOS_LoadView(pc),a0
+    lea        T_AMOSHere(a5),a1        Adresse du test
+    move.l     a1,2(a0)            >>> dans le source...
+    move.l     a0,d0                Nouvelle fonction
+    move.w     #-222,a0            LOADVIEW
+    move.l     T_GfxBase(a5),a1        Librairie
+    move.l     $4.w,a6
+    jsr        -420(a6)            Set function
+    lea        Old_LoadView(pc),a0        Ancien vecteur
+    move.l     d0,(a0)
+    bsr        Sys_ClearCache            Nettoie les caches!
 .NoLoadView    
 
-;     Branche le requester
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~
-    cmp.w    #$0200,T_WVersion(a5)
-    bcs.s    .No20_c
-    move.l    4(sp),a0            Palette par defaut
-    bsr    WRequest_Start
-;     Fabrique la fonte par defaut
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    bsr    Wi_MakeFonte
-    bne    GFatal
-.No20_c
+; ***************************************
+; Requester Branchment
+; ***************************************
+    cmp.w      #$0200,T_WVersion(a5)
+    bcs.s      .No20_c
+    move.l     4(sp),a0            Palette par defaut
+    bsr        WRequest_Start
+; ***************************************
+; Build the default font
+; ***************************************
+    bsr        Wi_MakeFonte
+    bne        GFatal
+.No20_c:
 
-;     Tout fini: AMOS to front ?
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    tst.b    T_AMOSHere(a5)
-    beq.s    .Pafr
-    clr.b    T_AMOSHere(a5)
-    moveq    #1,d1
-    bsr    TAMOSWb
-.Pafr
-; Pas d'erreur
-; ~~~~~~~~~~~~
-    moveq    #0,d0
-    bra.s    GFini
-;     Erreur: EFFACE TOUT, et revient!
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-GFatal    bsr.s    EndAll
-    moveq    #-1,d0
-GFini    move.l    T_GPile(a5),a7
+; ***************************************
+; Everything setup correctly ? Send AMOS to front ?
+; ***************************************
+    tst.b      T_AMOSHere(a5)
+    beq.s      .Pafr
+    clr.b      T_AMOSHere(a5)
+    moveq      #1,d1
+    bsr        TAMOSWb
+.Pafr:
+
+; ***************************************
+; No error.
+; ***************************************
+    moveq      #0,d0
+    bra.s      GFini
+
+; ***************************************
+; Errors happened during setup. Clear everything and go back to Cli/WB
+; ***************************************
+GFatal:
+    bsr.s      EndAll
+    moveq      #-1,d0
+
+; ***************************************
+; Setup End
+; ***************************************
+GFini:
+    move.l     T_GPile(a5),a7
     movem.l    (sp)+,a0-a6/d1-d7
     rts
