@@ -57,6 +57,8 @@ amosprolib_functions:
     bra        AMP_BnkGetAdr           ;  35 A_BnkGetAdr
     bra        AMP_ResBank             ;  36 A_ResBank
     bra        AMP_InSPack6            ;  37 A_InSPack6
+    bra        AMP_InRain              ;  38 A_InRain
+    bra        AMP_FnRain              ;  39 A_FnRain
 
 ;   bra        .........
     dc.l       0
@@ -2550,26 +2552,59 @@ AMP_BnkReserve:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AMP_BnkGetAdr:
 ; - - - - - - - - - - - - -
-    move.l      Cur_Banks(a5),a0    ; Banks list pointer
-    move.l      (a0),d1             ; D1 = Pointer to the current bank list
-    beq.s       .Nof                ; null = no banks in memory
+    move.l      Cur_Banks(a5),a0       ; Banks list pointer
+    move.l      (a0),d1                ; D1 = Pointer to the current bank list
+    beq.s       .Nof                   ; null = no banks in memory
 .Loop
-    move.l      d1,a1               ; A1 = Pointer to the current bank list
-    cmp.l       8(a1),d0            ; If (A1,8)=D0  ( D0 = flag for bobs or icons )
-    beq.s       .Fnd                ; = -> Correct bank found -> jump .fnd
-    move.l      (a1),d1             ; D1 = Next bank pointer
-    bne.s       .Loop               ; Continue search through banks
-.Nof                               ; D1 = null
-    sub.l       a1,a1               ; A1 = 0
-    move.l      a1,a0               ; A0 = 0
-    rts                            ; Return (not found)
+    move.l      d1,a1                  ; A1 = Pointer to the current bank list
+    cmp.l       8(a1),d0               ; If (A1,8)=D0  ( D0 = flag for bobs or icons )
+    beq.s       .Fnd                   ; = -> Correct bank found -> jump .fnd
+    move.l      (a1),d1                ; D1 = Next bank pointer
+    bne.s       .Loop                  ; Continue search through banks
+.Nof                                   ; D1 = null
+    sub.l       a1,a1                  ; A1 = 0
+    move.l      a1,a0                  ; A0 = 0
+    rts                                ; Return (not found)
 .Fnd
-;    move.l     a1,a2               ; *****************  2020.04.30 Backup Bank into A2
-    move.w      8+4(a1),d0          ; D0 = Current Bank Adress + 12
-    lea         8*3(a1),a0          ; A0 = Current Bank Adress + 24
-    move.l      a0,a1               ; A1 = A0
-    move.w      #%00000,CCR         ; Clear CCR
-    rts                            ; Return (found)
+;    move.l     a1,a2                  ; *****************  2020.04.30 Backup Bank into A2
+    move.w      8+4(a1),d0             ; D0 = Current Bank Adress + 12
+    lea         8*3(a1),a0             ; A0 = Current Bank Adress + 24
+    move.l      a0,a1                  ; A1 = A0
+    move.w      #%00000,CCR            ; Clear CCR
+    rts                                ; Return (found)
+
+
+
+
+
+; **************** This method will modify a rainbow y line with the chosen RGB color
+; D1=RainbowID
+; D2=YLine
+; D3 = new Rainbow RGB24 Color
+AMP_InRain:
+    EcCall     RainVar
+    bne        EcWiErr
+    ForceToRGB12 d3,d3
+    move.w     d3,(a0)
+    rts
+
+; **************** This method will return the RGB color available in a chosen line of a rainbow
+; D1=RainbowID
+; D2=YLine
+; Return D3 = Rainbow RGB24 Color
+AMP_FnRain:
+    EcCall    RainVar
+    Rbne    L_EcWiErr
+    moveq    #0,d3
+    move.w    (a0),d3
+    ForceToRGB24 d3,d3
+    rts
+
+
+
+
+
+
 
 
 
@@ -2663,6 +2698,8 @@ OOfMem:
 ;    bra       GoError
 GoError:
     Rjmp       L_Error
+
+
 
 ; *************************************************************************************
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -112,7 +112,7 @@ TRVar:
     move.l     d0,a1                       ; a1 = d0
     tst.l      d2                          ; is d2 < = > 0 ?
     bmi        RainbowError                ; if d2 < 0 (out of rainbow lines) Then Jump RainbowError
-    lsl.w      #1,d2                       ; d2 = d2 * 2 
+    lsl.w      #1,d2                       ; d2 = d2 * 2
     cmp.w      RnLong(a0),d2               ; cmp Rainbow Length & d2
     bcc        RainbowError                ; d2 > Rainbow Length -> Jump Rainbow Error
     add.w      d2,a1                       ; a1 = a1 + d2
@@ -133,7 +133,7 @@ TRVar:
 ; *              d4 = Red Components (String)                 *
 ; *              d5 = Green Components (String)               *
 ; *              d6 = Blue Components (String)                *
-; *              d7 = Start value (RGB12 Color Value)         *
+; *              d7 = Start value (RGB12/15/24 Color Value)   *
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
@@ -154,7 +154,6 @@ SetRainbow:
 ; ******** 2020.12.16 Convert to RGB24 if not - START
     ForceToRGB24 d7,d7                 ; Force D7 to be a RGB24 color data whatever it was before (RGB12,RGB15(=R5G5B5) or RGB24)
 ; ******** 2020.12.16 Convert to RGB24 if not - END
-;    move.w     d7,d3                   ; D3 = Start Value
     move.l     d7,d3                   ; D3 = Start Value / 2020.12.16 Updated using .l for RGB24 format
     move.w     d2,d0                   ; D0 = D2 = Size Of Table
     ext.l      d0                      ; D0 < 32700 so Ext.l d0 Will makes D0.l being positive
@@ -182,7 +181,6 @@ SetRainbow:
     clr.w     -(sp)                    ;  6(sp)-> Speed = 0
     move.w    #1,-(sp)                 ;  4(sp)-> Cpt = 1
     clr.w     -(sp)                    ;  2(sp)-> Plus = 0
-;    move.w    d3,d0                    ; D0 = D3 = Start Value
     move.l     d3,d0                   ; D0 = Start Value / 2020.12.16 Updated using .l for RGB24 format
 ; ******** 2020.12.16 Update to handle B8 instead of B4 - START
 ;    and.w     #$000F,d0                ; Removed
@@ -199,7 +197,6 @@ SetRainbow:
     clr.w     -(sp)                    ;  6(sp)-> Speed = 0
     move.w    #1,-(sp)                 ;  4(sp)-> Cpt = 1
     clr.w     -(sp)                    ;  2(sp)-> Plus = 0
-;    move.w    d3,d0                    ; D0 = D3 = Rainbow Color Index
     move.l     d3,d0                   ; D0 = Start Value / 2020.12.16 Updated using .l for RGB24 format
 ; ******** 2020.12.16 Update to shift with the correct amount of bits for RGB12/RGB24 modes and handle G8 instead of G4 - START
 ;    lsr.w     #4,d0                   ; Removed
@@ -218,10 +215,9 @@ SetRainbow:
     clr.w     -(sp)                    ;  6(sp)-> Speed = 0
     move.w    #1,-(sp)                 ;  4(sp)-> Cpt = 1
     clr.w     -(sp)                    ;  2(sp)-> Plus = 0
-
 ; ******** 2020.12.16 Update to shift with the correct amount of bits for RGB12/RGB24 modes and handle R8 instead of R4 - START
-;    and.w     #$000F,d3                ; Remove
-;    lsr.w     #8,d3                    ; D3 = D3 / 256
+;    and.w     #$000F,d3                ; Removed
+;    lsr.w     #8,d3                    ; Removed
     lsr.l     #8,d3                    ; D3 = D3 / 256
     lsr.l     #8,d3                    ; 2nd Shift for RGB24 makes total = D3/65536
     and.l     #$00FF,d3                ; 2020.12.16 Automatically filter using the selected RGB24 mode

@@ -13,18 +13,15 @@ colorSupport_Functions:
     bra        SeparateRGBComponents
     bra        MergeRGBComponents
     bra        ForceToRGB24
-
+    dc.l       0
 ; ************************************ Separate RGB12, RGB15 and RGB24 color data into 2 RGB12 outputs.
 SeparateRGBComponents:
     movem.l    d0-d1/a0,-(sp)
-    move.l     T_rgbInput(a5),d0
-    move.l     d0,d1                   ; d0 = RGB input (which format do we have ?)
-    swap       d1                      ; d1 = theorically GGBBCCRR where CC is color format
-    lsr.w      #8,d1                   ; d1 = GGBB..CC
-    and.l      #$0F,d1                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
+    move.b     T_rgbInput(a5),d0
+    and.l      #$0F,d0                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
     lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
     lea        inputFormats(pc),a0
-    adda.l     d1,a0                   ; a0 = Pointer to the method to callable
+    adda.l     d0,a0                   ; a0 = Pointer to the method to callable
     jsr        (a0)                    ; Call the input method
     movem.l    (sp)+,d0-d1/a0
     rts
@@ -73,8 +70,8 @@ InputIsRGB24:
 ; ************************************ Merge rgb12High and rgb12Low to create a new output format
 MergeRGBComponents:
     movem.l    d0-d1/a0,-(sp)
-    moveq      #0,d0
     move.b     T_rgbOutput(a5),d0
+    and.l      #$0F,d0
     lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
     lea        outputFormats(pc),a0
     adda.l     d0,a0                   ; a0 = Pointer to the method to callable
@@ -164,14 +161,11 @@ OutputIsRGB24:
 ; ************************************ Separate RGB12, RGB15 and RGB24 color data into 2 RGB12 outputs.
 ForceToRGB24:
     movem.l    d0-d1/a0,-(sp)
-    move.l     T_rgbInput(a5),d0
-    move.l     d0,d1                   ; d0 = RGB input (which format do we have ?)
-    swap       d1                      ; d1 = theorically GGBBCCRR where CC is color format
-    lsr.w      #8,d1                   ; d1 = GGBB..CC
-    and.l      #$0F,d1                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
+    move.b     T_rgbInput(a5),d0
+    and.l      #$0F,d0                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
     lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
     lea        F24_inputFormats(pc),a0
-    adda.l     d1,a0                   ; a0 = Pointer to the method to callable
+    adda.l     d0,a0                   ; a0 = Pointer to the method to callable
     jsr        (a0)                    ; Call the input method
     movem.l    (sp)+,d0-d1/a0
     rts
@@ -193,10 +187,6 @@ F24_InputIsR5G5B5:
 F24_InputIsRGB24:
     move.l      T_rgbInput(a5),T_rgbOutput(a5) ; Input and Output are under the same format
     rts
-
-
-
-
 
 
 

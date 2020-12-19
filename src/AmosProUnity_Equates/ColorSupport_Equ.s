@@ -16,11 +16,18 @@ ColSupCallR:   MACRO
     jsr        \1*4(\2)
     ENDM
 
+ForceToRGB12   MACRO
+    move.l     \1,T_rgbInput(a5)       ; Load Parameter 1 (RGB12/RGB15/RGB24) into rgbInput memory slot
+    movem.l    a0,-(sp)                ; Save A0
+    ColSupCallR CSSeparateRGBComponents,a0 ; Call method
+    movem.l    (sp)+,a0                ; Load A0
+    move.l     T_rgb12High(a5),\2      ; Load RGB12 High bits into parameter 2
+    ENDM
+
 ForceToRGB24:  MACRO
     move.l     \1,T_rgbInput(a5)       ; Send value to rgbInput for conversion
-    move.l     #modeRgb24,T_rgbOutput(a5) ; Request RGB24 output from RGB12High & RGB12Low color datas
     movem.l    a0,-(sp)                ; Save A0
-    ColSupCallR CSForceToRGB24,a0
+    ColSupCallR CSForceToRGB24,a0      ; Call method
     move.l     (sp)+,a0                ; Load A0
     move.l     T_rgbOutput(a5),\2      ; Load RGB24 color data into Parameter 3
     ENDM
@@ -30,7 +37,7 @@ PushToRGB24:   MACRO
     move.w     \2,T_rgb12Low(a5)       ; Push Parameter 2 RGB12 Low bits to memory slot
     move.l     #modeRgb24,T_rgbOutput(a5) ; Request RGB24 output from RGB12High & RGB12Low color datas
     movem.l    a0,-(sp)                ; Save A0
-    ColSupCallR CSMergeRGBComponents,a0
+    ColSupCallR CSMergeRGBComponents,a0 ; Call method
     move.l     (sp)+,a0                ; Load A0
     move.l     T_rgbOutput(a5),\3      ; Load RGB24 color data into Parameter 3
     ENDM
@@ -38,7 +45,7 @@ PushToRGB24:   MACRO
 getRGB12Datas  MACRO
     move.l     \1,T_rgbInput(a5)       ; Load Parameter 1 (RGB12/RGB15/RGB24) into rgbInput memory slot
     movem.l    a0,-(sp)                ; Save A0
-    ColSupCallR CSSeparateRGBComponents,a0
+    ColSupCallR CSSeparateRGBComponents,a0 ; Call method
     movem.l    (sp)+,a0                ; Load A0
     move.l     T_rgb12High(a5),\2      ; Load RGB12 High bits into parameter 2
     move.l     T_rgb12Low(a5),\3       ; Load RGB12 Low bits into parameter 3

@@ -1,23 +1,23 @@
-
+Rainbow RGB24 Bits color support :
+- Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
 
 ; ************************************************************************
-; Méthodes modifiées sous l'Amos Professional AGA (The X Project):
-; 1. AmosPro.lib :
-; *Bnk.SaveA0, *Bnk.Load, *Bnk.Ric2
-; *IffScreen*, *IffPal*, *SaveCMAP*
-; *InScreenOpen, *InGetPalette2, *GSPal, *PalRout, *InScreenDisplay, *Sco0
-; *InPen
-; *UnPack_Screen, *UnPack_Bitmap
-; Created : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
-; 2. Compact.lib :
-; *InSPack6
+; 2020.12.19
+- Exported AmosProUnit_Lib.s/InRan & FnRain to AmosProfessional_Ecs.library/ExtractedFromAmosPro_lib.s
+- Rain command now support RGB12/RGB15 and RGB24 color input
+- Rain command will now always output RGB24 color value.
 
+; ************************************************************************
+; 2020.12.17
+- Fixed a bug that caused a crash in ForceToRGB24 conversion methods.
+- Set Rainbow can now uses RGB12,RGB15 and RGB24 as input for start value (latest parameter (optional))
+- Reimport commented version of CopBow method (Copper List Rainbow Creation)
 
 ; ************************************************************************
 ; 2020.12.16
 - Added method 'ForceToRGB24' with its current set for 'F24_InputIsRGB12','F24_InputIsRGB15' and 'F24_InputIsRGB24'
 - Extracted RGB15(=R5G5B5) convertion to RGB24 from 'InputIsR5G5B5' to makes it being useable from other methods as stand alone 'convertRGB15toRGB24' method
-- Updated AmosPro_ECS.library:SetRainbow(TRSet) to handle RGB24 bit for default color settings.
+
 
 ; ************************************************************************
 ; 2020.12.05

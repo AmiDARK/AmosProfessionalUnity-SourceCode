@@ -8212,20 +8212,14 @@ ShD3:    move.l    (a3)+,d2
 ; - - - - - - - - - - - - -
     move.l    (a3)+,d2
     move.l    (a3)+,d1
-    EcCall    RainVar
-    Rbne    L_EcWiErr
-    and.w    #$0FFF,d3
-    move.w    d3,(a0)
+    AmpLCallR A_InRain,a0
     rts
 ; - - - - - - - - - - - - -
     Lib_Par FnRain
 ; - - - - - - - - - - - - -
     move.l    d3,d2
     move.l    (a3)+,d1
-    EcCall    RainVar
-    Rbne    L_EcWiErr
-    moveq    #0,d3
-    move.w    (a0),d3
+    AmpLCallR A_FnRain,a0
     Ret_Int
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

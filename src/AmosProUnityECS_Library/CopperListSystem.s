@@ -174,7 +174,7 @@ MkD3b:
     move.w    d3,(a3)+
     move.w    d4,(a3)+
     move.w    d5,(a3)+
-; Re-Explore la liste en cas d'egalite SI DEBUT DE FENETRE
+; Re-Explore la liste en cas d''egalite SI DEBUT DE FENETRE
     and.w    #$7fff,d5
     lea    T_EcPri(a5),a2
     moveq    #0,d1
@@ -216,7 +216,7 @@ MkA1:    move.w    (a3),d0
     move.w    2(a3),d1
     move.w    4(a3),d2
     bmi    MkA4
-; Debut d'une fenetre: doit-on l'afficher?
+; Debut d''une fenetre: doit-on l''afficher?
     lea    T_EcBuf(a5),a0
 MkA2:    cmp.l    a3,a0
     bcc    MkA8
@@ -231,9 +231,9 @@ MkA2:    cmp.l    a3,a0
 MkA3:    lea    6(a0),a0
     bra.s    MkA2
 
-; Fin d'une fenetre: doit-on en reafficher une autre?    
+; Fin d''une fenetre: doit-on en reafficher une autre?    
 MkA4:    and.w    #$7FFF,d2
-    cmp.w    #$100,d2        ;Si fin de l'ecran --> marque!
+    cmp.w    #$100,d2        ;Si fin de l''ecran --> marque!
     beq    MkA9a
 
     clr.w    d3    
@@ -295,7 +295,7 @@ MkA9a:    cmp.w    #EcYStrt-1,d0
 ; Passe a une autre
 MkA10:    lea    6(a3),a3
     bra    MkA1
-; C'est la fin
+; C''est la fin
 MkA11    neg.w    d1
     move.w    d1,(a1)+
 * Marque la fin des ecrans
@@ -356,11 +356,11 @@ MCop0    move.l    T_EcCop(a5),a2
 MCop1    move.w    (a2)+,d0
     beq.s    MCopX
     bmi.s    MCop2
-* Debut d'un ecran
+* Debut d''un ecran
     move.l    (a2)+,a0
     bsr    EcCopHo
     bra.s    MCop1
-* Fin d'un ecran
+* Fin d''un ecran
 MCop2    neg.w    d0
     bsr    EcCopBa
     bra.s    MCop1
@@ -401,221 +401,267 @@ PasCop    movem.l    (sp)+,d1-d7/a1-a6
 ; *************************************************************
 
 ******* Actualise les RAINBOWS
-CopBow    lea    T_RainTable(a5),a0
-    moveq    #0,d4
-    moveq    #NbRain-1,d6
-    moveq    #0,d5
-RainA1    tst.w    RnLong(a0)
-    beq.s    RainA5
-    addq.w    #1,d5
-    tst.w    RnI(a0)
-    bmi.s    RainA5
-    addq.w    #1,d4
-    move.b    RnAct(a0),d7
-    beq.s    RainA5
-    clr.b    RnAct(a0)
-* Taille en Y
-    bclr    #0,d7
-    beq.s    RainA2
-    move.w    RnI(a0),d0
-    move.w    d0,RnTY(a0)
-    bset    #2,d7
-* Position en Y
-RainA2    bclr    #2,d7
-    beq.s    RainA4
-    clr.l    RnDY(a0)
-    move.w    RnY(a0),d1
-    cmp.w    #28,d1
-    bcc.s    RainA3
-    moveq    #28,d1
-RainA3    move.w    RnTy(a0),d0
-    add.w    #EcYBase,d1
-    move.w    d1,RnDY(a0)
-    add.w    d0,d1
-    move.w    d1,RnFY(a0)
+CopBow:
+    lea        T_RainTable(a5),a0      ; A0 = Rainbow Table
+    moveq      #0,d4                   ; D4 = Current Rainbow = 0
+    moveq      #NbRain-1,d6            ; D6 = Max Rainbow Count -1 (for minus leave loop)
+    moveq      #0,d5                   ; D5 = 0
+RainA1:
+    tst.w      RnLong(a0)              ; Is RnLong(a0) = 0 ?
+    beq.s      RainA5                  ; RnLong = 0 -> Jump RainA5
+    addq.w     #1,d5                   ; D5 = D5 + 1
+    tst.w      RnI(a0)                 ; Is RnI(a0) = 0 ? // Rainbow Size (See TRDo method)
+    bmi.s      RainA5                  ; RnI(a0) < 0 -> Jump RainA5
+    addq.w     #1,d4                   ; D4 = D4 + 1
+    move.b     RnAct(a0),d7            ; D7.b = RnAct(a0) // Rainbow Action
+    beq.s      RainA5                  ; = 0 -> Jump RainA5
+    clr.b      RnAct(a0)               ; RnAct(a0) = 0
+; **************** Y Size
+    bclr       #0,d7                   ; D7 = 0
+    beq.s      RainA2                  ; =0 -> RainA2
+    move.w     RnI(a0),d0              ; D0 = RnI(a0) // Rainbow Size
+    move.w     d0,RnTY(a0)             ; RnTy(a0) = D0  // Rainbow Y Size
+    bset       #2,d7                   ; D7 = D7 || #2
+; **************** Y Position
+RainA2:
+    bclr       #2,d7                   ; Clear bit #2,d7
+    beq.s      RainA4                  ; = 0 -> Jump RainA4
+    clr.l      RnDY(a0)                ; RnDY(a0) = 0
+    move.w     RnY(a0),d1              ; d1 = RnY(a0)
+    cmp.w      #28,d1                  ; Is d1 = 28 ?
+    bcc.s      RainA3                  ; if C Retain clear, then Jump RainA3
+    moveq      #28,d1                  ; d1 = 28
+RainA3:
+    move.w     RnTy(a0),d0             ; d0 = RnTy(a0)             ; RnTy = Rainbow Y Size (T=Taille/Size)
+    add.w      #EcYBase,d1             ; D1 = D1 + EcYBase
+    move.w     d1,RnDY(a0)             ; RnDY(a0) = d1
+    add.w      d0,d1                   ; d1 = d1 + D0 (RnTy(a0))
+    move.w     d1,RnFY(a0)             ; RbFY(a0) = d1
 * Position de la base
-RainA4    bclr    #1,d7
-    beq.s    RainA5
-    move.w    RnX(a0),d0
-    lsl.w    #1,d0
-    cmp.w    RnLong(a0),d0
-    bcc.s    RainA5
-    lsr.w    #1,d0
-    move.w    d0,RnBase(a0)
-* Rainbow suivant
-RainA5    lea    RainLong(a0),a0
-    dbra    d6,RainA1
-* Securite!
-    move.w    d5,T_RainBow(a5)
-    tst.w    d4
-    beq    MCop0
+RainA4:
+    bclr       #1,d7
+    beq.s      RainA5
+    move.w     RnX(a0),d0
+    lsl.w      #1,d0
+    cmp.w      RnLong(a0),d0
+    bcc.s      RainA5
+    lsr.w      #1,d0
+    move.w     d0,RnBase(a0)
+; **************** Next Rainbow
+RainA5:
+    lea        RainLong(a0),a0         ; A0 = A0 + RainLong
+    dbra       d6,RainA1               ; D6 = D6 - 1 ; If D6 > -1 Jump RainA1
+
+; **************** Security Checking
+    move.w     d5,T_RainBow(a5)
+    tst.w      d4
+    beq        MCop0
 
 ******* Fabrique la liste
-    move.l    T_EcCop(a5),a2
-    move.w    #EcYBase,d0
-    moveq    #-1,d3
-    moveq    #-1,d4
-    moveq    #0,d7
-Rain1    move.w    (a2)+,d1
-    beq    Rain3
-    bmi.s    Rain2
-* Debut d'un ecran
-    bsr    Rain
-    move.l    (a2)+,a0
-    movem.l    d0/d3-d7,-(sp)
-    bsr    EcCopHo
-    movem.l    (sp)+,d0/d3-d7
-    clr.w    d3
-    tst.w    d4
-    bmi.s    Rain1e
-    cmp.w    #PalMax*4,d4
-    bcs.s    Rain1d
-    lea    64(a4),a4
-Rain1d    move.l    (a4),a0    
-    move.w    2(a0,d4.w),d3
-    bclr    #31,d3
-Rain1e    cmp.w    d7,d0
-    bcc.s    Rain1a
-    move.w    (a3)+,2(a0,d4.w)
-    cmp.l    a6,a3
-    bcs.s    Rain1a
-    move.l    d6,a3
-Rain1a    addq.w    #1,d0
-    move.w    (a2),d1
-    bpl.s    Rain1b
-    neg.w    d1
-Rain1b    cmp.w    d0,d1
-    beq.s    Rain1
-    cmp.w    d7,d0
-    bcc.s    Rain2a
-    move.w    d5,(a1)+
-    move.w    (a3)+,(a1)+
-    bra.s    Rain1c
-* Fin d'un ecran
-Rain2    neg.w    d1
-    bsr    Rain
-    bsr    EcCopBa
-    tst.w    d4
-    bne.s    Rain1b
-    move.w    T_EcFond(a5),d3
-    cmp.w    d7,d0
-    bcc.s    Rain2a
-    move.l    a1,a0            * Recherche la couleur
-Rain1z    cmp.w    #$0180,-(a0)
-    bne.s    Rain1z
-    move.w    (a3)+,2(a0)
-Rain1c    cmp.l    a6,a3
-    bcs.s    Rain2a
-    move.l    d6,a3
-Rain2a    addq.w    #1,d0
-    bra    Rain1
-* Fin des ecrans
-Rain3    subq.l    #2,a2
-    cmp.l    T_EcCop(a5),a2
-    bne.s    .Skip
-    move.w    T_EcYMax(a5),d0
-    subq.w    #1,d0
-    bsr    Rain
-    bsr    EcCopBa    
-.Skip    move.l    #$FFFFFFFE,(a1)+
-    bra    MCopSw
+    move.l     T_EcCop(a5),a2          ; Send screen list adress into ->a2
+    move.w     #EcYBase,d0             ; d0 = Screen Y Base
+    moveq      #-1,d3                  ; d3 = -1
+    moveq      #-1,d4                  ; d4 = -1
+    moveq      #0,d7                   ; d7 = 0
+Rain1:
+    move.w     (a2)+,d1                ; Send screen count ? into ->D1
+    beq        Rain3                   ; if = 0 -> No screen -> Jump to Rain3
+    bmi.s      Rain2                   ; if < 0 -> Rain2 (2nd part of screen display)
+; If ScreenID > 0 -> Start of a screen
+    bsr        Rain                    ; Call Rain (insert rainbow until next screen Y line)
+    move.l     (a2)+,a0                ; a0 = Current Screen pointer
+    movem.l    d0/d3-d7,-(sp)          ; Save d0,d3-d7
+    bsr        EcCopHo                 ; Call EcCopHo (Insert beginning of the screen)
+    movem.l    (sp)+,d0/d3-d7          ; Load d0,d3-d7
+    clr.w      d3                      ; d3 = 0
+    tst.w      d4                      ; d4 = 0 ?
+    bmi.s      Rain1e                  ; <0 -> Jump Rain&E
+    cmp.w      #PalMax*4,d4            ; d4 > ( 16 * 4 ) (in 2nd palette slot 16-31) ?
+    bcs.s      Rain1d                  ; No -> Jump Rain1d
+    lea        64(a4),a4               ; Yes -> a4 = 2nd color palette pointer
+Rain1d:
+    move.l     (a4),a0                 ; a0 = Color palette pointer (1st or 2nd one)
+    move.w     2(a0,d4.w),d3
+    bclr       #31,d3
+Rain1e:
+    cmp.w      d7,d0
+    bcc.s      Rain1a
+    move.w     (a3)+,2(a0,d4.w)
+    cmp.l      a6,a3
+    bcs.s      Rain1a
+    move.l     d6,a3
+Rain1a:
+    addq.w     #1,d0
+    move.w     (a2),d1
+    bpl.s      Rain1b
+    neg.w      d1
+Rain1b:
+    cmp.w      d0,d1
+    beq.s      Rain1
+    cmp.w      d7,d0
+    bcc.s      Rain2a
+    move.w     d5,(a1)+                ; Copper Move Color#D5
+    move.w     (a3)+,(a1)+             ; Color#D5 = (a3)+
+    add.l      #4,a3
+    bra.s      Rain1c
+
+
+; **************** Rainbow from Y Position to the end Y line of the current screen
+Rain2:
+    neg.w      d1                      ; d1 (negative) = 0-d1 (positive) = current Screen
+    bsr        Rain                    ; Call Rain
+    bsr        EcCopBa                 ; Call EcCopBa (bottom of screen (closure))
+    tst.w      d4                      ; d4 = 0 ?
+    bne.s      Rain1b                  ; d4 <> 0 -> Rainbows remaining -> Jump Rain1b
+    move.w     T_EcFond(a5),d3
+    cmp.w      d7,d0
+    bcc.s      Rain2a
+    move.l     a1,a0                   ; Search for the color
+Rain1z:
+    cmp.w      #$0180,-(a0)
+    bne.s      Rain1z
+    move.w     (a3)+,2(a0)
+Rain1c:
+    cmp.l      a6,a3
+    bcs.s      Rain2a
+    move.l     d6,a3
+Rain2a:
+    addq.w     #1,d0
+    bra        Rain1
+
+; **************** End of screens (no more rainbows if no screens are available)
+Rain3:
+    subq.l     #2,a2                   ; a2 = a2 -2
+    cmp.l      T_EcCop(a5),a2          ; is a2 = inital T_EcCop(a5) ?
+    bne.s      .Skip                   ; No -> Jump .Skip
+    move.w     T_EcYMax(a5),d0         ; d0 = Screen Y Max ( T_EcYMax(a5) )
+    subq.w     #1,d0                   ; d0 = Screen Y Max - 1
+    bsr        Rain                    ; Call Rain (push rain up to last screen line)
+    bsr        EcCopBa                 ; Call EcCopBa (Insert screen bottom closure)
+.Skip:
+    move.l     #$FFFFFFFE,(a1)+        ; Finish/Close copper list
+    bra        MCopSw                  ; Jump MCopSw ( Swap copper list and finish copper update job)
+
+
 ******* Fabrique le rainbow ---> Y=D1
-RainD1    move.w    d0,d2
-    sub.w    #EcYBase,d2
-    cmp.w    #256,d2            * Attente -> ligne -> D0
-    bcs.s    RainD2
-    tst.w    T_Cop255(a5)
-    bne.s    RainD2
-    move.w    #$FFE1,(a1)+
-    move.w    #$FFFE,(a1)+
-    addq.w    #1,T_Cop255(a5)
-RainD2    lsl.w    #8,d2    
-    or.w    #$03,d2
-    move.w    d2,(a1)+
-    move.w    #$FFFE,(a1)+
-    move.w    d5,(a1)+        * Change la couleur
-    move.w    (a3)+,(a1)+
-    cmp.l    a6,a3
-    bcs.s    RainD3
-    move.l    d6,a3
-RainD3    addq.w    #1,d0
+RainD1:
+    move.w     d0,d2
+    sub.w      #EcYBase,d2
+    cmp.w      #256,d2            * Attente -> ligne -> D0
+    bcs.s      RainD2
+    tst.w      T_Cop255(a5)
+    bne.s      RainD2
+    move.w     #$FFE1,(a1)+
+    move.w     #$FFFE,(a1)+
+    addq.w     #1,T_Cop255(a5)
+RainD2:
+    lsl.w      #8,d2    
+    or.w       #$03,d2
+    move.w     d2,(a1)+
+    move.w     #$FFFE,(a1)+
+    move.w     d5,(a1)+        * Change la couleur
+    move.w     (a3)+,(a1)+             ; RAINBOW COLOR : This line insert color between rainbows               <------------ HERE FOR RAINBOW COLORS
+    cmp.l      a6,a3
+    bcs.s      RainD3
+    move.l     d6,a3
+RainD3:
+    addq.w     #1,d0
 * Entree!
-Rain    cmp.w    d7,d0
-    bcc.s    RainNx
-RainD0    cmp.w    d1,d0
-    bcs.s    RainD1
-RainDX    move.w    d1,d0    
+
+
+
+Rain:
+    cmp.w      d7,d0                   ; If d0 < d7 ?
+    bcc.s      RainNX                  ; 
+RainD0:
+    cmp.w      d1,d0
+    bcs.s      RainD1
+RainDX:
+    move.w     d1,d0    
     rts
 ******* Trouve le rainbow comprenant D0
-RainNX    tst.l    d3
-    bmi.s    RainN0
-    tst.w    d3            * Si RIEN au dessus
-    bpl.s    Rain0a
-    move.w    #Color00,(a1)+        * Couleur 0 d'office!
-    move.w    T_EcFond(a5),(a1)+
-    bset    #31,d3
-    bra.s    RainN0
-Rain0a    move.w    d5,(a1)+
-    move.w    d3,(a1)+
-    bset    #31,d3
-RainN0    lea    T_RainTable(a5),a0    * Cherche le 1er
-    moveq    #NbRain-1,d2
-RainN1    cmp.w    (a0),d0
-    bcs.s    RainN2
-    cmp.w    RnFY(a0),d0
-    bcs.s    RainN5
-RainN2    lea    RainLong(a0),a0
-    dbra    d2,RainN1    
-    lea    T_RainTable(a5),a0    * Trouve le 1er plus bas
-    moveq    #0,d7
-    moveq    #NbRain-1,d2
-    move.w    d1,d6
-RainN3    cmp.w    RnFY(a0),d0
-    bcc.s    RainN4
-    cmp.w    (a0),d1
-    bcs.s    RainN4
-    cmp.w    (a0),d6
-    bcs.s    RainN4
-    move.w    (a0),d6
-    move.l    a0,d7
-RainN4    lea    RainLong(a0),a0
-    dbra    d2,RainN3
-    tst.l    d7
-    beq    RainDX
-    move.l    d7,a0
-    move.w    (a0),d0
-* Debut d'un RainBow
-RainN5    move.w    d0,d5
-    sub.w    (a0),d5
-    add.w    RnBase(a0),d5
-    lsl.w    #1,d5
-    move.l    RnBuf(a0),d6
-    move.l    d6,a3
-    move.l    a3,a6
-    add.w    RnLong(a0),a6
-    add.w    d5,a3
-    cmp.l    a6,a3
-    bcs.s    RainD7
-RainN6    sub.w    RnLong(a0),a3
-    cmp.l    a6,a3
-    bcc.s    RainN6
-RainD7    move.w    RnFY(a0),d7
+RainNX:
+    tst.l      d3
+    bmi.s      RainN0
+    tst.w      d3            * Si RIEN au dessus
+    bpl.s      Rain0a
+    move.w     #Color00,(a1)+          ; Modify Color 00
+    move.w     T_EcFond(a5),(a1)+      ; Using Screen Background color
+    bset       #31,d3
+    bra.s      RainN0
+
+; **********************************************************************************************
+Rain0a:
+    move.w     d5,(a1)+
+    move.w     d3,(a1)+                ; RAINBOW COLOR : This line insert color between rainbows               <------------ HERE FOR RAINBOW COLORS
+    bset       #31,d3
+RainN0:
+    lea        T_RainTable(a5),a0    * Cherche le 1er
+    moveq      #NbRain-1,d2
+RainN1:
+    cmp.w      (a0),d0
+    bcs.s      RainN2
+    cmp.w      RnFY(a0),d0
+    bcs.s      RainN5
+RainN2:
+    lea        RainLong(a0),a0
+    dbra       d2,RainN1    
+    lea        T_RainTable(a5),a0    * Trouve le 1er plus bas
+    moveq      #0,d7
+    moveq      #NbRain-1,d2
+    move.w     d1,d6
+RainN3:
+    cmp.w      RnFY(a0),d0
+    bcc.s      RainN4
+    cmp.w      (a0),d1
+    bcs.s      RainN4
+    cmp.w      (a0),d6
+    bcs.s      RainN4
+    move.w     (a0),d6
+    move.l     a0,d7
+RainN4:
+    lea        RainLong(a0),a0
+    dbra       d2,RainN3
+    tst.l      d7
+    beq        RainDX
+    move.l     d7,a0
+    move.w     (a0),d0
+* Debut d''un RainBow
+RainN5:
+    move.w     d0,d5
+    sub.w      (a0),d5
+    add.w      RnBase(a0),d5
+    lsl.w      #1,d5
+    move.l     RnBuf(a0),d6
+    move.l     d6,a3
+    move.l     a3,a6
+    add.w      RnLong(a0),a6
+    add.w      d5,a3
+    cmp.l      a6,a3
+    bcs.s      RainD7
+RainN6:
+    sub.w      RnLong(a0),a3
+    cmp.l      a6,a3
+    bcc.s      RainN6
+RainD7:
+    move.w     RnFY(a0),d7
 * Nouvelle couleur
-    move.w    d4,d2    
-    move.w    RnColor(a0),d4
-    move.w    d4,d5
-    lsl.w    #2,d4
-    lsl.w    #1,d5
-    add.w    #Color00,d5
+    move.w     d4,d2    
+    move.w     RnColor(a0),d4          ; d4 = Rainbow color register used
+    move.w     d4,d5                   ; d5 = d4 = Rainbow color register used
+    lsl.w      #2,d4                   ; d4 = Color Register * 4 (.l alignment)
+    lsl.w      #1,d5                   ; d5 = Color Register * 2 ($DFF180 .w alignment)
+    add.w      #Color00,d5             ; d5 = DFF1xx color register ( 000-031)
 * Reprend la couleur!
-    tst.w    d3
-    bmi.s    RainD9
-    cmp.w    d4,d2
-    beq.s    RainD9
-    move.l    (a4),a0
-    move.w    2(a0,d4.w),d3
-RainD9    bclr    #31,d3
-    bra    RainD0
+    tst.w      d3
+    bmi.s      RainD9
+    cmp.w      d4,d2
+    beq.s      RainD9
+    move.l     (a4),a0
+    move.w     2(a0,d4.w),d3
+RainD9:
+    bclr       #31,d3
+    bra        RainD0
 
 ;
 ; *****************************************************************************************************************************
@@ -641,7 +687,7 @@ EcCopHo:
     beq.s    MkC4a
     lsl.w    #1,d1
 MkC4a    
-* Attend jusqu'a la ligne D0
+* Attend jusqu''a la ligne D0
     move.w    d0,d2
     sub.w    #EcYBase,d2
     bsr    WaitD2
@@ -1082,10 +1128,6 @@ MkdC3:    lsl.w    #4,d7
     ENDC
 
 
-
-
-
-
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
@@ -1098,13 +1140,14 @@ MkdC3:    lsl.w    #4,d7
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
-EcCopBa    move.w    d0,d2
-    sub.w    #EcYBase,d2
-    bsr    WaitD2
-    move.w    #DmaCon,(a1)+
-    move.w    #$0100,(a1)+
-    move.w    #Color00,(a1)+
-    move.w    T_EcFond(a5),(a1)+
+EcCopBa:
+    move.w     d0,d2
+    sub.w      #EcYBase,d2
+    bsr        WaitD2
+    move.w     #DmaCon,(a1)+
+    move.w     #$0100,(a1)+
+    move.w     #Color00,(a1)+
+    move.w     T_EcFond(a5),(a1)+
     rts
 
 ;

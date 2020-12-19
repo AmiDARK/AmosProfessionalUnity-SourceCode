@@ -156,7 +156,7 @@ RnFY    rs.w  1
 RnTY    rs.w  1
 RnBase  rs.w  1
 RnColor rs.w  1
-RnLong  rs.w  1
+RnLong  rs.l  1
 RnBuf   rs.l  1
 RnAct   rs.w  1
 RnX     rs.w  1

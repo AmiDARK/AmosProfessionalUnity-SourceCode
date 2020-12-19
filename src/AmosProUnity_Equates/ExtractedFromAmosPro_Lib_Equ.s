@@ -39,7 +39,8 @@ A_BnkReserve           equ  34
 A_BnkGetAdr            equ  35
 A_ResBank              equ  36
 A_InSPack6             equ  37
-
+A_InRain               equ  38
+A_FnRain               equ  39
 
 ; ************************************************************
 ; Function to use to call the methods.
