@@ -1,5 +1,46 @@
+; **************************************************************
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
+
+TO DO AFTER :
+- Create a compilation process that allow to load .ASCII, tokenise them (test) and then compiles them to .exe (like compiler) to make .ASCII being compilable from commons IDE.
+
+; ************************************************************************
+; 2021.01.31
+- Moved AmosProUnityECS.library/colorSupport_Init inside AmosProUnitySupport.lib setup
+- Moved AmosProUnityECS.library/colorSupport_Functions list inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/SeparateRGBComponents inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/InputIsRGB12 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/InputIsR5G5B5 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/InputIsRGB24 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/MergeRGBComponents inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/OutputIsRGB12 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/OutputIsR5G5B5 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/OutputIsRGB24 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/ForceToRGB24 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/F24_InputIsRGB12 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/F24_InputIsR5G5B5 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/F24_InputIsRGB24 inside AmosProUnitySupport.lib
+- Moved AmosProUnityECS.library/convertRGB15toRGB24 inside AmosProUnitySupport.lib
+- Moved all methods to handle color conversion from AmosProUnityECS.library to AmosProUnitySupport.lib to avoid duplicate in others AmosProUnityXXX.library
+
+; ************************************************************************
+; 2021.01.18
+- Updated AmosProUnityXXX.library internal structures to handle new UnitySupport.lib (replacement for previous AgaSupport.lib)
+
+
+; ************************************************************************
+; 2021.01.16
+- Renamed Create Aga Palette Index -> Unity Create Palette Index
+- Renamed Delete Aga Palette Index -> Unity Delete Palette Index
+- Renamed =Aga Palette Exist(Index) -> =Unity Palette Exist(Index)
+- Renamed Load Aga Palette IlbmPaletteFileName, Index -> Unity Load Palette IlbmPaletteFileName, Index
+- Renamed Save Aga Palette IlbmPalketteFileName, Index -> Unity Save Palette IlbmPalettEfileName, Index
+- Renamed Set Aga Palette Index -> Unity Set Palette Index
+- Renamed Get Aga Palette Index -> Unity Get Palette Index
+- Renamed Aga Step Fade Step  -> Unity Step Fade Step
+- Renamed Aga Fade FadeDelay -> Unity Fade FadeDelay
+- Renamed Fade To Aga Palette Index, Step -> Unity Fade To Palette Index, Step
 
 ; ************************************************************************
 ; 2020.12.19

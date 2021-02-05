@@ -7,7 +7,7 @@
 ;  **  ** **   ** ** ** *  **  **  ** **  ** *  ** ** **  **
 ;  **  ** **   **  ***   ***   *****  **  **  ***  **  ****
 ;---------------------------------------------------------------------
-; Additional commands for ECS/OCS/AGA & SAGA support
+; Additional commands for AGA support
 ; By Frédéric Cordier
 ; AMOS, AMOSPro, AMOS Compiler (c) Europress Software 1990-1992
 ; To be used with AMOSPro V2.0 and over
@@ -28,7 +28,7 @@ ExtNb    equ    7-1         ; Extension number #7
     include    "src/AMOS_Includes.s"
 
 ; +++ This one is only for the current version number.
-    Include    "src/AmosProUnity_Version.s"
+    Include    "src/AmosProAGA_Version.s"
 
 ; *** 2020.09.17 This one for ILBM/IFF CMAP files created by F.C
     Include    "iffIlbm_Equ.s"
@@ -178,32 +178,30 @@ C_Tk:
 
 ; Now the real tokens...
 ; **************** Color palette support
-    dc.w    L_createPalette,L_Nul
-    dc.b    "!unity create palett","e"+$80,"I0",-2
-    dc.w    L_createPaletteCNT,L_Nul
-    dc.b    $80,"I0,0",-1
-    dc.w    L_deletePalette,L_Nul
+    dc.w    L_createAGAPalette,L_Nul
+    dc.b    "unity create palett","e"+$80,"I0",-1
+    dc.w    L_deleteAGAPalette,L_Nul
     dc.b    "unity delete palett","e"+$80,"I0",-1
-    dc.w    L_Nul,L_getPeletteExists
+    dc.w    L_Nul,L_getAgaPeletteExists
     dc.b    "unity palette exis","t"+$80,"00",-1
-    dc.w    L_loadPalette,L_Nul
+    dc.w    L_loadAgaPalette,L_Nul
     dc.b    "unity load palett","e"+$80,"I2,0",-1
-    dc.w    L_savePalette,L_Nul
+    dc.w    L_saveAgaPalette,L_Nul
     dc.b    "unity save palett","e"+$80,"I2,0",-1
-    dc.w    L_setPalette,L_Nul
+    dc.w    L_setAgaPalette,L_Nul
     dc.b    "unity set palett","e"+$80,"I0",-1
-    dc.w    L_getPalette,L_Nul
+    dc.w    L_getAgaPalette,L_Nul
     dc.b    "unity get palett","e"+$80,"I0",-1
-    dc.w    L_copyScreenToPal1,L_Nul
-    dc.b    "!unity get colors from scree","n"+$80,"I0,0,0t0,0",-2
-    dc.w    L_copyScreenToPal2,L_Nul
+    dc.w    L_copyScreenToAgaPal1,L_Nul
+    dc.b    "!unity get colors from scree","n"+$80,"I0,0,0t0,0",-1
+    dc.w    L_copyScreenToAgaPal2,L_Nul
     dc.b    $80,"I0,0,0t0",-1
 ; **************** AGA Color Palette fading effects
-    dc.w    L_fadestep,L_Nul
+    dc.w    L_fadeAGAstep,L_Nul
     dc.b    "unity step fad","e"+$80,"I0",-1
-    dc.w    L_fade,L_Nul
+    dc.w    L_fadeAGA,L_Nul
     dc.b    "unity fad","e"+$80,"I0",-1
-    dc.w    L_fadetoPalette,L_Nul
+    dc.w    L_fadeAGAtoPalette,L_Nul
     dc.b    "unity fade to palett", "e"+$80,"I0,0",-1
 ; **************** Basic methods
     dc.w    L_Nul,L_isAgaDetected
@@ -542,7 +540,7 @@ C_Lib
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
-    Lib_Def    UnitySupport_Cold
+    Lib_Def    AgaSupport_Cold
     cmp.l    #"APex",d1    Version 1.10 or over?
     bne.s    BadVer
 
@@ -565,17 +563,18 @@ C_Lib
     move.l     a0,ExtAdr+ExtNb*16+12(a5)
 ; You are not obliged to store something in the above areas, you can leave
 ; them to zero if no routine is to be called...
+    lea        agaVectors(pc),a0
+    move.l     a0,T_AgaVect(a5)
 
-    movem.l    a0,-(sp)
-    lea        colorSupport_Functions(pc),a0
-    move.l     a0,T_ColorSupport(a5)
-    movem.l    (sp)+,a0
-    moveq      #0,d0
-    rts
+; ************* 2020.10.11 Enable the Screen Replacement Methods for AGA
+    lea        screensVectors(pc),a0
+    move.l     a0,T_ScrnRepVct(a5)
 
-
-    lea        UnityVectors(pc),a0
-    move.l     a0,T_UnityVct(a5)
+; **************** 2020.10.11 Patch the Copper List sytem to use AGA Colors for registers 032-255 - Start
+    Rbsr       L_DetectAGAChipset      ; 2020.10.11 Will makes AGA Chipset Detection being done here.
+    EcCall     CopperRelease           ; 2020.10.11 Force the Release of the Copper List
+    EcCall     CopperCreate            ; 2020.10.11 Force A New creation of the Copper List
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
 
 ; As you can see, you MUST preserve A3-A6, and return in D0 the 
 ; Number of the extension if everything went allright. If an error has
@@ -618,7 +617,7 @@ BadVer:
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
-UnitySupportDef:
+AgaSupportDef:
     Dload a3
     ; Put your setup needs here
     rts
@@ -637,7 +636,7 @@ UnitySupportDef:
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
-UnitySupportEnd:
+AgaSupportEnd:
     Dload    a3
     ; Put your close needs here
 
@@ -731,15 +730,65 @@ agaCopper:     dc.w    0
 ; *                                                           *
 ; *************************************************************
 ;
-colorSupport_Functions;
-    ; **************** Amos Professional Unity System : New Color format convertion system****************
-    Rbra       L_SeparateRGBComponents
-    Rbra       L_MergeRGBComponents
-    Rbra       L_ForceToRGB24
-    dc.l       0
-UnityVectors:
-    ; **************** Amos Professional Unity System : New Color palette support, fading, etc. ****************
-    dc.l       0
+
+screensVectors:
+    ; **************** Amos Professional Copper List System ****************
+    Rbra       L_RestartWithAGACopperList      ;  0 Amos.library "CpInit" replacement.
+    Rbra       L_InsertSpritesInCopperList     ;  1 Amos.library "HsCop" replacement.
+    Rbra       L_InsertScreenInCopper          ;  2 Amos.library "EcCopHo" replacement.
+    Rbra       L_ForceFullCopperRefresh        ;  3 Amos.library "EcForceCop" replacement.
+    Rbra       L_CopperRefresh                 ;  4 Amos.Library "EcCopper" replacement.
+    Rbra       L_EndOfScreenCopper             ;  5 Amos.library "EcCopBa" replacement.
+    Rbra       L_CopperOnOff                   ;  6 Amos.library "TCopOn" replacement.
+    Rbra       L_CopperSwap                    ;  7 Amos.library "TCopSw" replacement
+    Rbra       L_CopperSwapInternal            ;  8 Amos.library "TCpSw" replacement
+    Rbra       L_NullFct                       ;  9
+    Rbra       L_NullFct                       ; 10
+    Rbra       L_NullFct                       ; 11
+    Rbra       L_NullFct                       ; 12
+    Rbra       L_NullFct                       ; 13
+    Rbra       L_NullFct                       ; 14
+    Rbra       L_NullFct                       ; 15
+    Rbra       L_NullFct                       ; 16
+    Rbra       L_NullFct                       ; 17
+    Rbra       L_NullFct                       ; 18
+    Rbra       L_NullFct                       ; 19
+    ; **************** Amos Professional Screens System ****************
+    Rbra       L_ScreenOpen                    ; 20 Amos.library "EcCree" replacement.
+    Rbra       L_NullFct                       ; 21 Amos.library "EcDel" replacement.
+    Rbra       L_NullFct                       ; 22 Amos.library "EcDual" replacement.
+    Rbra       L_SetColourRGB12                ; 23 Amos.library "EcSCol" replacement.
+    Rbra       L_NullFct                       ; 24
+    Rbra       L_NullFct                       ; 25
+    Rbra       L_NullFct                       ; 26
+    Rbra       L_NullFct                       ; 27
+    Rbra       L_NullFct                       ; 28
+    Rbra       L_NullFct                       ; 29
+    Rbra       L_NullFct                       ; 31
+    Rbra       L_NullFct                       ; 32
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Area Name : agaVectors                                    *
+; *-----------------------------------------------------------*
+; * Description : This area contains the list of methods that *
+; * can be called directly by any other Amos Professional lib *
+; * or directly by the AmosProAGA.library itself.             *
+; *                                                           *
+; *************************************************************
+agaVectors:
+    Rbra       L_AGAfade1                  ; Fade to Black
+    Rbra       L_AGAfade2                  ; Fade to specific color palette
+    Rbra       L_SHam8BPLS                 ; Method to change bitplanes order in HAM8 mode to keep Amos professional graphics drawing working.
+    Rbra       L_SPalAGA_ScreenA4          ; previously called EcSPalAGAa4
+    Rbra       L_SPalAGA_CurrentScreen     ; previously called EcSPalAGA
+    Rbra       L_SPalAGA_ScreenA0          ; previously called EcForceFullAGAPalette_ScreenA0
+    Rbra       L_SColAga24Bits             ; previously called EcSColAga24Bits
+    Rbra       L_UpdateAGAColorsInCopper   ; Push the Global AGA Color palette stored to the copper list.
+    Rbra       L_getAGAPaletteColourRGB12  ; Used by AmosProAGA.library/SetColour to get RGB12 High bits for colors 032-255
+    Rbra       L_UpdateAGAColorsInCopper   ; Insert AGA Color palette inside
+    Rbra       L_InsertSpritesInCopperList ; Insert Sprites in Copper List
 
 ; Now follow all the music routines. Some are just routines called by others,
 ; some are instructions. 
@@ -837,443 +886,635 @@ UnityVectors:
 ; *************************************************************
     Lib_Empty
 
-;                                                                                                                      ************************
-;                                                                                                                                        ***
-;                                                                                                                                     ***
-; *********************************************************************************************************************************************
-;                                                                                           *                                                 *
-;                                                                                           * AREA NAME : *** Color format conversion methods *
-;                                                                                           *                                                 *
-;                                                                                           ***************************************************
-;                                                                                                 ***
-;                                                                                              ***
-;                                                                                           ************************
-
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_SeparateRGBComponents                     *
+; * Method Name : L_DetectAGAChipset                          *
 ; *-----------------------------------------------------------*
-; * Description : This method can receive RGB12, RGB15 or     *
-; *               RGB24 value and separate components to      *
-; *               Deviver 2x RGB12 color components           *
+; * Description : This method will detect if AGA chipset is   *
+; *               available or not. It set T_isAga(a5) data to*
+; *               fit the detected result.                    *
 ; *                                                           *
-; * Parameters :  T_rgbInput(a5) = Color Value using RGB12,   *
-; *               RGB15 or RGB24 color format                 *
+; * Parameters : -                                            *
 ; *                                                           *
-; * Return Value : T_rgb12Low(a5) = RGB12 low bits color      *
-; *                T_rgb12High(a5) = RGB12 high bits color    *
-; *                                                           *
+; * Return Value : -                                          *
 ; *************************************************************
-  Lib_Def      SeparateRGBComponents
-; ************************************ Separate RGB12, RGB15 and RGB24 color data into 2 RGB12 outputs.
-    movem.l    d0-d1/a0,-(sp)
-    move.b     T_rgbInput(a5),d0
-    and.l      #$0F,d0                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
-    lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
-    lea        inputFormats(pc),a0
-    adda.l     d0,a0                   ; a0 = Pointer to the method to callable
-    jsr        (a0)                    ; Call the input method
-    movem.l    (sp)+,d0-d1/a0
+    Lib_Def    DetectAGAChipset
+DetectAGAChipset:
+    movem.l    a0/d1-d3,-(sp)              ; 2020.08.10 Save registers before doing AGA Checking : Fix the AMOS Switcher AMOS/WB
+    moveq     #30,d3             ; Loop amoun()
+    lea     $dff07c,a0         ; lea the register to check content
+    move.w     (a0),d1         ; D1 = read register
+    and.w     #$FF,d1         ; D1 = filtered
+dcLoop:
+    move.w     (a0),d2         ; D2 = Read Register
+    and.w     #$FF,d2         ; D2 = filtered
+    cmp.b     d1,d2             ; Compare D1 read & D2 Read
+    bne.s     cEcs             ; Not equal -> Bus Garbage -> ECS
+    dbra     d3,dcLoop         ; Loop until d3 = -1
+    or.b     #$F0,d1         ; D1 & $F0
+    cmp.b     #$F8,d1         ; if D1 =$F8 -> AGA
+    bne.s     cEcs             ; Else -> ECS
+    move.w     #1,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3
     rts
-; ************************************ RGB Input format supported
-inputFormats:
-    Rbra       L_InputIsRGB12          ; 12 Bits (R4,G4,B4)
-    Rbra       L_InputIsRGB24          ; 24 bits (R8,G8,B8)
-    Rbra       L_InputIsR5G5B5         ; 15 bits (R5,G5,B5)
-
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : L_InputIsRGB12                              *
-; *-----------------------------------------------------------*
-; * Description : Internal method to handle RGB12 color format*
-; *               as input for RGB12H/RGB12L components sepa- *
-; *               -ration. In this case input is simply copied*
-; *               directly in the two output buffers          *
-; *                                                           *
-; * Parameters :  T_rgbInput(a5) = Color Value using RGB12    *
-; *               color format                                *
-; *                                                           *
-; * Return Value : T_rgb12High(a5) = High bits for RGB12 color*
-; *                value output                               *
-; *                T_rgb12Low(a5) = Low bits for RGB12 color  *
-; *                value output                               *
-; *                                                           *
-; *************************************************************
-; ************************************ Read R4G4B4 and push it into 2 R4G4B4 registers for High/Low bits
-  Lib_Def       InputIsRGB12
-    move.l      T_rgbInput(a5),d0       ; Load the RGB input data
-    move.w      d0,T_rgb12High(a5)      ; On RGB12 input, Low and High bits are the same
-    move.w      d0,T_rgb12Low(a5)       ; On RGB12 input, Low and High bits are the same
+cEcs:
+    move.w     #0,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3              ; 2020.08.10 Restore registers after AGA Checking completed : Fix the AMOS Switcher AMOS/WB
     rts
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_InputIsR5G5B5                             *
+; * Method Name : AGAfade1                                    *
 ; *-----------------------------------------------------------*
-; * Description : Internal method to handle R5G5B5 color for- *
-; *               -mat as input for RGB12H/RGB12L components  *
-; *               separation                                  *
+; * Description : This method is called by the Amos Professio-*
+; * =nal VBL Interrupt AmosProAGA.library/FadeI method to do a*
+; * simple Fade to black on the whole 256 colors available    *
 ; *                                                           *
-; * Parameters :  T_rgbInput(a5) = Color Value using R5G5B5   *
-; *               color format                                *
+; * Parameters : -                                            *
 ; *                                                           *
-; * Return Value : T_rgbOutput(a5) = Color Value using RGB24  *
-; *                color format                               *
-; *                T_rgbInput(a5) = Color Value using RGB24   *
-; *                color format                               *
-; *                                                           *
+; * Return Value : -                                          *
 ; *************************************************************
-  Lib_Def      InputIsR5G5B5
-; ************************************ Read R5G5B5 and push it into 2 R4G4B4 registers for High/Low bits
-    Rbsr       L_convertRGB15toRGB24
-    ; ******** Update the input with the new R8G8B8 version of the color to use RGB24 components separation methods
-    move.l      T_rgbOutput(a5),T_rgbInput(a5) ; Update input with new version in R8G8B8.
-    ; ******** Continue with RGB24 -> RGB12H + RGB12L conversion
-    Rbra       L_InputIsRGB24
+    Lib_Def    AGAfade1
+AGAfade1:
+    movem.l    d0-d7/a0-a2,-(sp)       ; Save Regsxm
+    lea        T_FadeCol(a5),a0        ; A0 = List of colors to update
+    move.l     T_FadePal(a5),a1        ; A1 = Screen Palette (used to update color palette) = EcPal(T_FadeScreen(a5))
+    move.w     T_FadeNb(a5),d0         ; D0 = Amount of colors in the list.
+    move.w     T_FadeStep(a5),d2       ; D2 = Step to fade color
+    moveq      #0,d1                   ; D1 = Counter for colour amount that will be updated during this pass.
+fadeMainLoop:
+; ***** Check if the current color reach the fade or must be updated
+    tst.b      (a0)+
+    bne.s      updateColor             ; If (a0).b =/= 0 then updateColor
+; ******** (a0) = 0 mean this color reached the limit of fading, no update, next color please.
+    add.l      #3,a0                   ; Next Color
+    add.w      #2,a1                   ; Jump this color register in EcPal RGB12H & EcPalL RGB12L screen color palette 
+    bra.s      nextColor               ; Jump -> nextColor
+updateColor:
+    moveq      #2,d7                   ; Counter to handle R,G then B and go to next color
+    clr.l      d5                      ; D5 will store RGB12 High bits
+    clr.l      d6                      ; D6 will store RGB12 Low bits
+; ******** Handle R8 Color component in D3, Save : D3 = ....Rh.. and D4 = ....Rl..
+rgbFadeLoop:
+    moveq      #0,d3
+    move.b     (a0)+,d3                ; D3 = R8/G8 or B8 Color Component
+    and.l      #$FF,d3
+    tst.b      d3
+    beq.s      continueFadeAGA         ; if Color component = 0, we do not increase counter
+    addq       #1,d1                   ; Increase updated colours counter
+    sub.w      d2,d3                   ; D3 = D3 + D2 = Fade de la couleur vers le noir ou le blanc ********************************
+    bpl.s      continueFadeAGA         ; If D3 > -1 -> Jump continueFadeAGA
+    moveq      #0,d3
+continueFadeAGA:
+    move.b     d3,-1(a0)               ; Save the new color value in the Fade color list
+    move.l     d3,d4                   ; D3 = D4 = R8
+    lsr.w      #4,d3                   ; D3 = ......Rh or ......Gh or ......Bh
+    and.w      #$F,d4                  ; D4 = ......Rl or ......Gl or ......Bl
+    and.w      #$F,d3
+; ******** Shift D6 & D7 by 4 bytes to insert the R4,GB or B4 component
+    lsl.w      #4,d5                   ; D5 = ???????? = ??????..
+    lsl.w      #4,d6                   ; D6 = ???????? = ??????..
+    or.w       d3,d5                   ; D5 = ??????Ch = Store the current High bits component inserted after the previous one
+    or.w       d4,d6                   ; D6 = ??????Cl = sdtore the current low bit component inserted after the previous one
+    dbra d7,rgbFadeLoop                ; Decrease D7 and continue color extraction.
+; ******** Now, we update the screen color palette
+    move.w     d6,EcPalL-EcPal(a1)     ; Save RGB12L to EcPalL color palette
+    move.w     d5,(a1)+                ; Save RGB12H to EcPal color palette
+; Now we continue the loop or finish it.
+nextColor:
+    tst.w      (a0)
+    bmi        listOver
+    dbra       d0,fadeMainLoop
+; Now that the full color palette was updated, we finish the job
+listOver:
+    add.w      #2,d1
+    divu       #3,d1
+    move.w     d1,T_FadeFlag(a5)       ; Update Fade Flag with current amount of colours that were updated
+; ******** Now we will push the colors register 032-255 from Screen to T_globAgaPal
+    move.l     T_FadeScreen(a5),a0
+    lea        EcScreenAGAPal(a0),a1   ; A1 = Color 32 High bits
+    lea        T_globAgaPal(a5),a2     ; A2 = Color 32 High Bits Global Aga Palette
+    move.l     #223,d0                 ; 224 Colors to copy in the T_globAgaPal(L)
+llp1:
+    move.w     EcScreenAGAPalL-EcScreenAGAPal(a1),T_globAgaPalL-T_globAgaPal(a2) ; Copy 1 color register from Screen AGA Palette to Global Aga Palette
+    move.w     (a1)+,(a2)+         ; Copy 1 color register from Screen AGA Palette to Global Aga Palette
+    dbra       d0,llp1         
+;  2020.09.29 The screen color palette update is called directly inside the AmosProAGA.library.
+; Leave clean
+    movem.l    (sp)+,d0-d7/a0-a2       ; LoadRegs.
+    rts
+; ************************************* 2020.09.16 New method to handle AGA color palette fading system - End
+
+;
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : AGAfade2                                    *
+; *-----------------------------------------------------------*
+; * Description : This method is called by the Amos Professio-*
+; * =nal VBL Interrupt AmosProAGA.library/FadeI method to do a*
+; * simple Fade to existing AGA Color Palette on the whole 256*
+; * colors available                                          *
+; *                                                           *
+; * Parameters : -                                            *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+; ************************************* 2020.09.29 New method to fade from current color used to a chosen AGA Color palette - Start
+    Lib_Def    AGAfade2
+AGAfade2: 
+    movem.l    d0-d7/a0-a2,-(sp)       ; Save Regsxm
+    lea        T_FadeCol(a5),a0        ; A0 = List of colors to update
+    move.l     T_FadePal(a5),a1        ; A1 = Screen Palette (used to update color palette) = EcPal(T_FadeScreen(a5))
+    move.w     T_FadeNb(a5),d0         ; D0 = Amount of colors in the list.
+    move.w     T_FadeStep(a5),d2       ; D2 = Step to fade color
+    and.l      #$FF,d2
+    move.l     T_NewPalette(a5),a2     ; A2 = New CMAP Color Palette
+    moveq      #0,d1
+fadeMainLoop2:
+    add.l      #1,a0
+    moveq      #2,d7                   ; Counter to handle R,G then B and go to next color
+    clr.l      d5                      ; D5 will store RGB12 High bits
+    clr.l      d6                      ; D6 will store RGB12 Low bits
+; ******** Handle R8 Color component in D3, Save : D3 = ....Rh.. and D4 = ....Rl..
+rgbFadeLoop2:
+    moveq      #0,d3
+    moveq      #0,d4
+    move.b     (a0)+,d3                ; D3 = R8/G8 or B8 Color Component
+    move.b     (a2)+,d4                ; D1 = R8/G8 or B8 Color component for color to reach
+    and.l      #$FF,d3
+    and.l      #$FF,d4
+    cmp.w      d4,d3                   ; is D3 = R8/G8 or B8 Color Component ? 
+    beq.s      noUpdate                ; Yes -> noUpdate
+    bgt.s      lower                   ; D3 > D4 -> Decrease d3 JUMP lower
+upper:                                 ; D3 < D4 -> Increase d3 Next Line
+    add.w      d2,d3                   ; Increase D3
+    cmp.w      d4,d3                   ; is D3 > D4 ?
+    bgt.s      forceEqual              ; Yes Force D3 = D4 -> JUMP forceEqual
+    bra.s      updtColor
+lower:
+    sub.w      d2,d3                   ; Decrease D3
+    cmp.w      d4,d3                   ; is D3 < D4 ?
+    bge.s      updtColor               ; NO -> JUMP update Color
+                                       ; Yes Force D3 = D4 -> Next Line
+forceEqual:
+    move.w     d4,d3
+updtColor:
+    move.b     d3,-1(a0)               ; Update the color in the Fade color list
+    addq       #1,d1
+noUpdate:
+    move.l     d3,d4                   ; D3 = D4 = R8
+    lsr.w      #4,d3                   ; D3 = ......Rh or ......Gh or ......Bh
+    and.w      #$F,d4                  ; D4 = ......Rl or ......Gl or ......Bl
+    and.w      #$F,d3
+; ******** Shift D6 & D7 by 4 bytes to insert the R4,GB or B4 component
+    lsl.w      #4,d5                   ; D5 = ???????? = ??????..
+    lsl.w      #4,d6                   ; D6 = ???????? = ??????..
+    or.w       d3,d5                   ; D5 = ??????Ch = Store the current High bits component inserted after the previous one
+    or.w       d4,d6                   ; D6 = ??????Cl = sdtore the current low bit component inserted after the previous one
+    dbra       d7,rgbFadeLoop2         ; Decrease D7 and continue color extraction.
+; ******** Now, we update the screen color palette
+    move.w     d6,EcPalL-EcPal(a1)     ; Save RGB12L to EcPalL color palette
+    move.w     d5,(a1)+                ; Save RGB12H to EcPal color palette
+; Now we continue the loop or finish it.
+    tst.w      (a0)
+    bmi        listOver2
+    dbra       d0,fadeMainLoop2
+; Now that the full color palette was updated, we finish the job
+listOver2:
+    add.w      #2,d1
+    divu       #3,d1
+    move.w     d1,T_FadeFlag(a5)       ; Update Fade Flag with current amount of colours that were updated
+; ******** Now we will push the colors register 032-255 from Screen to T_globAgaPal
+    move.l     T_FadeScreen(a5),a0
+    lea        EcScreenAGAPal(a0),a1   ; A1 = Color 32 High bits
+    lea        T_globAgaPal(a5),a2     ; A2 = Color 32 High Bits Global Aga Palette
+    move.l     #223,d0                 ; 224 Colors to copy in the T_globAgaPal(L)
+llp1b:
+    move.w     EcScreenAGAPalL-EcScreenAGAPal(a1),T_globAgaPalL-T_globAgaPal(a2) ; Copy 1 color register from Screen AGA Palette to Global Aga Palette
+    move.w     (a1)+,(a2)+         ; Copy 1 color register from Screen AGA Palette to Global Aga Palette
+    dbra       d0,llp1b
+;    2020.09.29 The screen color palette update is called directly inside the AmosProAGA.library.
+; Leave clean
+    movem.l    (sp)+,d0-d7/a0-a2       ; LoadRegs.
+    rts
+; ************************************* 2020.09.29 New method to fade from current color used to a chosen AGA Color palette - End
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_InputIsRGB24                              *
+; * Method Name : EcSHam8BPLS                                 *
 ; *-----------------------------------------------------------*
-; * Description : Internal method to handle RGB24 color format*
-; *               as input for RGB12H/RGB12L components sepa- *
-; *               -ration                                     *
+; * Description : It is a trick that only modify the way gra- *
+; *        phics are drawn. As Ham8 uses lower bitplanes bits *
+; *        (bpls0-1) to control color shifting instead of hig-*
+; *        -her bitlanes bits in ham 6 (Bpls4-5). I had to    *
+; *        find a way to makes AMOS being able to draw on bit-*
+; *        -map 2 to 7 instead of 0 to 5 when HAM8 mode is    *
+; *        enabled. To do this, I simply roll bm_Planes by 2  *
+; *        bitplanes regarding to EcCurrent content. It will  *
+; *        makes bitplanes order 0-1-2-3-4-5-6-7 be changed to*
+; *        2-3-4-5-6-7-0-1. With this, graphics operations on *
+; *        colors 00-63 will be done on bitplanes 2 to 7 ins- *
+; *        -tead of 0 & 1. and bitplanes 0&1 remain the cont- *
+; *        -rol ones
 ; *                                                           *
-; * Parameters :  T_rgbInput(a5) = Color Value using RGB24    *
-; *               color format                                *
+; * Parameters : T_cScreen(a5)                                *
+; *              Ham8Mode(T_cScreen(a5)) must be set to 1     *
 ; *                                                           *
-; * Return Value : T_rgb12High(a5) = High bits for RGB12 color*
-; *                value output                               *
-; *                T_rgb12Low(a5) = Low bits for RGB12 color  *
-; *                value output                               *
-; *                                                           *
+; * Return Value :            *
 ; *************************************************************
-  Lib_Def      InputIsRGB24
-; ******** Calculate high bits of the RGB24 color palette
-    move.l     T_rgbInput(a5),d1
-    and.l      #$F0F0F0,d1             ; d2 = ..R.G.B.
-    moveq      #0,d0                   ; d0 = 0
-    lsr.l      #4,d1                   ; d2 = ...R.G.B
-    move.b     d2,d0                   ; d0 = .......B
-    lsr.l      #4,d1                   ; d2 = ....R.G.
-    or.b       d2,d0                   ; d0 = ......GB
-    lsr.l      #4,d1                   ; d2 = .....R.G
-    and.l      #$F00,d1                ; d2 = .....R..
-    or.w       d0,d1                   ; d2 = .....RGB
-    move.w     d1,T_rgb12High(a5)      ; Save RGB12 high bits
-; ******** Calculate low bits of the RGB24 color palette
-    moveq      #0,d0                   ; d0 = 0
-    and.l      #$0F0F0F,d1             ; d1 = ...R.G.B
-    move.b     d1,d0                   ; d0 = .......B
-    lsr.l      #4,d1                   ; d1 = ....R.G.
-    or.b       d1,d0                   ; d0 = ......GB
-    lsr.l      #4,d1                   ; d1 = .....R.G
-    and.l      #$F00,d1                ; d1 = .....R..
-    or.w       d0,d1                   ; d1 = .....RGB
-    move.w     d1,T_rgb12Low(a5)       ; Save RGB12 high bits
+; ************************************* 2020.07.31 Update to Add HAM8 support - START
+    Lib_Def    SHam8BPLS
+SHam8BPLS:
+    movem.l    d3-d4/a0-a4,-(sp)       ; Save registers
+    move.l     T_cScreen(a5),a4        ; Load current screen from T_cScreen(a5)
+    tst.w      Ham8Mode(a4)            ; Load HAM8 mode flag stored in the screen datas structure
+    beq.s      noCopy                  ; YES -> Jump to noCopy
+    lea        EcPhysic(a4),a0         ; A4 = 1st physical bitplane in the list
+    lea        EcCurrent(a4),a1        ; A1 = Screen Currently used bitplanes.
+    move.l     Ec_BitMap(a4),a3        ; A3 = Screen Bitmap Structure pointer
+    lea        bm_Planes(a3),a3        ; A3 = 1st bitplane pointer in the BitMap Structure
+    Moveq      #8,d3                   ; Source start at BPL2 ( The objective is to make Bitplanes 0 and 1 become 6 and 7 to makes AMOS Being able to draw graphics with correct colors)
+    Moveq      #0,d4                   ; Target start at BPL0 ( Because HAM6 used bitplanes 4 a 5 for controls datas and HAM8 used bitplanes 0 and 1 for this)
+cpyBPL2:
+    Move.l     (a0,d3.w),(a1,d4.w)     ; Copy BPL shifting/Rolling 2 BPLs to the left of the list *UPDATE EcCurrent(a4) bitplanes*
+    Move.l     (a0,d3.w),(a3,d4.w)     ; Copy BPL shifting/Rolling 2 BPLs to the left of the list *UPDATE Ec_BitMap(a4).bm_Planes bitplanes*
+    add.w      #4,d3                   ; Next Source BPLx
+    and.w      #31,d3                  ; Makes > 31 become value in range 00-31
+    Add.w      #4,d4                   ; Next Target BPLx
+    cmp.w      #32,d4                  ; Ensure D4 will be from 00-28 to go to BPL0 with BPL7 is done
+    blt.s      cpyBPL2
+noCopy:
+    movem.l    (sp)+,d3-d4/a0-a4       ; Restore register before leaving this method
     rts
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : L_MergeRGBComponents                        *
-; *-----------------------------------------------------------*
-; * Description : This method merge RGB12H/RGB12L color value *
-; *               data to create a color value output using   *
-; *               one of the following supported color format:*
-; *               RGB12, RGB15 or RGB24                       *
-; *                                                           *
-; * Parameters :  T_rgb12High(a5) = High bits for source RGB24*
-; *               color value to output                       *
-; *               T_rgb12Low(a5) = Low bits for source RGB24  *
-; *               color value to output                       *
-; *               T_rgbOutput(a5).b (bits 24-31) to specify   *
-; *               which output format will be used            *
-; *                                                           *
-; * Return Value : T_rgbOutput(a5) = Color value using the    *
-; *                requested color output format              *
-; *                                                           *
-; *************************************************************
-  Lib_Def      MergeRGBComponents
-; ************************************ Merge rgb12High and rgb12Low to create a new output format
-    movem.l    d0-d1/a0,-(sp)
-    move.b     T_rgbOutput(a5),d0
-    and.l      #$0F,d0
-    lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
-    lea        outputFormats(pc),a0
-    adda.l     d0,a0                   ; a0 = Pointer to the method to callable
-    jsr        (a0)                    ; Call the input method
-    movem.l    (sp)+,d0-d1/a0
-    rts
-; ************************************ RGB Input format supported
-outputFormats:
-    Rbra       L_OutputIsRGB12         ; 12 Bits (R4,G4,B4)
-    Rbra       L_OutputIsRGB24         ; 24 bits (R8,G8,B8)
-    Rbra       L_OutputIsR5G5B5        ; 15 bits (R5,G5,B5)
+; ************************************* 2020.07.31 Update to Add HAM8 support - END
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_OutputIsRGB12                             *
+; * Method Name : SPalAGA_ScreenA4                            *
 ; *-----------------------------------------------------------*
-; * Description : Internal method to output RGB12 High bits as*
-; *               output RGB12 color value                    *
+; * Description : This method will call the SPalAGAFull method*
+; *               to update the copper list color palette of  *
+; *               screen structure provided in a4. It will al-*
+; *               -so refresh the global aga color palette    *
+; *               with AGA color palette provided in a1       *
 ; *                                                           *
-; * Parameters : T_rgb12High(a5) = RGB12 Color value          *
+; * Parameters : A4 = Screen Structure Pointer                *
+; *              A1 = Aga Color Palette, AGAP Format supported*
 ; *                                                           *
-; * Return Value : T_rgbOutput(a5) = Color value using the    *
-; *                RGB12 color output format                  *
-; *                                                           *
+; * Return Value :                                            *
 ; *************************************************************
-  Lib_Def      OutputIsRGB12
-; ************************************ Read RGB12 High & Low bits and output them in RGB15 output format
-    move.l     T_rgb12High(a5),T_rgbOutput(a5)
-    rts
+    Lib_Def    SPalAGA_ScreenA4
+SPalAGA_ScreenA4:
+    movem.l    a0,-(sp)
+    move.l     a4,a0
+    Rbra       L_SPalAGAFull
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_OutputIsR5G5B5                            *
+; * Method Name : SPalAGA_CurrentScreen                       *
 ; *-----------------------------------------------------------*
-; * Description : Internal method to output RGB15 color value *
-; *               from RGB12H/RGB12L color input              *
+; * Description : This method will refresh the whole copper   *
+; *               list color palette (including global aga)   *
+; *               with the color palette provided into a1     *
 ; *                                                           *
-; * Parameters : T_rgb12High(a5) = RGB12 Color value High bits*
-; *              T_rgb12Low(a5) = RGB12 Color value Low bits  *
+; * Parameters : A1 = Aga Color Palette, AGAP Format supported*
 ; *                                                           *
-; * Return Value : T_rgbOutput(a5) = Color value using the    *
-; *                RGB15 (R5G5B5) color output format         *
-; *                                                           *
+; * Return Value : -                                          *
 ; *************************************************************
-  Lib_Def      OutputIsR5G5B5
-; ************************************ Read RGB12 High & Low bits and output them in RGB15 (R5G5B5) output format
-    Rbsr       L_OutputIsRGB24         ; First we must push RGB12H + RGB12L to RGB24 output format
-    move.l     T_rgbOutput(a5),T_rgbInput(a5) ; Save updated RGB15->RGB24 output in rgbInput for 2nd pass
-    move.l     #modeRgb15,T_rgbOutput(a5) ; Clear rgbOutput and prepare it for RGB15 output
-    ; ******** extract B8 and push it to B5
-    move.l     T_rgbInput(a5),d0
-    and.l      #$FF,d0
-    cmp.l      #0,d0
-    beq.s      .part2
-    add.l      #1,d0
-    lsr.l      #3,d0
-    sub.l      #1,d0
-    and.l      #%11111,d0
-    move.l     d0,T_rgbOutput(a5)      ; Save B5 component
-.part2:
-    ; ******** extract G8 and push it to G5
-    move.l     T_rgbInput(a5),d0
-    and.l      #$FF00,d0
-    cmp.l      #0,d0
-    beq.s      .part3
-    add.l      #1,d0
-    lsr.l      #3,d0
-    sub.l      #1,d0
-    and.l      #%1111100000,d0
-    or.l       d0,T_rgbOutput(a5)      ; Save G5 component
-.part3:
-    ; ******** extract R8 and push it to R5
-    move.l     T_rgbInput(a5),d0
-    and.l      #$FF0000,d0
-    cmp.l      #0,d0
-    beq.s      .part4
-    add.l      #1024,d0
-    lsr.l      #3,d0
-    sub.l      #1024,d0
-    and.l      #%111110000000000,d0
-    or.l       d0,T_rgbOutput(a5)      ; Save R5 component
-.part4:
-    rts
+    Lib_Def    SPalAGA_CurrentScreen
+SPalAGA_CurrentScreen:
+    movem.l    a0,-(sp)
+    move.l     T_EcCourant(a5),a0      ; A0 = Current Screen Structure pointer
+    Rbra       L_SPalAGAFull
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_OutputIsRGB24                             *
+; * Method Name : SPalAGA_ScreenA0                                            *
 ; *-----------------------------------------------------------*
-; * Description : Internal method to output RGB24 color value *
-; *               from RGB12H/RGB12L color input              *
+; * Description : This method will call the SPalAGAFull method*
+; *               to update the copper list color palette of  *
+; *               screen structure provided in a0. It will al-*
+; *               -so refresh the global aga color palette    *
+; *               with the screen AGA color palette           *
 ; *                                                           *
-; * Parameters : T_rgb12High(a5) = RGB12 Color value High bits*
-; *              T_rgb12Low(a5) = RGB12 Color value Low bits  *
+; * Parameters : A0 = Screen Structure Pointer                *
 ; *                                                           *
-; * Return Value : T_rgbOutput(a5) = Color value using the    *
-; *                RGB24 (R8G8B8) color output format         *
-; *                                                           *
+; * Return Value :                                            *
 ; *************************************************************
-  Lib_Def      OutputIsRGB24
-; ************************************ Read RGB12 High & Low bits and output them in RGB24 output format
-; ******** Clear rgbOutput and prepare it to receive RGB24 color datas
-    move.l     #modeRgb24,T_rgbOutput(a5)
-; ******** Get Low Bits for the RGB24 color value returned
-    move.w     T_rgb12Low(a5),d0       ; d0 = .....RGB Low Bits
-    and.l      #$FFF,d0                ; d0 = .....RGB Useless as color is always in RGB12 format in .w saves
-    move.l     d0,d1                   ; d1 = .....RGB
-    lsl.l      #4,d1                   ; d1 = ....RGB.
-    move.b     d0,d1                   ; d1 = ....RGGB
-    lsl.l      #4,d1                   ; d1 = ...RGGB.
-    and.b      #$0F,d0                 ; d0 = .......B
-    or.b       d0,d1                   ; d1 = ...RGGBB
-    and.l      #$F0F0F,d1              ; d1 = ...R.G.B = Low bits for RGB24 color
-    or.l       d1,T_rgbOutput(a5)      ; Push R4lG4lB4l components in rgbOutput
-; ******** Get High bits for the RGB24 color value returned
-    move.w     T_rgb12High(a5),d1      ; D1 = .....RGB High Bits
-    and.l      #$FFF,d1                ; d1 = .....RGB Useless as color is always in RGB12 format in .w saves
-    move.l     d1,d0                   ; d0 = .....RGB
-    lsl.l      #4,d1                   ; d1 = ....RGB.
-    move.b     d0,d1                   ; d1 = ....RGGB
-    lsl.l      #4,d1                   ; d1 = ...RGGB.
-    and.b      #$0F,d0                 ; d0 = .......B
-    or.b       d0,d1                   ; d1 = ...RGGBB
-    lsl.l      #4,d1                   ; d1 = ..RGGBB.
-    and.l      #$F0F0F0,d1             ; d1 = ..R.G.B. = High bits for RGB24 color
-    or.l       d1,T_rgbOutput(a5)      ; Push R4hG4hB4h components in rgbOutput
-; Job Finished
-    rts
+    Lib_Def    SPalAGA_ScreenA0
+SPalAGA_ScreenA0:
+    ; A0 Must contain the screen to refresh for full
+    movem.l    a0,-(sp)
+    lea.l      AGAPMode(a0),a1
+    Rbra       L_SPalAGAFull
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_ForceToRGB24                              *
+; * Method Name : SPalAGAFull                                 *
 ; *-----------------------------------------------------------*
-; * Description : Force any input format (RGB12,RGB15 and     *
-; *               RGB24) to be outputted as RGB24             *
+; * Description : This method will update the whole color pa- *
+; *               -lette of the screen structure provided in  *
+; *               a0 and will also refresh the global aga co- *
+; *               -lor palette with the color palette provi- *
+; *               -ded in register A1 (input)                 *
 ; *                                                           *
-; * Parameters :  T_rgbInput(a5) = Color Value using any of   *
-; *               the support color format                    *
+; * Parameters : A0 = Screen Structure Pointer                *
+; *              A1 = Aga Color Palette, AGAP Format supported*
 ; *                                                           *
-; * Return Value : T_rgbOutput(a5) = RGB24 color value        *
-; *                                                           *
+; * Return Value :                                            *
 ; *************************************************************
-  Lib_Def      ForceToRGB24
-; ************************************ Force any input format (RGB12,RGB15 and RGB24) to be outputted as RGB24
-    movem.l    d0-d1/a0,-(sp)
-    move.b     T_rgbInput(a5),d0
-    and.l      #$0F,d0                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
-    lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
-    lea        F24_inputFormats(pc),a0
-    adda.l     d0,a0                   ; a0 = Pointer to the method to callable
-    jsr        (a0)                    ; Call the input method
-    movem.l    (sp)+,d0-d1/a0
-    rts
-; ************************************ RGB Input format supported
-F24_inputFormats:
-    Rbra       L_F24_InputIsRGB12          ; 12 Bits (R4,G4,B4)
-    Rbra       L_F24_InputIsRGB24          ; 24 bits (R8,G8,B8)
-    Rbra       L_F24_InputIsR5G5B5         ; 15 bits (R5,G5,B5)
+    Lib_Def    SPalAGAFull
+SPalAGAFull:
+    move.l     a0,T_CurScreen(a5)      ; To use instead of T_EcCourant(a5)
+    movem.l    a1-a4/d0-d6,-(sp)       ; 2020.08.25 Updated to handle D6 for 2nd RGB color values
 
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : L_F24_InputIsRGB12                          *
-; *-----------------------------------------------------------*
-; * Description : Internal method to output as RGB24 a RGB12  *
-; *               color input                                 *
-; *                                                           *
-; * Parameters :  T_rgbInput(a5) = Color Value using RGB12    *
-; *               color format                                *
-; *                                                           *
-; * Return Value : T_rgbOutput(a5) = RGB24 color value        *
-; *                                                           *
-; *************************************************************
-  Lib_Def       F24_InputIsRGB12
-; ***********************************
-    Rbsr        L_InputIsRGB12           ; Push RGB12 to be 2x RGB12 (Low & High Bits) 
-    Rbsr        L_OutputIsRGB24          ; Merge RGB12 Low & RGB12 High to create full RGB24
+; ************************************* 2020.05.15 Update for AGAP mode *
+    move.l     (a1),d5
+    cmp.l      #"AGAP",d5              ; Is the "AGAP" header found ?
+    beq.s      AGAPaletteUpd           ; Colour Count <= 32
+    moveq      #32,d5                  ; D5 = Default 32 colors
+    bra.s      PalUpdCont
+AGAPaletteUpd:
+    move.w     4(a1),d5                ; D5 = Colour Count
+    And.l      #$FFFF,d5
+    add.l      #6,a1                   ; A1 = Pointer to 1st color value
+PalUpdCont:
+; ************************************* 2020.05.15 Update for AGAP mode *
+    move.w     EcNumber(a0),d2
+    lsl.l      #7,d2                   ; D2 = Screen Nombre * 128 ( 128 bytes used by each screen for Copper MArks)
+    lea        T_CopMark(a5),a2        ; A2 = 1st copper mark
+    add.w      d2,a2                   ; A2 = Screen copper mark for current screen
+    move.l     a2,d2                   ; D2 = Save of Screen copper mark
+    lea        EcPal(a0),a0            ; A0 = Screen color palette pointer
+    moveq      #0,d0
+    moveq      #0,d1
+    moveq      #31,d4                  ; 32 colors to update (32-1)
+* Boucle de pokage
+EcSP1b:
+    move.w     EcPalL-EcPal(a1),d6     ; 2020.08.25 added : D6 = 2nd RGB12 color datas
+    move.w     (a1)+,d1                ; D1 = 1st RGB12 color datas
+    bmi.s      EcSP3b
+    and.w      #$FFF,d6                ; 2020.08.25 added : D6 filtered to RGB12 R4G4B4
+    and.w      #$FFF,d1                ; D1 filtered to RGB12 R4G4B4
+* Poke dans la table
+    move.w     d6,EcPalL-EcPal(a0)     ; 2020.08.25 Insert 2nd RGB12 Color Datas into EcPalL datas storage
+    move.w     d1,(a0)
+* Poke dans le copper
+    move.l     d2,a2                   ; A2 = Slot offset 0 from Screen Copper Mark 1nd data slot
+    cmp.w      #PalMax*4,d0            ; Is D0 > PalMax (=16) ?
+    bcs.s      EcSP2b                  ; No -> Jump EcSP2b
+    lea        64(a2),a2               ; A2 = Slot offset 64 from Screen Copper Mark 2nd data slot
+EcSP2b:
+    move.l     (a2)+,d3                ; d3 = Screen Copper Mark for color palette
+    beq.s      EcSP3b                  ; D3 = NULL (=0) ? Jump EcSP3b
+    move.l     d3,a3                   ; A3 = D3 = Pointer for 1st color palette index.
+    move.w     d1,2(a3,d0.w)           ; Update 1st RGB12 color register in copper list
+    move.w     d6,2+68(a3,d0.w)        ; Update 2nd RGB12 color register in copper list ( ( 16 colors +  BplCon3 ) * ( 2 bytes reg + 2 bytes datas ) ) = 68 )
+    bra.s      EcSP2b
+EcSP3b:
+    addq.l     #2,a0
+    addq.w     #4,d0
+    dbra       d4,EcSP1b
+; ************************************************************* 2020.08.25 Update to handle RGB24 Copper list palette update - END
+; ************************************* 2020.05.15 Update for AGAP mode *
+    cmp.w      #32,d5                  ; Do we have more than 32 colors to update ?
+    ble.s      uclAGAEnd               ; No AGA update at all
+    sub.w      #32,d5                  ; D5 = Color count - ECS color updated. So colors 032-0255 -> 000-223 as datas contains only 224 colors for AGA ( colors 000-031 are setup in screen themselves)
+    sub.w      #1,d5                   ; 2020.09.04 D5 = Max 223 instead of 224 / Fix the palette color flickering
+; ************************************* 2020.05.15 Update for AGAP mode *
+    And.l      #$FFF,d5
+; ********************** 2020.08.14 Update to Handle Update of up to 256 RGB24 colors in the copper list - START
+; ********************** 2019.11.17 Update to also update the AGA color palette registers from 32-255 - START
+    Move.l     T_AgaColor1(a5),a0      ; A0 = Pointer to the beginning of the current physical copper list.
+    add.l      #6,a0                   ; 2020.08.13 Add #2 to point to content of 1st color register ( 0.l CopWait, 4.l SetColorGroup, 8.w 1st color Register, 10.w 1st color data)
+    Move.l     T_AgaColor2(a5),a2      ; A2 = Pointer to the beginning of the current logic copper list
+    add.l      #6,a2                   ; 2020.08.13 Add #2 to point to content of 1st color register ( 0.l CopWait, 4.l SetColorGroup, 8.w 1st color Register, 10.w 1st color data)
+    lea        T_globAgaPal(a5),a3     ; A3 = Storage for AGA colors from 32 to 255 ( 224 registers )
+    move.l     T_CurScreen(a5),a4      ; A4 = Current Screen Structure pointer
+    Lea        EcScreenAGAPal(a4),a4
+    Move.l     d5,d0                   ; D0 = Start at index 223 (-1 = end of copy)
+    Clr.l      d1                      ; D1 = Register to check all 32 colors blocks
+    bsr        uclAGA1                 ; Call method to update Copper List
+    add.l      #2,a1                   ; Separator between 2 set of RGB12 color components.
+; ************************************************************* 2020.08.13 Store Low bits in copper list
+    Move.l     T_AgaColor1L(a5),a0     ; A0 = Pointer to the beginning of the current physical copper list.
+    add.l      #6,a0                   ; 2020.08.13 Add #2 to point to content of 1st color register
+    Move.l     T_AgaColor2L(a5),a2     ; A2 = Pointer to the beginning of the current logic copper list
+    add.l      #6,a2                   ; 2020.08.13 Add #2 to point to content of 1st color register
+    lea        T_globAgaPalL(a5),a3    ; A3 = Storage for AGA colors from 32 to 255 ( 224 registers )
+    move.l     T_CurScreen(a5),a4      ; A4 = Current Screen Structure pointer
+    Lea        EcScreenAGAPalL(a4),a4
+    move.l     d5,d0                   ; D0 = Start at index 223 (-1 = end of copy)
+    Clr.l      d1                      ; D1 = Register to check all 32 colors blocks
+    bsr        uclAGA1                 ; Call method to update copper list
+; ********************** 2019.11.17 End of Update to also update the AGA color palette registers from 32-255 - END
+ uclAGAEnd:
+    movem.l    (sp)+,a1-a4/d0-d6       ; 2020.08.25 Updated to handle D6 for 2nd RGB color values
+    movem.l    (sp)+,a0
+    moveq    #0,d0
+    rts
+
+; * Small method that inject all colors (all colors High bits OR all colors Low Bits at one time-call)
+uclAGA1:
+    Move.w     (a1)+,d2                ; Continue copy of the A1 palette
+    Move.w     d2,(a3)+                ; Save the A1 Palette in global Aga Palette             -> T_globAgaPal(L) 
+    move.w     d2,(a4)+                ; Save the A1 Palette in the current screen AGA Palette -> EcScreenAGAPal(L)
+    Move.w     d2,(a0)                 ; Update Physic Copper                                  -> T_AgaColor1(L)
+    Move.w     d2,(a2)                 ; Update Logic Copper                                   -> T_AgaColor2(L)
+    Add.l      #4,a0                   ; A1 jump to next color register                        -> T_AgaColor1(L) + 4 = Next Color Register
+    Add.l      #4,a2                   ; A2 jump to next color register                        -> T_AgaColor2(L) + 4 = Next Color Register
+    sub.w      #1,d0                   ; D0 decrease copy counter
+    cmp.w      #0,d0
+    blt.s      uclAGAEndCPY
+    add.w      #1,d1
+    cmp.w      #32,d1
+    blt.s      uclAGA1
+    clr.l      d1
+    add.l      #4,a0                   ; A0 was on a color group switcher -> Jump to next color register
+    add.l      #4,a2                   ; A2 was on a color group switcher -> Jump to next color register
+    bra.s      uclAGA1
+uclAGAEndCPY:
     rts
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_F24_InputIsR5G5B5                         *
+; * Method Name : SColAga24Bits                               *
 ; *-----------------------------------------------------------*
-; * Description : Internal method to output as RGB24 a RGB15  *
-; *               color input                                 *
+; * Description : This method update the color D1 of the cur- *
+; *               -rent screen with 24 bits RGB values separa-*
+; *               ted in 2 registers to fit High/Low bits de- *
+; *               -finition inside Copper list color registers*
 ; *                                                           *
-; * Parameters :  T_rgbInput(a5) = Color Value using RGB15    *
-; *               color format                                *
+; * Parameters : D1 = Color Register 032-255 tp Update        *
+; *              D2 = RGB12 High bits for the D1 color        *
+; *              D4 = RGB12 Low bits for the D1 color         *
 ; *                                                           *
-; * Return Value : T_rgbOutput(a5) = RGB24 color value        *
-; *                                                           *
+; * Return Value : -                                          *
 ; *************************************************************
-  Lib_Def       F24_InputIsR5G5B5
-; ***********************************
-    Rbsr        L_convertRGB15toRGB24    ; Simply convert RGB15 (R5G5B5) to RGB24
+    Lib_Def    SColAga24Bits
+SColAga24Bits:
+    Move.l     T_EcCourant(a5),a0
+    and.l      #255,d1                 ; Remove 32 colours limit (original = #31) for AGA support with 256 colours limit
+    sub.l      #32,d1                  ; D1 Color palette shifted with -32 to be index 00-223 in globAgaPal ( 224 registers )
+    move.l     d1,d3                   ; D3 = True Color 032-255 indexed at 000-223
+    lsl.l      #1,d3                   ; D3 = Color Index * 2 ( .w pointer )
+    ; ****** Save Aga Color in the global globAgaPal register
+    lea        T_globAgaPal(a5),a1     ; 2019.11.28 Storage for AGA colors from 32 to 255 ( 224 registers )
+    Lea        EcScreenAGAPal(a0),a2   ; Storage for current Screen AGA color palette from 32 to 255 ( 224 registers )
+    move.w     d2,(a1,d3.w)            ; Save D2 color in his AgaPal(ette) color register
+    move.w     d2,(a2,d3.w)            ; Save D2 Color in the current Screen AGA Palette color register
+
+; ************************************************************* 2020.08.31 Update to handle full RGB24 color update - Start
+    lea        T_globAgaPalL(a5),a1    ; 2019.11.28 Storage for AGA colors from 32 to 255 ( 224 registers )
+    Lea        EcScreenAGAPalL(a0),a2  ; Storage for current Screen AGA color palette from 32 to 255 ( 224 registers )
+    move.w     d4,(a1,d3.w)            ; Save D2 color in his AgaPal(ette) color register
+    move.w     d4,(a2,d3.w)            ; Save D2 Color in the current Screen AGA Palette color register
+; ************************************************************* 2020.08.31 Update to handle full RGB24 color update - End
+
+    Move.l     d1,d3                   ; D3 = true 32-255 Color Indexed at 0-224
+    cmp.w      #0,d3
+    beq        noDiv
+    divu       #32,d3                  ; D3 = Palette groupe ID ( from 0 - 6, in reality color range 32-255 cos copper contains only colors 32-255 )
+noDiv:
+    Mulu       #132,d3                 ; D3 = Shift to reach the correct color group in Copper List
+    and.l      #$1F,d1                 ; D1 = Color register driven in a 00-31 range.
+    Lsl.l      #2,d1                   ; D1 = Color ID * 4 as each color uses .w-> Register + .w-> Color Value
+    add.l      d3,d1
+    add.l      #6,d1
+    move.l     T_AgaColor1(a5),a1
+    move.l     T_AgaColor2(a5),a2
+    Move.w     d2,(a1,d1.w)            ; Update color in the copper list.
+    Move.w     d2,(a2,d1.w)            ; Update color in the copper list.
+; ************************************************************* 2020.08.31 Update to handle lower bits in full RGB24 mode or RGB12 copy mode - Start
+    move.l     T_AgaColor1L(a5),a1
+    move.l     T_AgaColor2L(a5),a2
+    Move.w     d4,(a1,d1.w)            ; Update color in the copper list.
+    Move.w     d4,(a2,d1.w)            ; Update color in the copper list.
+; ************************************************************* 2020.08.31 Update to handle lower bits in full RGB24 mode or RGB12 copy mode - End
+    ; ****** End with no error.
+    moveq      #0,d0
+    rts
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : UpdateAGAColorsInCopper                     *
+; *-----------------------------------------------------------*
+; * Description : This method push the T_globAgaPal color da- *
+; *               -tas to the copper list to update colors re-*
+; *               -gisters from 032 to 255                    *
+; *                                                           *
+; * Parameters : -                                            *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+; ******************************************** 2019.24.11 New method to update the whole AGA color palette in copper list
+    Lib_Def    UpdateAGAColorsInCopper
+    movem.l    d6-d7/a0-a4,-(sp)
+    Move.l     T_AgaColor1(a5),a0      ; A0 = Aga Copper 0 Colors 032-255 High Bits 
+    Move.l     T_AgaColor2(a5),a1      ; A1 = Aga Copper 1 Colors 032-255 High Bits 
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - START
+    Move.l     T_AgaColor1L(a5),a3     ; A3 = Aga Copper 0 Colors 032-255 Low Bits 
+    Move.l     T_AgaColor2L(a5),a4     ; A4 = Aga Copper 1 Colors 032-255 Low Bits 
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - END
+    ; ************ Setup inital values for the AGA palette adding to Copper list
+    Move.l     #7,d7                   ; D7 = Aga Color palette contains 224 colors.
+    lea        T_globAgaPal(a5),a2     ; A2 = First color of AGA palette ( =32 ) of the curent screen (a0)
+insert32cLoop2:
+    sub.w      #1,d7
+    bmi        insertIsOver2           ; Stop when we have reached 256 colors.
+    Addq.l     #4,a0                   ; Jump to 1st color register definition COPPER 0 HIGH BITS
+    Addq.l     #4,a1                   ; Jump to 1st color register definition COPPER 1 HIGH BITS
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - START
+    addq.l     #4,a3                   ; Jump to 1st color register definition COPPER 0 LOW BITS
+    addq.l     #4,a4                   ; Jump to 1st color register definition COPPER 1 LOW BITS
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - END
+    ; * setup for the Copy of the 32 colors registers
+    move.l     #31,d6                  ; D5 = Color00 register
+loopCopy2:
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - START
+    add.w      #2,a0                   ; A0 = Color Register Data HIGH Bits Copper 0
+    move.w     (a2),(a0)+              ; Copy the AgaPal High Bits inside the CopperList 0
+    Add.w      #2,a1                   ; Color register
+    move.w     (a2),(a1)+              ; Copy the AgaPal High Bits inside the CopperList 1
+    add.w      #2,a3                   ; Color register
+    move.w     T_globAgaPalL-T_globAgaPal(a2),(a3)+    ; Copy the AgaPal Low Bits inside the CopperList 0
+    Add.w      #2,a4                   ; Color register
+    move.w     T_globAgaPalL-T_globAgaPal(a2),(a4)+   ; Copy the AgaPal Low Bitsinside the CopperList 1
+    addq.l     #2,a2                   ; A2 = Next color data
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - START
+    sub.w      #1,d6
+    bmi        insert32cLoop2          ; Once 32 colors registers were copied, we go back at the beginning of the loop for the next group of colours.
+    bra        loopCopy2               ; If color <32 then continue the copy
+insertIsOver2:
+    movem.l    (sp)+,d6-d7/a0-a4
+; ******************************************** 2019.24.11 New method to update the whole AGA color palette in copper list
     rts
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_F24_InputIsRGB24                          *
+; * Method Name : getAGAPaletteColourRGB12                    *
 ; *-----------------------------------------------------------*
-; * Description : Internal method to output as RGB24 a RGB24  *
-; *               color input (no conversion)                 *
+; * Description : This method is used by AmosProAGA.library   *
+; *               Get Colour( I ) method to return AGA colors.*
 ; *                                                           *
-; * Parameters :  T_rgbInput(a5) = Color Value using RGB24    *
-; *               color format                                *
+; * Parameters : D1 = Color ID from range 032-255             *
 ; *                                                           *
-; * Return Value : T_rgbOutput(a5) = RGB24 color value        *
-; *                                                           *
+; * Return Value : D1=RGB12 Color                             *
 ; *************************************************************
-  Lib_Def       F24_InputIsRGB24
-; ***********************************
-    move.l      T_rgbInput(a5),T_rgbOutput(a5) ; Input and Output are under the same format
+    Lib_Def    getAGAPaletteColourRGB12
+getAGAPaletteColourRGB12:
+    Sub.l      #32,d1
+    lea        EcScreenAGAPal(a0),a1   ; 2019.11.28 Update for screen aga color palette backup
+    lsl.w      #1,d1
+    move.w     (a1,d1.w),d1            ; Get colour
+    moveq      #0,d0
     rts
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_convertRGB15toRGB24                       *
+; * Method Name : L_getAGARainbowColor                        *
 ; *-----------------------------------------------------------*
-; * Description : Internal method to convert to RGB24 a RGB15 *
-; *               color input                                 *
+; * Description : This method will return the RGB24 color va- *
+; * -lue of the color at chosen line in the specified AGA     *
+; * rainbow index                                             *
 ; *                                                           *
-; * Parameters :  T_rgbInput(a5) = Color Value using RGB15    *
-; *               color format                                *
+; * Parameters : D1 = Aga Rainbow Index (0-3)                 *
+; *              D2 = YLine in the Rainbow                    *
 ; *                                                           *
-; * Return Value : T_rgbOutput(a5) = RGB24 color value        *
-; *                                                           *
+; * Return Value : D0 = RGB24 Color Value (Integer)           *
 ; *************************************************************
-    Lib_Def     convertRGB15toRGB24
-; ************************************ Simply Convert RGB15 (R5G5B5) to RGB24
-    move.l      T_rgbInput(a5),d0       ; R5G5B5 must be converted in R8G8B8 then separated
-    move.l      #modeRgb24,T_rgbOutput(a5) ; Clear the input and prepare it to receive RGB24 value
-    ; ******** Extract the B5 component to create a B8 one
-    move.l      d0,d1
-    and.l       #%11111,d1              ; Look for the Blue component
-    cmp.b       #0,d1
-    beq.s       .part2                  ; If B=0 -> No conversion from B5-> B8
-    add.l       #1,d1                   ; D1 = interval { 1-32 }
-    lsl.l       #3,d1                   ; D1 = D1 * 8
-    sub.l       #1,d1                   ; D1 = D1 -1 = interval { 15-255 }
-    move.b      d1,T_rgbOutput+3(a5)    ; T_rgbOutput(a5) = ......B8
-.part2:
-    ; ******** Extract the G5 component to create a G8 one
-    move.l      d0,d1
-    and.l       #%1111100000,d1         ; Look for the green component
-    cmp.l       #0,d1
-    beq.s       .part3                  ; If G=0 -> No conversion from G5-> G8
-    add.l       #32,d1
-    lsl.l       #3,d1
-    sub.l       #32,d1
-    move.b      d1,T_rgbOutput+2(a5)
-.part3:
-    ; ******** Extract the R5 component to create a R8 one
-    move.l      d0,d1
-    and.l       #%111110000000000,d1    ; Look for the green component
-    cmp.l       #0,d1
-    beq.s       .part4                  ; If R=0 -> No conversion from R5-> R8
-    add.l       #1024,d1
-    lsl.l       #3,d1
-    sub.l       #1024,d1
-    move.b      d1,T_rgbOutput+1(a5)
-.part4:
+    Lib_Def    getRainColor
+getRainColor:
+    movem.l    d1-d7/a0-a6,-(sp)
+    ; **************** LoadAGARainbow d1,a0 done 
+    lea        T_AgaRainbows(a5),a0
+    lsl.l      #2,d1
+    move.l     (a0,d1.w),a0
+    ; ****************
+    mulu       #3,d2                   ; Each Color takes 3 Bytes R8,G8 and B8.
+    add.l      #R_rainData,d2
+    add.l      d2,a0                   ; A0 point to the R8 of the R8G8B8 color
+    clr.l      d0
+    move.b     (a0)+,d0                ; D0 =     R8
+    lsl.l      #8,d0                   ; D0 =   R8..
+    move.b     (a0)+,d0                ; D0 =   R8G8
+    lsl.l      #8,d0                   ; D0 = R8G8..
+    move.b     (a0)+,d0                ; D0 = R8G8B8
+    movem.l    (sp)+,d1-d7/a0-a6
     rts
-
-
-
 
 
 
@@ -1305,7 +1546,7 @@ F24_inputFormats:
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * MACRO Name : CheckPaletteRange                         *
+; * MACRO Name : CheckAGAPaletteRange                         *
 ; *-----------------------------------------------------------*
 ; * Description : This MACRO is used to check if the chosen   *
 ; * Index fits in the available Aga Color Palette slot        *
@@ -1314,7 +1555,7 @@ F24_inputFormats:
 ; *                                                           *
 ; * Additional informations : Can cast an error               *
 ; *************************************************************
-CheckPaletteRange MACRO
+CheckAGAPaletteRange MACRO
     cmp.l      #agaPalCnt,\1           ; Uses AMOSProAGA_library_Equ.s/agaPalCnt equate for limit (default = 8)
     Rbge       L_agaErr1               ; errPal1 : Palette creation slots are 0-7
     cmp.l      #0,\1
@@ -1324,7 +1565,7 @@ CheckPaletteRange MACRO
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * MACRO Name : LoadPalette                               *
+; * MACRO Name : LoadAGAPalette                               *
 ; *-----------------------------------------------------------*
 ; * Description : This macro load the chosen Aga color palette*
 ; * pointer into the chosen AReg                              *
@@ -1334,7 +1575,7 @@ CheckPaletteRange MACRO
 ; *                     will be loaded                        *
 ; *                                                           *
 ; *************************************************************
-LoadPalette       MACRO
+LoadAGAPalette       MACRO
     lea        T_AgaColorPals(a5),\2
     lsl.l      #2,\1
     move.l     (\2,\1.w),\2
@@ -1345,7 +1586,7 @@ LoadPalette       MACRO
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * MACRO Name : ClearPalette                              *
+; * MACRO Name : ClearAGAPalette                              *
 ; *-----------------------------------------------------------*
 ; * Description : Thie macro simply clear the pointer data    *
 ; * storage for the chosen aga color palette                  *
@@ -1359,7 +1600,7 @@ LoadPalette       MACRO
 ; * is cleared. The memory must be freed before using this    *
 ; * macro.                                                    *
 ; *************************************************************
-ClearPalette      MACRO
+ClearAGAPalette      MACRO
     lea        T_AgaColorPals(a5),\2
     lsl.l      #2,\1
     move.l     #0,(\2,\1.w)
@@ -1369,7 +1610,7 @@ ClearPalette      MACRO
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : CreatePaletteBlock                          *
+; * Method Name : CreateAgaPaletteBlock                       *
 ; *-----------------------------------------------------------*
 ; * Description : This internal method is called by the method*
 ; * L_createAGAPalette to allocate memory for the aga color   *
@@ -1379,8 +1620,8 @@ ClearPalette      MACRO
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
-  Lib_Def      CreatePaletteBlock
-    CheckPaletteRange d3
+  Lib_Def      CreateAgaPaletteBlock
+    CheckAGAPaletteRange d3
     Lea        T_AgaColorPals(a5),a2
     Move.l     #agaColorPaletteSize,d0                 ; 776 bytes = "CMAP" (4 bytes) + "CmapLength" (2 bytes) + ( 256 colors * 3 bytes long for each ) + "-1" ( 2 Bytes )
     SyCall     MemFastClear
@@ -1396,7 +1637,7 @@ ClearPalette      MACRO
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_LoadPaletteD3A0                        *
+; * Method Name : L_LoadAgaPaletteD3A0                        *
 ; *-----------------------------------------------------------*
 ; * Description : Load the Aga Palette Index D3 pointer in the*
 ; * A0 register                                               *
@@ -1405,15 +1646,15 @@ ClearPalette      MACRO
 ; *                                                           *
 ; * Return Value : A0 = Aga Palette Buffer Memory Pointer     *
 ; *************************************************************
-  Lib_Def      LoadPaletteD3A0
-    CheckPaletteRange d3
+  Lib_Def      LoadAgaPaletteD3A0
+    CheckAGAPaletteRange d3
     move.l     d3,d4
     Lsl.l      #2,d4                   ; D3 * 4 for long
     Lea        T_AgaColorPals(a5),a0
     move.l     (a0,d4.w),a0
     cmpa.l     #0,a0
     bne.s      .laps
-    Rbsr       L_CreatePaletteBlock
+    Rbsr       L_CreateAgaPaletteBlock
 .laps:
     Lea        T_AgaColorPals(a5),a0
     move.l     (a0,d4.w),a0
@@ -1435,7 +1676,7 @@ ClearPalette      MACRO
 ; * Return Value : -                                          *
 ; *************************************************************
   Lib_Def      PushAgaColorD3ToCmapBlock
-    Rbsr       L_LoadPaletteD3A0    ; A0 = Color Map Palette
+    Rbsr       L_LoadAgaPaletteD3A0    ; A0 = Color Map Palette
     Move.l     (a0)+,d0
     cmp.l      #"CMAP",d0
     Rbne       L_agaErr16              ; No -> Error : The loaded IFF/ILBM, CMAP header is not found.
@@ -1547,7 +1788,7 @@ rcpy:
 ; * Method Name : L_notCMAPFile                               *
 ; *-----------------------------------------------------------*
 ; * Description : This internal method is used by the method  *
-; * L_LoadPalette to close the opened file and cast an er- *
+; * L_loadAgaPalette to close the opened file and cast an er- *
 ; * -ror saying that the opened file is not a valide IFF/ILBM *
 ; * CMAP file                                                 *
 ; *                                                           *
@@ -1568,7 +1809,7 @@ rcpy:
 ; * Method Name : L_notCMAPFileSizeKO                         *
 ; *-----------------------------------------------------------*
 ; * Description : This internal method is used by the method  *
-; * L_LoadPalette to close the opened file and cast an er- *
+; * L_loadAgaPalette to close the opened file and cast an er- *
 ; * -ror saying that the opened file is not a valide IFF/ILBM *
 ; * CMAP file                                                 *
 ; *                                                           *
@@ -1612,7 +1853,7 @@ rcpy:
     Rbge       L_agaErr1               ; if YES -> agaErr1 : Palette creation slots are 0-7
     cmp.l      #0,d5                   ; is Index < 0 ?
     Rbmi       L_agaErr1               ; if YES -> agaErr1 : Palette creation slots are 0-7
-    LoadPalette d5,a2               ; A2 =  Aga Color Palette D5 pointer
+    LoadAGAPalette d5,a2               ; A2 =  Aga Color Palette D5 pointer
     Rbeq       L_agaErr4               ; if NOT exists (=0) -> agaErr4
     Move.l     d0,a2                   ; A2 = Color Index 0 of the chosen Aga Color palette
     ; * 2. We check if destination color index & range are valids.
@@ -1715,11 +1956,11 @@ endCpy:
 ; * Parameters : D3 = AGA Color Palette Bank ID (0-7)         *
 ; *                                                           *
 ; *************************************************************
-  Lib_Par      createPalette
-    CheckPaletteRange d3            ; Check limits for color palette indexes
-    LoadPalette d3,a2
+  Lib_Par      createAGAPalette
+    CheckAGAPaletteRange d3            ; Check limits for color palette indexes
+    LoadAGAPalette d3,a2
     Rbne       L_agaErr2               ; No = Aga Color Palette already Exists -> Error "Aga Palette already exists"
-    Rbsr       L_CreatePaletteBlock ; Create the memory block for the chosen Aga Color Palette
+    Rbsr       L_CreateAgaPaletteBlock ; Create the memory block for the chosen Aga Color Palette
     rts
 
 ;
@@ -1735,11 +1976,11 @@ endCpy:
 ; *                                                           *
 ; *************************************************************
   Lib_Par      deleteAGAPalette
-    CheckPaletteRange d3
-    LoadPalette d3,a1
+    CheckAGAPaletteRange d3
+    LoadAGAPalette d3,a1
     cmpa.l     #0,a1
     Rbeq       L_agaErr4
-    ClearPalette d3,a2
+    ClearAGAPalette d3,a2
     Move.l     #agaColorPaletteSize,d0                 ; 776 bytes = "CMAP" (4 bytes) + "CmapLength" (2 bytes) + ( 256 colors * 3 bytes long for each ) + "-1" ( 2 Bytes )
     SyCall     MemFree
     rts
@@ -1757,8 +1998,8 @@ endCpy:
 ; * Return Value : 1 or 0 (Integer)                           *
 ; *************************************************************
   Lib_Par      getAgaPeletteExists
-    CheckPaletteRange d3
-    LoadPalette d3,a2
+    CheckAGAPaletteRange d3
+    LoadAGAPalette d3,a2
     beq.s      .gape1
     moveq      #1,d3
     Ret_Int
@@ -1769,7 +2010,7 @@ endCpy:
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : L_LoadPalette                            *
+; * Method Name : L_loadAgaPalette                            *
 ; *-----------------------------------------------------------*
 ; * Description : This method is used to load, from an IFF    *
 ; * CMAP disk file, an existing aga color palette             *
@@ -1779,10 +2020,10 @@ endCpy:
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
-  Lib_Par      LoadPalette
+  Lib_Par      loadAgaPalette
     move.l    (a3)+,a4                 ; A4 = FileName
     ; ******** We check if the Color Palette index is in the correct range 0-7
-    CheckPaletteRange d3
+    CheckAGAPaletteRange d3
     move.l     d3,d4                   ; D4 = Current Color Palette (Save)
     ; ******** We check if the block to load the file was created or not.
     Rbsr       L_CreateIFFCmapBlock    ; Verify if the memory block for CMAP File is created
@@ -1817,7 +2058,7 @@ endCpy:
     Rbsr       L_CloseFile             ; Doc -> Close
     ; **************** Now We create the AGA color palette block if it does not exists.
     Move.l     d4,d3                   ; Restore AGA Color palette index into D3
-    Rbsr       L_LoadPaletteD3A0    ; A0 = Current Color Palette
+    Rbsr       L_LoadAgaPaletteD3A0    ; A0 = Current Color Palette
     move.l     #"CMAP",(a0)+
     move.l     T_AgaCMAPColorFile(a5),a1 ; A1 = Loaded color Map
     add.l      #aga_CMAP,a1            ; A1 to point to the CMAP Size
@@ -1857,7 +2098,7 @@ endCpy:
   Lib_Par      saveAgaPalette
     move.l    (a3)+,a4                 ; A4 = FileName
     ; ******** We check if the Color Palette index is in the correct range 0-7
-    LoadPalette d3,a0               ; A0 = CMAP buffer. Start with "CMAP" datas at index = 0
+    LoadAGAPalette d3,a0               ; A0 = CMAP buffer. Start with "CMAP" datas at index = 0
     Rbeq       L_agaErr4               ; If the color palette was not created -> Jump L_agaErr4 (AGA Color palette not previously created)
     ; ******** We check if the block to load the file was created or not.
     Rbsr       L_CreateIFFCmapBlock    ; Verify if the memory block for CMAP File is created
@@ -1895,7 +2136,7 @@ endCpy:
 ; * Return Value : -                                          *
 ; *************************************************************
   Lib_Par      setAgaPalette
-    LoadPalette d3,a2               ; A2 = CMAP buffer. Start with "CMAP" datas at index = 0
+    LoadAGAPalette d3,a2               ; A2 = CMAP buffer. Start with "CMAP" datas at index = 0
     Rbeq       L_agaErr4
     move.l     (a2)+,d0                ; D0 = CMAP header (is everything is ok)
     cmp.l      #"CMAP",d0              ; CMAP ? Ok ?
@@ -1977,7 +2218,7 @@ IfSc:
 ; * Return Value : -                                          *
 ; *************************************************************
   Lib_Par      getAgaPalette
-    LoadPalette d3,a0               ; A0 = CMAP buffer. Start with "CMAP" datas at index = 0
+    LoadAGAPalette d3,a0               ; A0 = CMAP buffer. Start with "CMAP" datas at index = 0
     Rbeq       L_agaErr4               ; If the color palette was not created -> Jump L_agaErr4 (AGA Color palette not previously created)
     move.l     (a0)+,d0                ; D0 should be = to "CMAP"
     Cmp.l      #"CMAP",d0
@@ -2264,7 +2505,7 @@ fap1:
     move.l     (a3)+,d0                ; D0 = Color Palette to use
     movem.l    d1-d4/a0-a2,-(sp)       ; Save Regsxm
     move.w     d3,T_FadeStep(a5)       ; D3 = Fading speed
-    LoadPalette d0,a0               ; A0 = CMAP buffer. Start with "CMAP" datas at index = 0
+    LoadAGAPalette d0,a0               ; A0 = CMAP buffer. Start with "CMAP" datas at index = 0
     Rbeq       L_agaErr4
     add.l      #8,a0                   ; A0 = 1st color index in the color palette
     move.l     a0,T_NewPalette(a5)     ; Store the new color palette into T_NewPalette data.

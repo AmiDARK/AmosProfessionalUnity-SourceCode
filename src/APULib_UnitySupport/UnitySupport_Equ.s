@@ -1,18 +1,18 @@
 ; ***************************** agaSupport.lib call
-AgaLibCallsr MACRO
+UnityLibCallsr MACRO
     move.l     T_AgaVect(a5),\2    ; This pointer is populated when the AgaSupport.lib is started
     jsr        \1*4(\2)
             ENDM
 
-AgaLibCall   MACRO
-    AgaLibCallsr \1,a2
+UnityLibCall   MACRO
+    UnityLibCallsr \1,a2
             ENDM
 
-AgaLibCallA0 MACRO
-    AgaLibCallsr \1,a0
+UnityLibCallA0 MACRO
+    UnityLibCallsr \1,a0
             ENDM
 
-AgaLibSecureSR MACRO
+UnityLibSecureSR MACRO
     move.l     T_AgaVect(a5),\2    ; This pointer is populated when the AgaSupport.lib is started
     cmp.l      #0,a2               ; was the Plugin initialized ?
     beq.s      .er\@               ; No -> Jump .erXX
@@ -23,15 +23,15 @@ AgaLibSecureSR MACRO
 .er\@:
             ENDM
 
-AgaLibSecure   MACRO
-    AgaLibSecureSR \1,a2
+UnityLibSecure   MACRO
+    UnityLibSecureSR \1,a2
             ENDM
 
-AgaLibSecureA0 MACRO
-    AgaLibSecureSR \1,a0
+UnityLibSecureA0 MACRO
+    UnityLibSecureSR \1,a0
             ENDM
 
-AgaLibNotInitialized MACRO
+UnityLibNotInitialized MACRO
     tst.l     T_AgaVect(a5)
     beq       \1
             ENDM
@@ -65,6 +65,7 @@ Zb         MACRO
 zCount         SET    zCount-(\2)
 R_\1           equ    zCount
            ENDM
+
 
 ; ***************************** AGA Rainbows structure definition.
     ZsReset

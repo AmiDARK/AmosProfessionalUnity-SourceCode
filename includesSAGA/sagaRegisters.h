@@ -15,8 +15,10 @@
 ;
     ; Chipset Base to add to chipset registers for direct writes
     ChipsetBase    equ     $dff000     ; This value must be added to chipset registers values for direct registers write
+
     ; This value must be added to the register values when long writes must be done inside a copperlist
     longWrite      equ     $008000     ; Used to long copper list instructions (instead of default word ones)
+
     ;
     BPLHMOD        equ     $0001e6     ; Chunky plane modulo
     SPRHPTH        equ     $0001e8     ; (Not documented) UHRes Sprite pointer (high 5 bits)
