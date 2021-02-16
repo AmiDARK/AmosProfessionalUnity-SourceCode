@@ -7988,11 +7988,11 @@ FsApp3:    cmp.w    d4,d6
 ; - - - - - - - - - - - - -
     Lib_Par FnColour
 ; - - - - - - - - - - - - -
-    tst.w    ScOn(a5)
-    Rbeq    L_ScNOp
+    tst.w     ScOn(a5)
+    Rbeq      L_ScNOp
     move.l    d3,d1
     EcCall    GCol
-    Rbne    L_EcWiErr
+    Rbne      L_EcWiErr
     move.l    d1,d3
     Ret_Int
 

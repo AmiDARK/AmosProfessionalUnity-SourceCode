@@ -10,7 +10,7 @@ IceStart
     clr.w    T_WVersion(a5)        Par defaut
     cmp.l    #"V2.0",d0        Le magic
     bne.s    .Nomagic
-    move.w    d1,T_WVersion(a5)    La version d'AMOS
+    move.w    d1,T_WVersion(a5)    La version d''AMOS
 .Nomagic
 
     lea    W_Base(pc),a0
@@ -58,7 +58,7 @@ StartAll
     move.l    a2,-(sp)            Palette par defaut
     move.l    a0,-(sp)
     
-; Attend que l'autre AMOS soit arrete! (si v2.0)
+; Attend que l''autre AMOS soit arrete! (si v2.0)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     cmp.w    #$0200,T_WVersion(a5)
     bcs.s    .No20_a
@@ -235,7 +235,7 @@ StartAll
     bsr        CpInit                  ; Setup Copper
     bsr        EcInit                  ; Setup Screens
     bsr        ampLib_Init             ; 2020.11.22 Setup AmosProLib_ExtractedMethods branchment list
-    bsr        colorSupport_Init       ; 2020.12.05 Setup for Advanced Color Support for Colors Datas Format Conversions
+;    bsr        colorSupport_Init       ; 2021.02.12 Removed // 2020.12.05 Setup for Advanced Color Support for Colors Datas Format Conversions
     bsr        SyInit                  ; System Setup
     bsr        VBLInit                 ; VBL Interrupts Setup 
     bsr        WiInit                  ; Windows Setup

@@ -1,5 +1,5 @@
 
-modeRgb12      equ     $0
+modeRgb12      equ     $00000000
 modeRgb24      equ     $01000000
 modeRgb15      equ     $02000000
 
@@ -21,7 +21,8 @@ ForceToRGB12   MACRO
     movem.l    a0,-(sp)                ; Save A0
     ColSupCallR CSSeparateRGBComponents,a0 ; Call method
     movem.l    (sp)+,a0                ; Load A0
-    move.l     T_rgb12High(a5),\2      ; Load RGB12 High bits into parameter 2
+    moveq      #0,\2
+    move.w     T_rgb12High(a5),\2      ; Load RGB12 High bits into parameter 2
     ENDM
 
 ForceToRGB24:  MACRO
@@ -47,7 +48,9 @@ getRGB12Datas  MACRO
     movem.l    a0,-(sp)                ; Save A0
     ColSupCallR CSSeparateRGBComponents,a0 ; Call method
     movem.l    (sp)+,a0                ; Load A0
-    move.l     T_rgb12High(a5),\2      ; Load RGB12 High bits into parameter 2
-    move.l     T_rgb12Low(a5),\3       ; Load RGB12 Low bits into parameter 3
+    moveq      #0,\2
+    moveq      #0,\3
+    move.w     T_rgb12High(a5),\2      ; Load RGB12 High bits into parameter 2
+    move.w     T_rgb12Low(a5),\3       ; Load RGB12 Low bits into parameter 3
     ENDM
 

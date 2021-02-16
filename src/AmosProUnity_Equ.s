@@ -46,6 +46,7 @@ DmaCon:        equ $96
 DmaConR:    equ $02
 
 Color00:    equ $180
+Color31     equ $1BE                 ; 2021.02.12 Re-Added for AGA Palette copy
 VhPosR:        equ $6
 
 ; Copper
@@ -68,6 +69,7 @@ Pot1Dat:    equ $14
 BplCon0:    equ $100
 BplCon1:    equ $102
 BplCon2:    equ $104
+BplCon3:    equ $106 ; 2021.02.12 Re-Added for Dual Playfield 2nd field color palette shifting + Sprites Res + Color palette
 Bpl1PtH:    equ $0e0
 Bpl1PtL:    equ $0e2
 Bpl1Mod:    equ $108
@@ -76,6 +78,8 @@ DiwStrt:    equ $08e
 DiwStop:    equ $090
 DdfStrt:    equ $092
 DdfStop:    equ $094
+FMode:      equ $1FC ; 2021.02.12 Re-Added for high resolutions Fetch Mode.
+
 
 ; Blitter
 BltSize:    equ $058
@@ -363,6 +367,20 @@ AddRoutine    equ 98        Ajoute une routine
 CallRoutines    equ 99        Appelle une liste de routines
 Request_OnOff    equ 100        Set requester AMOS/WB
 AMPResTempBuffer    equ 101             ; 2020.11.24 Moved to the Amos.library for easier moves of graphics functions like LoadIff
+
+; **************** 2021.02.12 Added SyCallA1
+SyCallA1:        MACRO
+        move.l    T_SyVect(a5),a1
+        jsr    \1*4(a1)
+        ENDM
+
+SyJmp:           MACRO
+        move.l    T_SyVect(a5),a0
+        jmp    \1*4(a0)
+        ENDM
+
+; **************** 2021.02.12 Added SyCallA1
+
 
 SyCall:        MACRO
         move.l    T_SyVect(a5),a0
@@ -654,11 +672,28 @@ ScCpyW        equ 73
 MaxRaw        equ 74
 NTSC        equ 75
 PourSli        equ 76
+GetScreen      equ 77                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
+CopperRelease  equ 78                  ; 2020.10.11 Added to allow patching of Amos Pro Copper List by a .lib initialization setup.
+CopperCreate   equ 79                  ; 2020.10.11 Added to allow patching of Amos Pro Copper List by a .lib initialization setup.
+BlitterWait    equ 80                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
+ScreenActive   equ 81                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
+IsScreenInterL equ 82                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
+ScreenDatDel   equ 83                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
+;SCol24Bits     equ 84                  ; 2020.08.31 Added to makes EcSCol being able to set full RGB24->RGB24
 
 EcCall:        MACRO
         move.l    T_EcVect(a5),a0
         jsr    \1*4(a0)
         ENDM
+
+; **************** 2021.02.12 Added EcCallA1
+EcCallA1:      MACRO
+        move.l    T_EcVect(a5),a1
+        jsr    \1*4(a1)
+        ENDM
+; **************** 2021.02.12 Added EcCallA1
+
+
 EcCalA:        MACRO
         lea    \2,a1
         move.l    T_EcVect(a5),a0

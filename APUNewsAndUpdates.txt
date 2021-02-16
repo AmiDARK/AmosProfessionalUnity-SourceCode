@@ -6,6 +6,18 @@ TO DO AFTER :
 - Create a compilation process that allow to load .ASCII, tokenise them (test) and then compiles them to .exe (like compiler) to make .ASCII being compilable from commons IDE.
 
 ; ************************************************************************
+; 2021.02.16
+- Checked RGB12/15/24 color conversion calls in AmosPro_UnitySupport.lib : Fixed
+- Amos Professional Unity Compilation & Run : Success
+- Color Conversion methods are now fully moved and calleable from AmosPro_UnitySypport.lib
+
+; ************************************************************************
+; 2021.02.15
+; Reinserted EcCallA1, SyCallA1 and SyJmp from previous AGA version.
+; Reinserted EcCall calls 77-84 from previous AGA version.
+; Reinserted FMODE, BplCon3 & Color31 registers variables.
+
+; ************************************************************************
 ; 2021.01.31
 - Moved AmosProUnityECS.library/colorSupport_Init inside AmosProUnitySupport.lib setup
 - Moved AmosProUnityECS.library/colorSupport_Functions list inside AmosProUnitySupport.lib
@@ -27,7 +39,6 @@ TO DO AFTER :
 ; ************************************************************************
 ; 2021.01.18
 - Updated AmosProUnityXXX.library internal structures to handle new UnitySupport.lib (replacement for previous AgaSupport.lib)
-
 
 ; ************************************************************************
 ; 2021.01.16

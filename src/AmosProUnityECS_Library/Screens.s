@@ -1023,35 +1023,6 @@ EcSCol:
 ; **************** 2020.12.05 Load the New method that handle various color data format ( RGB12, RGB15 and RGB24 )
     getRGB12Datas  d2,d2,d3
 ; **************** 2020.12.02 Check if color is sent using 12bits or 24bits. 24bits required to have $01000000 set - START
-;    btst       #24,d2                  ; Check if Bit 24 of d2 is set for RGB24 mode
-;    bne.s      .rgb24                  ; If we are with a RGB24 color value, we separate it in 2 RGB12 slot (Low & High bits)
-;; ******** Under RGB12 mode, copy RGB12 color from D2 (High Bits) to D3 (Low Bits)
-;    and.w      #$FFF,d2
-;    move.l     d2,d3                   ; D3 = D2 = R4G4B4
-;    bra        .updtCol                ; Directly jump to the update of the color registers and screen copper marks.
-;; ******** if data is send using 24 Bits, then we transform it into 12 bits data.
-;.rgb24:
-;    move.l     d2,d3                   ; D3 = D2 = RGB24 Color value
-;; ******** Calculate high bits of the RGB24 color palette
-;    and.l      #$F0F0F0,d2             ; d2 = ..R.G.B.
-;    moveq      #0,d0                   ; d0 = 0
-;    lsr.l      #4,d2                   ; d2 = ...R.G.B
-;    move.b     d2,d0                   ; d0 = .......B
-;    lsr.l      #4,d2                   ; d2 = ....R.G.
-;    or.b       d2,d0                   ; d0 = ......GB
-;    lsr.l      #4,d2                   ; d2 = .....R.G
-;    and.l      #$F00,d2                ; d2 = .....R..
-;    or.w       d0,d2                   ; d2 = .....RGB
-;; ******** Calculate low bits of the RGB24 color palette
-;    moveq      #0,d0                   ; d0 = 0
-;    and.l      #$0F0F0F,d3             ; d3 = ...R.G.B
-;    move.b     d3,d0                   ; d0 = .......B
-;    lsr.l      #4,d3                   ; d3 = ....R.G.
-;    or.b       d3,d0                   ; d0 = ......GB
-;    lsr.l      #4,d3                   ; d3 = .....R.G
-;    and.l      #$F00,d3                ; d3 = .....R..
-;    or.w       d0,d3                   ; d3 = .....RGB
-.updtCol:
     move.w     d2,EcPal(a0,d1.w)          ; Save High bits of the RGB24 color value
     move.l     a0,a1                      ; a1 = a0 = Screen pointer
     adda.l     #EcPalL,a1                 ; a1 = pointer to the low bits colors datas

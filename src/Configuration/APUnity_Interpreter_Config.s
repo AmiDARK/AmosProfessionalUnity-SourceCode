@@ -127,7 +127,7 @@ Txt1		EdT	1,<APUSystem/>
 		EdT	19,<>
 		EdT	20,<AmosProUnity_Compiler.Lib>
 		EdT	21,<AmosProUnity_IOPorts.Lib>
-		EdT	22,<>
+		EdT	22,<AmosPro_UnitySupport.lib>
 		EdT	23,<>
 		EdT	24,<>
 		EdT	25,<>

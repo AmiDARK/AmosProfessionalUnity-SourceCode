@@ -77,17 +77,14 @@ EcIn:
     bra    TMaxRaw        ;- MaxRaw        Maximum raw number
     bra    TNTSC        ;- NTSC        NTSC?
     bra    SliPour        ;- PourSli        Calculs slider
-
-
-; AGA Calls :
+    bra    EcGet                       ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
+    bra    CpEnd                       ; 2020.10.11 Added to allow patching of Amos Pro Copper List by a .lib initialization setup.
+    bra    CpInit                      ; 2020.10.11 Added to allow patching of Amos Pro Copper List by a .lib initialization setup.
+    bra    BlitWait                    ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
+    bra    Ec_Active                   ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
+    bra    InterPlus                   ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
+    bra    EcDDel                      ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
 ;    bra    EcSCol24Bits                ; 2020.08.31 Added to makes EcSCol being able to set full RGB24->RGB24
-;    bra    CpEnd                       ; 2020.10.11 Added to allow patching of Amos Pro Copper List by a .lib initialization setup.
-;    bra    CpInit                      ; 2020.10.11 Added to allow patching of Amos Pro Copper List by a .lib initialization setup.
-;    bra    BlitWait                    ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
-;    bra    Ec_Active                   ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
-;    bra    InterPlus                   ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
-;    bra    EcDDel                      ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
-;    bra    EcGet                       ; 2020.10.11 Added to allow it to be callable from Amos Pro .lib plugins
 ***********************************************************
 *    Instructions de gestion des ecrans
 ***********************************************************

@@ -1,0 +1,5 @@
+echo "***Assembling AMOSPro_UnitySupport.Lib"
+c/Library_Digest src/APULib_UnitySupport/UnitySupport_lib.s
+c/Genam FROM src/APULib_UnitySupport/UnitySupport_lib.s TO AmosProfessionalUnity/APUSystem/AMOSPro_UnitySupport.Lib
+delete >NIL: src/APULib_UnitySupport/UnitySupport_lib_Labels.s
+delete >NIL: src/APULib_UnitySupport/UnitySupport_lib_Size.s

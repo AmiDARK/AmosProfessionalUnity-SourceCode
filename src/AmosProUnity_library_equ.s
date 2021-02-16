@@ -368,24 +368,24 @@ FFkLong        equ     24
 
 ; Previous Amos Pro Aga version color palettes datas :
 ;*************** Global Aga Palette
-;agaPalCnt      equ 8                   ; Define the maximum of Aga color palette that can be created.
-;        Rw     isAga,1                 ; 2019.11.30 Will be set (<>0) if Aga Chipset is detected
-;        Rl     AgaColorPals,agaPalCnt  ; 2019.12.04 8 registers to store 8 color palettes lists in RGB25 format
-;        Rl     AgaCMAPColorFile,1      ; 2020.09.17 Added to store (at max) a full IFF/ILBM Color map file.
-;        Rl     AgaColor1,1             ; 2019.11.24 Saved for AGA Color palette 1 Higher Bits
-;        Rl     AgaColor2,1             ; 2019.11.24 Saved for AGA Color palette 2 Higher Bits
-;        Rl     Null1,1
-;        Rl     AgaColor1L,1            ; 2020.08.13 Saved for AGA Color palette 1 Lower Bits
-;        Rl     AgaColor2L,1            ; 2020.08.13 Saved for AGA Color palette 2 Lower Bits
-;        Rl     Null2,1
-;        Rw     globAgaPal,224          ; 2019.11.16 Adding global AGA Palette colors from 32 to 255
-;        Rw     Separator,1
-;        Rw     globAgaPalL,224         ; 2020.08.13 Adding low registers of AGA Palette. Storing 24 bit
-;        Rw     Separator2,1
-;        Rb     agaPalLoad,1024         ; 2020.09.17 Load Aga Palette Here
+PalCnt      equ 8                   ; Define the maximum of Aga color palette that can be created.
+        Rw     isAga,1                 ; 2019.11.30 Will be set (<>0) if Aga Chipset is detected
+        Rl     ColorPals,PalCnt        ; 2019.12.04 8 registers to store 8 color palettes lists in RGB25 format
+        Rl     CMAPColorFile,1         ; 2020.09.17 Added to store (at max) a full IFF/ILBM Color map file.
+        Rl     AgaColor1,1             ; 2019.11.24 Saved for AGA Color palette 1 Higher Bits
+        Rl     AgaColor2,1             ; 2019.11.24 Saved for AGA Color palette 2 Higher Bits
+        Rl     Null1,1
+        Rl     AgaColor1L,1            ; 2020.08.13 Saved for AGA Color palette 1 Lower Bits
+        Rl     AgaColor2L,1            ; 2020.08.13 Saved for AGA Color palette 2 Lower Bits
+        Rl     Null2,1
+        Rw     globAgaPal,224          ; 2019.11.16 Adding global AGA Palette colors from 32 to 255
+        Rw     Separator,1
+        Rw     globAgaPalL,224         ; 2020.08.13 Adding low registers of AGA Palette. Storing 24 bit
+        Rw     Separator2,1
+        Rb     agaPalLoad,1024         ; 2020.09.17 Load Aga Palette Here
 ;*************** Global Aga Rainbow systems
-;agaRainCnt     equ 4                   ; 2020.10.02 Define the maximum of AGA Rainbows that can be created.
-;        Rl     AgaRainbows,agaRainCnt  ; 2020.10.02 Pointers for the AGA Rainbows buffers
+agaRainCnt     equ 4                   ; 2020.10.02 Define the maximum of AGA Rainbows that can be created.
+        Rl     AgaRainbows,agaRainCnt  ; 2020.10.02 Pointers for the AGA Rainbows buffers
 
 
 *************** Longueur de la structure W.S
