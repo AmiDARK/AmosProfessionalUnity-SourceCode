@@ -22,7 +22,7 @@ Except_Signal    equ    26
 * about the functions of the amos.library.
 ***********************************************************
 *     Only for multi-lingual readers: half english
-* half french. That's Europe!
+* half french. That''s Europe!
 ***********************************************************
 
 BFORM_ILBM    equ    %00000001
@@ -359,7 +359,7 @@ MemFastClear    equ 90
 MemChipClear    equ 91
 MemFast        equ 92
 MemChip        equ 93
-Send_FakeEvent    equ 94        Envoi d'un faux event clavier
+Send_FakeEvent    equ 94        Envoi d''un faux event clavier
 Test_Cyclique    equ 95        Tests cyclique AMOS
 AddFlushRoutine    equ 96        Ajoute une routine flush
 MemFlush    equ 97        Force un flush memoire
@@ -468,7 +468,6 @@ BbLong:        equ __RS
 BitHide:       equ 7
 BitClone:      equ 6
 BitDble:       equ 5
-EcMaxPlans     equ 6                   ; 6 Plans pour le moment!
 
         RsReset
 ; ******** Bitmap address
@@ -578,9 +577,14 @@ EcH8Logic:     rs.l 8                  ; Define the non displayed bitmaps for IF
 EcLogicPIP:    rs.l 1                  ; Define the non displayed PIP screen (double buffer) or a copy of EcPhysicPIP (single buffer) [Saga Only]
 EcPhysicPIP:   rs.l 8                  ; Define the visible chunky of the PIP screen [Saga Only]
 EcCurrentPIP:  rs.l 8                  ; Define the current chunky of the PIP screen [Saga Only]
+EcTxPIP:       rs.w 1
+EcTyPIP        rs.w 1
+;
 EcLogicChunky: rs.l 1                  ; Define the non displayed Chunky screen (double buffer) or a copy of EcPhysicChunky (single buffer) [Saga Only]
 EcPhysicChunky: rs.l 8                 ; Define the visible chunky of the Chunky screen [Saga Only]
 EcCurrentChunky: rs.l 8                ; Define the current chunky of the Chunky screen [Saga Only]
+EcTxChunky:     rs.w 1
+EcTyChunky:     rs.w 1
 EcChunkyPalette: rs.l 256              ; The 256 colors palette for the Chunky screen
 
 ; Length of a screen

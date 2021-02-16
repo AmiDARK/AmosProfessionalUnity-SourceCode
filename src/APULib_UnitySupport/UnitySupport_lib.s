@@ -482,20 +482,20 @@ C_Lib
 ;
 ; Here I store the address of the extension data zone in the special area
 ; Here I store the address of the extension data zone in the special area
-;    lea        UnityDatas(pc),a3
-;    move.l     a3,ExtAdr+ExtNb*16(a5)
+    lea        UnityDatas(pc),a3
+    move.l     a3,ExtAdr+ExtNb*16(a5)
 ;
 ; Here, I store the address of the routine called by DEFAULT, or RUN
-;    lea        UnitySupportDef(pc),a0
-;    move.l     a0,ExtAdr+ExtNb*16+4(a5)
+    lea        UnitySupportDef(pc),a0
+    move.l     a0,ExtAdr+ExtNb*16+4(a5)
 ;
 ; Here, the address of the END routine,
-;    lea        UnitySupportEnd(pc),a0
-;    move.l     a0,ExtAdr+ExtNb*16+8(a5)
+    lea        UnitySupportEnd(pc),a0
+    move.l     a0,ExtAdr+ExtNb*16+8(a5)
 ;
 ; And now the Bank check routine..
-;    lea        BkCheck(pc),a0
-;    move.l     a0,ExtAdr+ExtNb*16+12(a5)
+    lea        BkCheck(pc),a0
+    move.l     a0,ExtAdr+ExtNb*16+12(a5)
 ; You are not obliged to store something in the above areas, you can leave
 ; them to zero if no routine is to be called...
 
@@ -506,8 +506,8 @@ C_Lib
     moveq      #0,d0
 
 
-;    lea        UnityVectors(pc),a0
-;    move.l     a0,T_UnityVct(a5)
+    lea        UnityVectors(pc),a0
+    move.l     a0,T_UnityVct(a5)
 
 ; As you can see, you MUST preserve A3-A6, and return in D0 the 
 ; Number of the extension if everything went allright. If an error has
@@ -551,7 +551,7 @@ BadVer:
 ; * Return Value : -                                          *
 ; *************************************************************
 UnitySupportDef:
-    Dload a3
+    Dload    a3
     rts
 
 ;

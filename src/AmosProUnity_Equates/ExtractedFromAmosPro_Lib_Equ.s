@@ -41,6 +41,7 @@ A_ResBank              equ  36
 A_InSPack6             equ  37
 A_InRain               equ  38
 A_FnRain               equ  39
+A_PalRout              equ  40
 
 ; ************************************************************
 ; Function to use to call the methods.
@@ -59,10 +60,10 @@ AmpLCalD:        MACRO
         jsr       \1*4(a0)
         ENDM
 AmpLCal2:        MACRO
-        moveq    #\2,d1
+        moveq     #\2,d1
         move.l    #\3,a1
         move.l    T_AmpLVect(a5),a0
-        jsr    \1*4(a0)
+        jsr       \1*4(a0)
         ENDM
 AmpLCallR:        MACRO
         move.l    T_AmpLVect(a5),\2

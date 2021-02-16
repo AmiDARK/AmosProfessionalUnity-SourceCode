@@ -5,14 +5,30 @@ Rainbow RGB24 Bits color support :
 TO DO AFTER :
 - Create a compilation process that allow to load .ASCII, tokenise them (test) and then compiles them to .exe (like compiler) to make .ASCII being compilable from commons IDE.
 
+Issues :
+- Sprite bank erase CRASH.
+- Amos Lock CRASH
+
 ; ************************************************************************
 ; 2021.02.16
 - Checked RGB12/15/24 color conversion calls in AmosPro_UnitySupport.lib : Fixed
+- Added AmosPro_UnitySupport.lib to the EditorInterpreter configuration creation process
+- Re-inserted AmosPro_UnitySupport.lib in the full Build process
 - Amos Professional Unity Compilation & Run : Success
-- Color Conversion methods are now fully moved and calleable from AmosPro_UnitySypport.lib
+- Color Conversion methods are now fully moved and calleable from AmosPro_UnitySupport.lib
+---
+- Due to a crash encountered using many sprites/bobs/icons, restored original AmosProUnity_Lib.s
+- Updated A_BnkEffA0 and A_BnkEffBobA0 to fix issues (Crash)
+- Reintegration of AmpLCallR calls : A_SHunk, A_Bnk.SaveA0, A_BnkEffA0, A_BnkEffBobA0 A_BnkReserveIC2 and A_BnkUnRev
+- Reintegration of AmpLCallR calls : A_IffFormLoad, A_IffFormSize, A_IffRead, A_IffSeek, A_IffForm, A_IffFormPlay and A_IffSaveScreen
+- Reintegration of AmpLCallR calls : A_InScreenOpen, InScreenDisplay, A_ScreenCopy0 and A_GetEc
+- Reintegration of AmpLCallR calls : A_PalRout, A_InGetPalette2 and A_GSPal
+- Reintegration of AmpLCallR calls : A_InRain and A_FnRain
+- Reintegration of AmpLCallR calls : A_InPen, A_WnPp and A_GoWn
+- Reintegration of AmpLCallR calls : A_UnPack_Screen and A_UnPack_Bitmap
 
 ; ************************************************************************
-; 2021.02.15
+; 2021.02.12
 ; Reinserted EcCallA1, SyCallA1 and SyJmp from previous AGA version.
 ; Reinserted EcCall calls 77-84 from previous AGA version.
 ; Reinserted FMODE, BplCon3 & Color31 registers variables.

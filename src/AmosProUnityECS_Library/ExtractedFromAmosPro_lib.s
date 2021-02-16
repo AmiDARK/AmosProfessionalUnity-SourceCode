@@ -59,6 +59,7 @@ amosprolib_functions:
     bra        AMP_InSPack6            ;  37 A_InSPack6
     bra        AMP_InRain              ;  38 A_InRain
     bra        AMP_FnRain              ;  39 A_FnRain
+    bra        AMP_PalRout             ;  40 A_PalRout
 
 ;   bra        .........
     dc.l       0
@@ -1268,27 +1269,27 @@ AMP_InGetPalette2:
 ;    bra        AMP_GSPal
 ; **************************************************************************************************
 AMP_GSPal:
-    bsr        PalRout
+    bsr        AMP_PalRout
     EcCall     SPal
     bne        EcWiErr
     rts
 ; **************************************************************************************************
-PalRout:
+AMP_PalRout:
     tst.w      ScOn(a5)
     beq        ScNOp
     move.l     Buffer(a5),a1
     moveq      #0,d0
-PalR1:
+.PalR1:
     move.w     #$FFFF,(a1)
     btst       d0,d3
-    beq.s      PalR2
+    beq.s      .PalR2
     move.w     (a0),(a1)
-PalR2:
+.PalR2:
     addq.l     #2,a0
     addq.l     #2,a1
     addq.w     #1,d0
     cmp.w      #32,d0
-    bcs.s      PalR1
+    bcs.s      .PalR1
     move.l     Buffer(a5),a1
     rts
 
@@ -1862,9 +1863,6 @@ AMP_BnkUnRev:
     rts
 
 
-
-
-
 ; *************************************************************************
 AMP_BnkReserveIC2:
 ; - - - - - - - - - - - - -
@@ -2014,6 +2012,7 @@ AMP_BnkEffA0:
 ;                     EFFACEMENT BOBS/ICONS A0=Adresse
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AMP_BnkEffBobA0:
+    movem.l    a0/a1/a2/d0/d1,-(sp)
     move.l     a0,a2
 ; Efface le bob
     move.l     (a2),d1
@@ -2035,6 +2034,7 @@ AMP_BnkEffBobA0:
 .No2:
     clr.l      (a2)+
     clr.l      (a2)+
+    movem.l (sp)+,a0/a1/a2/d0/d1
     rts
 
 

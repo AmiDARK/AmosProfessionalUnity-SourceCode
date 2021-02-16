@@ -3776,7 +3776,7 @@ AskD:    move.l    a0,HiChaine(a5)
 ;                     SAUVE HUNK BANQUE D0
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    SHunk
-    AmpLCallR  A_SHunk,a1
+    AmpLCallR  A_SHunk,a1 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - -
@@ -3886,7 +3886,9 @@ AskD:    move.l    a0,HiChaine(a5)
 ;                     Sauve la banque A0
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.SaveA0
-    AmpLCallR  A_Bnk.SaveA0,a1
+    movem.l    a2,-(sp)
+    AmpLCallR  A_Bnk.SaveA0,a2 ; 2021.02.16 Updated (a2 save) and ReTested OK
+    movem.l    (sp)+,a2
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -6741,7 +6743,7 @@ FsApp3:    cmp.w    d4,d6
 ;    Sauver D5-D7 dans SaveRegs
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    IffFormLoad
-    AmpLCallR  A_IffFormLoad,a2
+    AmpLCallR  A_IffFormLoad,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -6750,20 +6752,20 @@ FsApp3:    cmp.w    d4,d6
 ;    D5=    Handle fichier
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    IffFormSize
-    AmpLCallR A_IffFormSize,a2
+    AmpLCallR A_IffFormSize,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Lecture pour IFF
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    IffRead
-     AmpLCallR A_IffRead,a2
+     AmpLCallR A_IffRead,a2 ; 2021.02.16 ReTested OK
     rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Seek pour IFF
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    IffSeek
-     AmpLCallR A_IffSeek,a2
+     AmpLCallR A_IffSeek,a2 ; 2021.02.16 ReTested OK
     rts
     
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -6780,7 +6782,7 @@ FsApp3:    cmp.w    d4,d6
 ;    D7=    Nombre de formes
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    IffForm
-    AmpLCallR A_IffForm,a2
+    AmpLCallR A_IffForm,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -6790,14 +6792,14 @@ FsApp3:    cmp.w    d4,d6
 ;    D6=     Adresse à voir
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    IffFormPlay
-    AmpLCallR  A_IffFormPlay,a2
+    AmpLCallR  A_IffFormPlay,a2 ; 2021.02.16 ReTested OK
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Sauvegarde d''ecran IFF
 ;    D7    Compression
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    IffSaveScreen
-    AmpLCallR  A_IffSaveScreen,a2
+    AmpLCallR  A_IffSaveScreen,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -6954,9 +6956,7 @@ FsApp3:    cmp.w    d4,d6
 ;                     EFFACEMENT BANQUE A0=Adresse
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.EffA0
-    move.l     a1,-(sp)
-    AmpLCallR  A_BnkEffA0,a1
-    move.l     (sp)+,a1
+    AmpLCallR  A_BnkEffA0,a2 ; 2021.02.16 Updated and ReTested OK
     rts
 ; - - - - - - - - - - - - -
 
@@ -6964,9 +6964,9 @@ FsApp3:    cmp.w    d4,d6
 ;                     EFFACEMENT BOBS/ICONS A0=Adresse
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.EffBobA0
-    movem.l    a0/a1/a2/d0/d1,-(sp)
-    AmpLCallR  A_BnkEffBobA0,a1
-    movem.l    (sp)+,a0/a1/a2/d0/d1
+    movem.l    a2,-(sp)
+    AmpLCallR  A_BnkEffBobA0,a2 ; 2021.02.16 Updated and ReTested OK
+    movem.l    (sp)+,a2
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7100,7 +7100,7 @@ FsApp3:    cmp.w    d4,d6
     Rbra    L_Bnk.Ric2
 ; - - - - - - - - - - - - -
     Lib_Def    Bnk.Ric2
-    AmpLCallR  A_BnkReserveIC2,a2
+    AmpLCallR  A_BnkReserveIC2,a2 ; 2021.02.16 ReTested OK
     movem.l    (sp)+,d2-d7/a2-a3
     tst.w      d0
     rts
@@ -7280,10 +7280,12 @@ FsApp3:    cmp.w    d4,d6
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-;                     REMET LES BOBS DROITS BANQUE A0
+;                   REMET LES BOBS DROITS BANQUE A0
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Lib_Def    Bnk.UnRev
-    AmpLCallR  A_BnkUnRev,a1
+    Lib_Def Bnk.UnRev
+    movem.l     a2,-(sp)
+    AmpLCallR   A_BnkUnRev,a2
+    movem.l     (sp)+,a2
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7773,7 +7775,7 @@ FsApp3:    cmp.w    d4,d6
 ;                     SCREEN OPEN
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InScreenOpen
-    AmpLCallR  A_InScreenOpen,a2
+    AmpLCallR  A_InScreenOpen,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7801,7 +7803,7 @@ FsApp3:    cmp.w    d4,d6
 ;                     SCREEN DISPLAY
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InScreenDisplay
-    AmpLCallR  A_InScreenDisplay,a2
+    AmpLCallR  A_InScreenDisplay,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -8048,38 +8050,16 @@ FsApp3:    cmp.w    d4,d6
     Rbra    L_InGetPalette2
 ; - - - - - - - - - - - - -
     Lib_Par InGetPalette2
-    AmpLCallR  A_InGetPalette2,a2
-;; - - - - - - - - - - - - -
-;    move.l    (a3)+,d1
-;    Rbsr    L_GetEc
-;    lea    EcPal(a0),a0
-;    Rbra    L_GSPal
+    AmpLCallR  A_InGetPalette2,a2 ; 2021.02.16 ReTested OK
     rts
 ;; - - - - - - - - - - - - -
     Lib_Def    GSPal
-    AmpLCallR  A_GSPal,a2
-; - - - - - - - - - - - - -
-;    Rbsr    L_PalRout
-;    EcCall    SPal
-;    Rbne    L_EcWiErr
+    AmpLCallR  A_GSPal,a2 ; 2021.02.16 ReTested OK
     rts
 ;; - - - - - - - - - - - - -
     Lib_Def    PalRout
 ;; - - - - - - - - - - - - -
-;    tst.w    ScOn(a5)
-;    Rbeq    L_ScNOp
-;    move.l    Buffer(a5),a1
-;    moveq    #0,d0
-;PalR1:    move.w    #$FFFF,(a1)
-;    btst    d0,d3
-;    beq.s    PalR2
-;    move.w    (a0),(a1)
-;PalR2:    addq.l    #2,a0
-;    addq.l    #2,a1
-;    addq.w    #1,d0
-;    cmp.w    #32,d0
-;    bcs.s    PalR1
-;    move.l    Buffer(a5),a1
+    AmpLCallR  A_PalRout,a2 ; 2021.02.16 Tested OK.
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -8205,6 +8185,7 @@ ShD3:    move.l    (a3)+,d2
     EcCall    RainDel
     Rbne    L_EcWiErr
     rts
+
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     =RAIN=
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -8212,14 +8193,14 @@ ShD3:    move.l    (a3)+,d2
 ; - - - - - - - - - - - - -
     move.l    (a3)+,d2
     move.l    (a3)+,d1
-    AmpLCallR A_InRain,a0
+    AmpLCallR A_InRain,a0 ; 2021.02.16 ReTested OK
     rts
 ; - - - - - - - - - - - - -
     Lib_Par FnRain
 ; - - - - - - - - - - - - -
     move.l    d3,d2
     move.l    (a3)+,d1
-    AmpLCallR A_FnRain,a0
+    AmpLCallR A_FnRain,a0 ; 2021.02.16 ReTested OK
     Ret_Int
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -9111,7 +9092,7 @@ ScNoDef    moveq    #28,d0
 ;                     Routine SCREEN COPY
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Sco0
-    AmpLCallR  A_ScreenCopy0,a2
+    AmpLCallR  A_ScreenCopy0,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -9998,7 +9979,7 @@ GfxF2    jsr    (a3)
 ;                     Routine: #ecran D1 >>> adresse D0
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    GetEc
-    AmpLCallR  A_GetEc,a2
+    AmpLCallR  A_GetEc,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -11324,11 +11305,11 @@ FHc1    move.w    d3,d1
     Lib_Def    GI
 ; - - - - - - - - - - - - -
     move.l    (a3),d0
-    Rble    L_FonCall
-    Rbsr    L_Bnk.AdIcon
+    Rble      L_FonCall
+    Rbsr      L_Bnk.AdIcon
     beq.s    .New
     move.l    a0,a2
-    Rbsr    L_Bnk.EffBobA0
+    Rbsr      L_Bnk.EffBobA0
     bra.s    .Suite
 ; Appelle l''agrandissement (soit pas banque, soit trop grand)
 .New    moveq    #1,d0            Recopier la banque
@@ -11999,11 +11980,11 @@ ChPap    dc.b 27,"B0",0
 ;                     PEN
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par InPen
-    AmpLCallR  A_InPen,a2
+    AmpLCallR  A_InPen,a2 ; 2021.02.16 ReTested OK
     rts
 ; - - - - - - - - - - - - -
     Lib_Def    WnPp
-    AmpLCallR  A_WnPp,a2
+    AmpLCallR  A_WnPp,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -12232,7 +12213,7 @@ ChSTa:    dc.b 27,"T0",0
 ;                     Envoie a la trappe
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    GoWn
-    AmpLCallR  A_GoWn,a2
+    AmpLCallR  A_GoWn,a2 ; 2021.02.16 ReTested OK
     rts
 
 
@@ -24144,7 +24125,7 @@ UPile:    equ 20
 ;
 ; - - - - - - - - - - - - -
     Lib_Def    UnPack_Screen
-    AmpLCallR  A_UnPack_Screen,a2
+    AmpLCallR  A_UnPack_Screen,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; _________________________________________________
@@ -24160,7 +24141,7 @@ UPile:    equ 20
 ;
 ; - - - - - - - - - - - - -
     Lib_Def    UnPack_Bitmap
-    AmpLCallR  A_UnPack_Bitmap,a2
+    AmpLCallR  A_UnPack_Bitmap,a2 ; 2021.02.16 ReTested OK
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

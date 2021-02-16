@@ -2897,32 +2897,39 @@ AssInst:
     dc.b       "c:assign",0
 AssCall:
     dc.b       "c:assign ",0 
+; System Association updated to Unity mode
 Ass0:
     dc.b       "AMOSProUnity_System:",0
     dc.b       0
-Ass1:
-    dc.b       "AMOSProUnity_Accessories:",0
-    dc.b       "APUAccessories",0
-Ass2:
-    dc.b       "AMOSProUnity_Productivity1:",0
-    dc.b       "APUProductivity",0
-Ass3:
-    dc.b       "AMOSProUnity_Productivity2:",0
-    dc.b       "APUProductivity",0
-Ass4:
-    dc.b       "AMOSProUnity_Tutorial:",0
-    dc.b       "APUTutorial",0
-Ass5:
-    dc.b       "AMOSProUnity_Examples:",0
-    dc.b       "APUExamples",0
+; Compiler Association updated to Unity mode
 Ass6:
     dc.b       "AMOSProUnity_Compiler:",0
     dc.b       "APUCompiler",0
+; General Association remains unchanged as they contain original Amos Professional (compatibles) datas
+Ass1:
+    dc.b       "AMOSPro_Accessories:",0
+    dc.b       "Accessories",0
+Ass2:
+    dc.b       "AMOSPro_Productivity1:",0
+    dc.b       "Productivity",0
+Ass3:
+    dc.b       "AMOSPro_Productivity2:",0
+    dc.b       "Productivity",0
+Ass4:
+    dc.b       "AMOSPro_Tutorial:",0
+    dc.b       "Tutorial",0
+Ass5:
+    dc.b       "AMOSPro_Examples:",0
+    dc.b       "Examples",0
 Ass7:
-    dc.b       "AMOSProUnity_Extras:",0
-    dc.b       "APUExtras",0
+    dc.b       "AMOSPro_Extras:",0
+    dc.b       "Extras",0
 AssCon:
     dc.b       "NIL:",0
+
+
+
+
 
 ;        Messages d''erreur d''alerte
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

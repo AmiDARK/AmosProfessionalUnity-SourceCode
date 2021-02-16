@@ -24,6 +24,9 @@
 ; EcLibre =                 D1(ScreenID) = Next Free Screen()
 ; WScCpy =                  Screen copy a0(Source),d0(X),d1(Y),d4(Width),d5(Height) to a1(Destination),d2(X),d3(Y),d6(Minterm)
 
+EcMaxPlans     equ 6                   ; 6 Plans pour le moment! ECS Mode
+
+
 ******* SCREEN SWAP D1
 ******* SCREEN SWAP D1
 ScSwap: movem.l d1-d7/a1-a6,-(sp)

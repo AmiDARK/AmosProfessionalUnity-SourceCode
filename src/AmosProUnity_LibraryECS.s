@@ -32,8 +32,6 @@ EZFlag        equ     0
         Include "src/AmosProUnity_Debug.s"
         Include "src/AMOS_Includes.s"
 
- ;       Include "src/AMOSProAGA_Plugins/ScreensReplacement_Equ.s"
- ;       Include "src/Lib_AgaSupport/AgaSupport_Equ.s"
 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Version    MACRO
@@ -4128,15 +4126,15 @@ WErF:    move.l    (sp)+,d0
     movem.l    (sp)+,d1-d7/a1-a6
     rts
 
-    include "src/AmosProUnityAGA_library/Requesters.s"
+    include "src/AmosProUnityECS_library/Requesters.s"
 
     include "src/AmosProUnityECS_library/ExtractedFromAmosPro_lib.s"
 
 ***********************************************************
 
-    include "src/AmosProUnityAGA_library/BraList_Controls.s"
+    include "src/AmosProUnityECS_library/BraList_Controls.s"
 
-    include "src/AmosProUnityAGA_library/BraList_Escapes.s"
+    include "src/AmosProUnityECS_library/BraList_Escapes.s"
 
 
 ***********************************************************

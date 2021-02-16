@@ -5443,7 +5443,8 @@ IFat2    moveq    #-1,d3
     move.l    a0,-(sp)
     bsr    Fn_New_Expentier
     move.l    (sp)+,a0
-IFat3    Rjsr    L_PalRout
+IFat3:
+    Rjsr    L_PalRout
     bra.s    IFadT
 * FADE palette
 IFaPal    moveq    #15,d0
