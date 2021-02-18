@@ -4471,7 +4471,7 @@ Ed_DoQuit
     move.l    #1006,d2
     bsr    Ed_Open
     beq    .Err
-; Place pour l'entete + longueur
+; Place pour l''entete + longueur
     move.l    Buffer(a5),a3
     clr.l    (a3)
     clr.l    4(a3)
@@ -4518,7 +4518,7 @@ Ed_DoQuit
     moveq    #8,d3
     bsr    Ed_Write
     bne.s    .Err
-; On s'en va!
+; On s''en va!
     bsr    Ed_Close
     bsr    Ed_AllAverFin
     bra    Ed_System
@@ -4580,32 +4580,36 @@ Ed_QuitOptions
 
 ; About
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Ed_About
-    JLea    L_VersionN,a0
-    bsr    Ed_DChaine
+Ed_About:
+   JLea      L_VersionN,a0
+    bsr       Ed_DChaine
     move.l    Ed_VDialogues(a5),a2
     move.l    a1,0*4(a2)
-    lea    AdTokens+4(a5),a0    Compte les extensions
-    moveq    #26-1,d0
-    moveq    #0,d2
-.Cpt    tst.l    (a0)+
+    lea       AdTokens+4(a5),a0    Compte les extensions
+    moveq     #26-1,d0
+    moveq     #0,d2
+.Cpt:
+    tst.l    (a0)+
     beq.s    .PaE
     addq.w    #1,d2
-.PaE    dbra    d0,.Cpt
+.PaE:
+    dbra    d0,.Cpt
     move.l    d2,1*4(a2)
-    JLea    L_UserReg,a0        Registration #
-    move.l    Name2(a5),a1
-    moveq    #$73,d0
-    JJsrP    L_Sys_UnCode,a2
-    move.l    a1,3*4(a2)
-    lea    16(a0),a0        Registred user
-    lea    16(a1),a1
-    move.b    #$A5,d0
-    JJsrP    L_Sys_UnCode,a2
-    move.l    a1,2*4(a2)
+
+;    J*Lea    L_UserReg,a0        Registration #
+;    move.l    Name2(a5),a1
+;    moveq    #$73,d0
+;    J*Jsr*P    L_Sys_UnCode,a2
+;    move.l    a1,3*4(a2)
+;    lea    16(a0),a0        Registred user
+;    lea    16(a1),a1
+;    move.b    #$A5,d0
+;    J*Jsr*P    L_Sys_UnCode,a2
+;    move.l    a1,2*4(a2)
     moveq    #EdD_Title,d0
     bsr    Ed_Dialogue
     rts
+
 
 ; About extensions
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -4709,7 +4713,7 @@ Ed_Infos
 ; __________________________________________________________________________
 ;
 ;
-; Chargement/Effacement de la banque de resource (pas de gestion d'erreurs)
+; Chargement/Effacement de la banque de resource (pas de gestion des erreurs)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ed_ResourceLoad
 ; Charge la banque
@@ -4744,7 +4748,7 @@ Ed_ResourceFree
     moveq    #6,d0
     JJsr    L_Bnk.Eff
     rts
-; Change la palette de couleur en fonction des prefs de l'éditeur
+; Change la palette de couleur en fonction des prefs de l''éditeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 EdC_SetPalette
     move.l    Ed_Resource(a5),d0
@@ -4760,7 +4764,7 @@ EdC_SetPalette
     dbra    d0,.Copy
 .Skip    rts
 
-; Chargement/Effacement de la banque de samples (pas de gestion d'erreurs)
+; Chargement/Effacement de la banque de samples (pas de gestion d''erreurs)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ed_SamChanged
     bsr    Ed_SetBanks
@@ -4844,7 +4848,7 @@ Ed_SamPlay
 ; ___________________________________________________________________
 ;
 
-; Met les banques de mémoire/dialogue de l'éditeur
+; Met les banques de mémoire/dialogue de l''éditeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ed_SetBanks    
     move.l    a0,-(sp)
@@ -4931,7 +4935,7 @@ EdC_LoadIt
 .Err    move.w    #139,d0
     bra    Ed_Al100
 
-; Redessin de TOUT l'editeur en cas de changement de config
+; Redessin de TOUT l''editeur en cas de changement de config
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 EdC_Redraw
     bsr    Ed_SamChanged
@@ -4959,7 +4963,7 @@ EdC_Saved
 ;
 ; Chargement de la configuration A0
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-EdC_Load
+EdC_Load:
     move.l    #1005,d2
     bsr    Ed_Open
     beq    .DErr
@@ -4994,6 +4998,7 @@ EdC_Load
     lea    Ed_Messages(a5),a0
     bsr    EdC_LoadTextes
     bne    EdC_Out
+    bsr    UpdateAboutChipset              ; 2021.02.18 Call the method to update the CHIPSET view in the About popup
 ; Charge les messages erreur TEST TIME
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     lea    Ed_TstMessages(a5),a0
@@ -5046,6 +5051,64 @@ EdC_Load
 ; Bad config
 .Err2    moveq    #2,d0
     bra    EdC_Out
+
+AboutECS:
+  dc.b    "ECS/OCS  ",0
+AboutAGA:
+  dc.b    "AGA      ",0
+AboutSAGA:
+  dc.b    "SAGA     ",0
+; ******** 2021.02.18 Patch Editor popup to tell us on which configuration we run the editor
+; ** 1. Try to detect the "*CHIP*" datas inside the dialogues for the About popup.
+UpdateAboutChipset:
+    movem.l   d0/a0/a2,-(sp)
+    move.l    Ed_Messages(a5),a2
+    move.l    #4096,d0
+.continue:
+    cmp.b     #"*",(a2)+
+    beq.s     .isFound
+    add.l     #1,a2
+    dbra      d0,.continue
+    bra.s     .isEnded        ; if not found, we do not patch.
+; ** 2 Security check to be sure it is the correct word that was found.
+.isFound:
+    cmp.b     #"C",(a2)+
+    bne.s     .continue
+    cmp.b     #"H",(a2)+
+    bne.s     .continue
+    cmp.b     #"I",(a2)+
+    bne.s     .continue
+    cmp.b     #"P",(a2)
+    bne.s     .continue
+    sub.l     #4,a2
+; ** 3. Dialog is found, we check which chipset is on the go to load the correct datas
+    move.w    T_isAga(a5),d0
+    cmp.b     #1,d0
+    beq.s     .isAGA
+    cmp.b     #2,d0
+    beq.s     .isSAGA
+.isECS:
+    lea.l     AboutECS(pc),a0
+    bra.s     .isSelected
+.isAGA:
+    lea.l     AboutAGA(pc),a0
+    bra.s     .isSelected
+.isSAGA:
+    lea.l     AboutSAGA(pc),a0
+; ** 4. We update the original speech with the correct one.
+.isSelected:
+    moveq     #8,d0
+.isUpdating:
+    move.b    (a0)+,(a2)+
+    dbra      d0,.isUpdating
+; ** 5. End of the process or not update at all (already updated)
+.isEnded:
+; ******** 2021.02.18 Patch Editor popup to tell us on which configuration we run the editor
+    movem.l   (sp)+,d0/a0/a2
+    rts
+
+
+
 
 ; Effacement de la configuration courante
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

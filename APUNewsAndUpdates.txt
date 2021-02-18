@@ -10,6 +10,16 @@ Issues :
 - Amos Lock CRASH
 
 ; ************************************************************************
+; 2021.02.18
+- Updated APUnity_Editor_Config.s to handle new popup windows message displaying running chipset.
+- Added AmosProfessionalUnityAGA.Library build in the AMOSProUnity_library.batch
+- Added informations/paths for AmosProfessionalUnityAGA.library
+- Added AGA chipset detection at startup and loading of AmosProfessionalUnityAGA.library instead of AmosProfessionalUnityECS.library if AGA Chipset is detected
+- Removed User Registration details calculation in ABOUT popup as they are no more used.
+- Added Chipset display in the ABOUT popup (must now add true AGA Chipset detection)
+
+
+; ************************************************************************
 ; 2021.02.16
 - Checked RGB12/15/24 color conversion calls in AmosPro_UnitySupport.lib : Fixed
 - Added AmosPro_UnitySupport.lib to the EditorInterpreter configuration creation process

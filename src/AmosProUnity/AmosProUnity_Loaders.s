@@ -1544,27 +1544,76 @@ FromCLI    movem.l    SP_Command(sp),a0/d0
 ; Fin de l''exploration des commandes
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 CommandX:
+
+; * Before loading any AmosProfessionalUnityXXX.library, we try to detect which chipset the program run.
+; ***************************************************************************************************************** DETECT AGA CHIPSET HERE
+detectChipset:
+    movem.l    a0/d1-d3,-(sp)              ; 2020.08.10 Save registers before doing AGA Checking : Fix the AMOS Switcher AMOS/WB
+    moveq     #30,d3             ; Loop amoun()
+    lea     $dff07c,a0         ; lea the register to check content
+    move.w     (a0),d1         ; D1 = read register
+    and.w     #$FF,d1         ; D1 = filtered
+dcLoop:
+    move.w     (a0),d2         ; D2 = Read Register
+    and.w     #$FF,d2         ; D2 = filtered
+    cmp.b     d1,d2             ; Compare D1 read & D2 Read
+    bne.s     cEcs             ; Not equal -> Bus Garbage -> ECS
+    dbra     d3,dcLoop         ; Loop until d3 = -1
+    or.b     #$F0,d1         ; D1 & $F0
+    cmp.b     #$F8,d1         ; if D1 =$F8 -> AGA
+    bne.s     cEcs             ; Else -> ECS
+    move.w     #1,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3
+    bra       openAmosProfessionalAGALib
+cEcs:
+    move.w     #0,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3              ; 2020.08.10 Restore registers after AGA Checking completed : Fix the AMOS Switcher AMOS/WB
+
+; ********************************************* Open ECS Version of the Library
+openAmosProfessionalECSLib:
 ; Charge amos.library: differents essais si pas installe!
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l    SP_DosBase(sp),a6
-    lea    LibName2(pc),a0        APSystem/amos.library
+    lea    LibNameECS2(pc),a0        APSystem/AmosProfessionalUnityECS.library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
-    bne.s    .Ok
-    lea    LibName3(pc),a0        libs/amos.library
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameECS3(pc),a0        libs/AmosProfessionalUnityECS.library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
-    bne.s    .Ok
-    lea    LibName1(pc),a0        libs:amos.library
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameECS1(pc),a0        libs:AmosProfessionalUnityECS.library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
-    bne.s    .Ok
+    bne.s    LibraryLoaded.Ok
     move.l    #Panic_Lib,Panic    Message d'erreur
     bra    Boot_Fatal
-.Ok:
+
+; ********************************************* Open AGA Version of the Library
+openAmosProfessionalAGALib:
+    move.l    SP_DosBase(sp),a6
+    lea    LibNameAGA2(pc),a0        APSystem/AmosProfessionalUnityAGA.Library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameAGA3(pc),a0        libs/AmosProfessionalUnityAGA.Library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameAGA1(pc),a0        libs:AmosProfessionalUnityAGA.Library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.s    LibraryLoaded.Ok
+    move.l    #Panic_Lib,Panic    Message d'erreur
+    bra    Boot_Fatal
+
+LibraryLoaded.Ok:
     move.l    d0,SP_WSegment(sp)    Segment library pour fatal!
     lsl.l    #2,d0
     addq.l    #4,d0
@@ -2878,12 +2927,28 @@ NDatas1:
     dc.b       "AMOSProUnity_Interpreter_Config",0
 NDatas3:
     dc.b       "s/AMOSProUnity_Interpreter_Config",0
-LibName1:
+
+LibNameECS1:
     dc.b       "libs:AmosProUnityECS.library",0
-LibName2:
+LibNameECS2:
     dc.b       "APUSystem/AmosProUnityECS.library",0
-LibName3:
+LibNameECS3:
     dc.b       "libs/AmosProUnityECS.library",0
+
+LibNameAGA1:
+    dc.b       "libs:AmosProUnityAGA.library",0
+LibNameAGA2:
+    dc.b       "APUSystem/AmosProUnityAGA.library",0
+LibNameAGA3:
+    dc.b       "libs/AmosProUnityAGA.library",0
+
+LibNameSAGA1:
+    dc.b       "libs:AmosProUnitySAGA.library",0
+LibNameSAGA2:
+    dc.b       "APUSystem/AmosProUnitySAGA.library",0
+LibNameSAGA3:
+    dc.b       "libs/AmosProUnitySAGA.library",0
+
 IconName:
     dc.b        "icon.library",0
 FloatName:
@@ -2891,7 +2956,7 @@ FloatName:
 IntName:
     dc.b        "intuition.library",0
 GfxName:
-    dc.b       "graphics.library",0
+    dc.b        "graphics.library",0
 
 AssInst:
     dc.b       "c:assign",0
@@ -2937,6 +3002,10 @@ Panic_APSystem:
     dc.b       "Cannot find APUSystem folder.",0
 Panic_Lib:
     dc.b       "Cannot find AmosProUnityECS.library.",0
+Panic_LibAGA:
+    dc.b       "Cannot find AmosProUnityAGA.library.",0
+Panic_LibSAGA:
+    dc.b       "Cannot find AmosProUnitySAGA.library.",0
 Panic_Config:
     dc.b       "Cannot find AMOSProUnity_Interpreter_Config.",0
 Panic_Command:
@@ -2946,7 +3015,7 @@ Panic_Cantread:
 Panic_Badext:
     dc.b       "Cannot load extension: use default interpreter config.",0
 Panic_Version:
-    dc.b       "I need AmosProUnityECS.library V2.0 or over!",0
+    dc.b       "I need AmosProUnity****.library V2.0 or over!",0
     even
 
 ;        Adresses des routines accessibles aux extensions

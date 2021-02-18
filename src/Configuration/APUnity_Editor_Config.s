@@ -548,13 +548,11 @@ Ed1	EdT	1,<Link cursor movement: please click on the window to link...>
 	EdT	18,<No>
 	EdT	19,<Cancel>
 	EdT	20,<Quit AMOS Professional Unity Are you sure?>
-	EdT	21,<AMOS Professional Unity>
-; **************** 20201118 Update the content of the "About Amos Professional" box - Start
-;	EdT	22,<Based on François Lionet AMOS Professional Source Code>
-;	EdT	23,<Released under MIT Licence>
-	EdT	22,<Unity version by : Frederic Cordier (AmiDARK)>
-	EdT	23,<github.com/AmiDARK/Amos-Professional-Unity-Releases>
-; **************** 20201118 Update the content of the "About Amos Professional" box - End
+	EdT	21,<AMOS Professional Unity>                                                           ; * Line 1
+; **************** 20210218 Update the content of the "About Amos Professional" box - Start
+	EdT	22,<Unity version by : Frederic Cordier (AmiDARK)>                                     ; * Line 2
+	EdT	23,<github.com/AmiDARK/Amos-Professional-Unity-Releases>                               ; * Line 3
+; **************** 20210218 Update the content of the "About Amos Professional" box - End
 	EdT	24,< extensions loaded.>
 	EdT	25,<New all hidden programs. Are you sure?>
 	EdT	26,<Search>
@@ -719,12 +717,10 @@ Ed1	EdT	1,<Link cursor movement: please click on the window to link...>
 	EdT	185,<Out of memory: cannot open menus.>
 	EdT	186,<Low memory: clearing program display.>
 	EdT	187,<This was the last window. Quit AMOS Professional Unity?>
-; **************** 20201118 Update the content of the "About Amos Professional" box - Start
-;	EdT	188,<Original Amos Professional Repository/Licence :>
-;	EdT	189,<github.com/AOZ-Studio/AMOS-Professional-Official>
-	EdT	188,<Based on François Lionet AMOS Professional Source Code>
-	EdT	189,<that was released under MIT Licence>
-; **************** 20201118 Update the content of the "About Amos Professional" box - End
+; **************** 20210218 Update the content of the "About Amos Professional" box - Start
+	EdT	188,<Unity support : ECS/OCS, AGA and SAGA chipsets>  ; * Line 4
+	EdT	189,<Actual detected chipset : *CHIP*   >             ; * Line 5
+; **************** 20210218 Update the content of the "About Amos Professional" box - End
 	EdT	190,<>
 	EdT	191,<>
 	EdT	192,<>
@@ -754,12 +750,10 @@ Ed1	EdT	1,<Link cursor movement: please click on the window to link...>
 	EdT	216,<Printer not ready.>
 	EdT	217,<Printing program>
 	EdT	218,<Editor display being reset!>
-; **************** 20201118 Update the content of the "About Amos Professional" box - Start
-;	EdT	219,<Unity version by : Frederic Cordier>
-;	EdT	220,<github.com/AmiDARK/Amos-Professional-Unity-Releases>
-	EdT	188,<Original Amos Professional Repository/Licence :>
-	EdT	189,<github.com/AOZ-Studio/AMOS-Professional-Official>
-; **************** 20201118 Update the content of the "About Amos Professional" box - End
+; **************** 20210218 Update the content of the "About Amos Professional" box - Start
+	EdT	188,<Based on François Lionet AMOSPro Source/licence :>                                ; * Line 6
+	EdT	189,<github.com/AOZ-Studio/AMOS-Professional-Official>                               ; * Line 7
+; **************** 20210218 Update the content of the "About Amos Professional" box - End
 	EdT	221,<Warning: precision mismatch. Please read help file.>
 	EdT	222,<Monitor not found.>
 	dc.b	0,$ff
