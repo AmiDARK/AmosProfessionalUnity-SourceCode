@@ -72,9 +72,16 @@ StartAll
     cmp.b    #"S",(a2)
     bne.s    .Wait2
     dbra    d3,.Wait1
-.GoEnd    bra    GFatal
-.Wait2    movem.l    (sp)+,a0-a3/d0-d3
-.No20_a
+.GoEnd:
+    bra    GFatal
+.Wait2:
+    movem.l    (sp)+,a0-a3/d0-d3
+.No20_a:
+
+    ; 2019.12.30 As data structure is passed to (a5) when entering StartAll, we can call the chipset detection from the beginning
+    ; it is now moved here to be sure that chipset is detected before copper list is created. This may allow me to adapt
+    ; copper list to correct chipset (ECS/AGA)
+    bsr     detectChipset
 
 ; Sauve les flags du DMA
 ; ~~~~~~~~~~~~~~~~~~~~~~

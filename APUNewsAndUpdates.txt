@@ -10,6 +10,11 @@ Issues :
 - Amos Lock CRASH
 
 ; ************************************************************************
+; 2021.02.19
+- Added AGA Chipset detection in the AmosProfessionalUnityAGA.library to validate full activation of AGA features.
+
+
+; ************************************************************************
 ; 2021.02.18
 - Updated APUnity_Editor_Config.s to handle new popup windows message displaying running chipset.
 - Added AmosProfessionalUnityAGA.Library build in the AMOSProUnity_library.batch

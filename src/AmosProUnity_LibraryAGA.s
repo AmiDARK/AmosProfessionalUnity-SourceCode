@@ -538,7 +538,7 @@ SbColN:    move.l    BbNext(a1),d0
     bra    BbColX
 
 ***********************************************************
-*    =COLL(n) ramene la collision d'un bob/sprite
+*    =COLL(n) ramene la collision d''un bob/sprite
 GetCol:    lea    T_TColl(a5),a0
     tst.l    d1
     bmi.s    GetC2
@@ -858,7 +858,7 @@ TPatch
     move.w    d1,d0
     and.w    #$C000,d0
     bsr    Retourne
-* Parametres de l'ecran courant
+* Parametres de l''ecran courant
     move.l    T_EcCourant(a5),a0    * Calculssss
     move.w    EcClipX0(a0),d0
     and.w    #$FFF0,d0
@@ -880,7 +880,7 @@ Patch1    move.w    d4,BbACon(a4)
     bset    #31,d3            * Flag PAS POINT CHAUD!
     bsr    BobCalc
     bne.s    PatchO
-* Gestion de l'autoback
+* Gestion de l''autoback
     move.l    T_EcCourant(a5),a0
     tst.w    EcAuto(a0)
     beq.s    Patch2
@@ -895,7 +895,7 @@ Patch2    bsr    PBobA
 PatchO    moveq    #0,d0
     movem.l    (sp)+,d1-d7/a0-a6
     rts
-* Appelle la routine d'affichage
+* Appelle la routine d''affichage
 PBobA    lea    Circuits,a6
     bsr    OwnBlit
     move.w    BbASize(a4),d2
@@ -914,7 +914,7 @@ PBobA    lea    Circuits,a6
     bra    DOwnBlit
 
 ***********************************************************
-*    CREATION / CHANGEMENT D'UN BOB
+*    CREATION / CHANGEMENT D''UN BOB
 *    D1= Numero du CANAL
 *    D2= X
 *    D3= Y
@@ -927,7 +927,7 @@ BobSet:
     cmp.w    T_BbMax(a5),d1
     bcc    CreBbS
 
-******* Ecris sur l'ancienne - SI PRESENT -
+******* Ecris sur l''ancienne - SI PRESENT -
     move.l    a1,a0
     move.l    T_BbDeb(a5),d0
     beq.s    CreBb1
@@ -1130,7 +1130,7 @@ TPri3    moveq    #0,d0
     rts
 
 ***********************************************************
-*    ENLEVE LES BOBS D'UN ECRAN!
+*    ENLEVE LES BOBS D''UN ECRAN!
 *    A0= Ecran
 BbEcOff:
 ********
@@ -1158,7 +1158,7 @@ BbEO3:    move.l    BbNext(a1),d0
 DelBob:    movem.l    d0-d7/a0-a2,-(sp)
     move.l    a1,a2
 
-* Enleve les buffers de decor, s'il y en a!
+* Enleve les buffers de decor, s''il y en a!
     moveq    #0,d0
     move.w    BbDLBuf(a2),d0
     beq.s    DBo1
@@ -1171,7 +1171,7 @@ DBo1:    moveq    #0,d0
     lsl.l    #1,d0
     move.l    BbDABuf+Decor(a2),a1
     bsr    FreeMm
-* Enleve le canal d'animation
+* Enleve le canal d''animation
 DBo2:    lea    BbAct(a2),a0    
     bsr    DAdAMAL
 * Enleve le bob
@@ -1194,7 +1194,7 @@ DBo5:    move.l    a2,a1
     rts
 
 ***********************************************************
-*    ADRESSE D'UN BOB: D1= Numero!
+*    ADRESSE D''UN BOB: D1= Numero!
 BobAd:
 *******
     move.l    T_BbDeb(a5),d0
@@ -1237,13 +1237,13 @@ BbS0:    move.l    d0,a4
     move.w    BbDCur1(a4),BbDCur2(a4)
     move.w    d4,BbDCur1(a4)
 * Bob modifie?
-    tst.w    BbECpt(a4)        * Si PUT BOB---> Pas d'act!
+    tst.w    BbECpt(a4)        * Si PUT BOB---> Pas d''act!
     bne.s    BbSDec
     tst.b    BbAct(a4)
     beq    BbSDec
     bmi    BbDel
     clr.b    BbAct(a4)
-    move.w    BbI(a4),d2        * Pointe l'image
+    move.w    BbI(a4),d2        * Pointe l''image
     moveq    #0,d3
     move.w    d2,d3
     and.w    #$C000,d3
@@ -1288,7 +1288,7 @@ BbSDec:    move.w    BbDecor(a4),d0
     lsl.l    #1,d0
     cmp.l    d0,d1            * Taille suffisante?
     bls.s    BbD5
-* Efface l'ancien buffer?
+* Efface l''ancien buffer?
     move.l    BbDABuf(a2),a1
     bsr    FreeMm
     clr.l    BbDABuf(a2)
@@ -1676,7 +1676,7 @@ RbEnd    rts
 *    A1/D0
 RevTrap    move.l    a1,a0
     move.l    d1,d0
-******* Retourne un sprite, s'il faut.
+******* Retourne un sprite, s''il faut.
 *    A0---> Descripteur
 *    D0---> Flags seuls
 Retourne
@@ -1889,7 +1889,7 @@ Mas3:    add.l    d2,a0
 Mas4:    move.w    d0,(a2)+
     addq.l    #2,a1
     dbra    d5,Mas2
-* Pas d'erreur
+* Pas d''erreur
     movem.l    (sp)+,d1-d7/a0-a2
     moveq    #0,d0
     rts
@@ -2429,6 +2429,31 @@ Att:    bsr    MBout
 
     include    "src/AmosProUnityAGA_library/AmosProLibrary_Start.s"
 
+; ***************************************************************************************************************** DETECT AGA CHIPSET HERE
+detectChipset:
+    movem.l    a0/d1-d3,-(sp)              ; 2020.08.10 Save registers before doing AGA Checking : Fix the AMOS Switcher AMOS/WB
+    moveq     #30,d3             ; Loop amount()
+    lea     $dff07c,a0         ; lea the register to check content
+    move.w     (a0),d1         ; D1 = read register
+    and.w     #$FF,d1         ; D1 = filtered
+dcLoop:
+    move.w     (a0),d2         ; D2 = Read Register
+    and.w     #$FF,d2         ; D2 = filtered
+    cmp.b     d1,d2             ; Compare D1 read & D2 Read
+    bne.s     cEcs             ; Not equal -> Bus Garbage -> ECS
+    dbra     d3,dcLoop         ; Loop until d3 = -1
+    or.b     #$F0,d1         ; D1 & $F0
+    cmp.b     #$F8,d1         ; if D1 =$F8 -> AGA
+    bne.s     cEcs             ; Else -> ECS
+    move.w     #1,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3
+    rts
+cEcs:
+    move.w     #0,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3              ; 2020.08.10 Restore registers after AGA Checking completed : Fix the AMOS Switcher AMOS/WB
+    rts
+
+
     include    "src/AmosProUnityAGA_library/AmosProLibrary_End.s"
 
 
@@ -2622,7 +2647,7 @@ TAMOSWb
     move.l  38(a0),$dff080
     clr.w    $dff088
 
-; Efface l'ecran si AA
+; Efface l''ecran si AA
 ; ~~~~~~~~~~~~~~~~~~~~
     btst    #WFlag_LoadView,T_WFlags(a5)
     beq.s    .PaAA1
@@ -2641,7 +2666,7 @@ TAMOSWb
 .PaAA1
     clr.b    T_AMOSHere+1(a5)        Flip termine!
 
-; Retourne l'etat actuel
+; Retourne l''etat actuel
 ; ~~~~~~~~~~~~~~~~~~~~~~
 .Return    move.b    T_AMOSHere(a5),d1
     ext.w    d1
@@ -2890,7 +2915,7 @@ SSwp4:    lea    SwapL-4(a0),a0
     bne.s    SSwp1    
 SSwpX:
 
-* Change l'adresses des sprites hard
+* Change l''adresses des sprites hard
     move.l    T_HsChange(a5),d0
     beq.s    VblPaHs
     clr.l    T_HsChange(a5)
@@ -3283,7 +3308,7 @@ CXyw2:    move.l    d2,d0            D0= Signe
 CXyw3:    move.l    #EntNul,d1
     bra.s    CXyw2
 
-******* Retourne la souris dans l'ecran de devant
+******* Retourne la souris dans l''ecran de devant
 WMouScrFront    
     move.l    d4,-(sp)
     move.w    T_XMouse(a5),d1
@@ -3304,7 +3329,7 @@ WMouScrFront
 .Hors    moveq    #-1,d0
     bra.s    .Out
 
-******* Recherche l'ecran contenant X/Y
+******* Recherche l''ecran contenant X/Y
 *    D1/D2= X/Y HARD
 *    D3= 1er ecran
 *    D4= Ecran MAX
@@ -3320,7 +3345,7 @@ GSin0:    tst.l    (a2)
     cmp.l    (a2)+,a0
     bne.s    GSin0
     lea    -4(a2),a1
-* Cherche l'ecran dans l'ordre des priorites
+* Cherche l''ecran dans l''ordre des priorites
 GSin1:    move.l    (a1)+,d0
     bmi.s    GSinX
     move.l    d0,a0
@@ -3753,7 +3778,7 @@ Cla_Event
 .ClaIX    tst.w    d2
     movem.l    (sp)+,a0-a1/d0-d3
     rts
-; Relachement d'une touche
+; Relachement d''une touche
 ; ~~~~~~~~~~~~~~~~~~~~~~~~
 .ClaI2    move.w    d0,d1
     and.w    #$0007,d0
@@ -3797,7 +3822,7 @@ Cla_Stocke
 .ClSFin    movem.l    (sp)+,a0/d3
     rts
 
-; Envoi d'un faux event souris au systeme
+; Envoi d''un faux event souris au systeme
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 WSend_FakeEvent
     movem.l    d0-d1/a1/a6,-(sp)
@@ -4009,7 +4034,7 @@ ClGFFk:    lea    T_TFF1(a5),a0
     moveq    #0,d0
     rts
 
-; RETOUR L'ETAT DU FLAG DISC
+; RETOUR L''ETAT DU FLAG DISC
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TGetDisc
     move.w    T_DiscIn(a5),d0
@@ -4042,7 +4067,7 @@ WTest_Cyclique
     beq.s    .Noev
     bsr    WSend_FakeEvent
 .Noev
-; Verifie l'inhibition
+; Verifie l''inhibition
 ; ~~~~~~~~~~~~~~~~~~~~
     move.l    T_MyTask(a5),a0
     move.l    10(a0),a0
@@ -4069,7 +4094,7 @@ AMOS_Stopped
     move.w    #$000F,$Dff096
 ; Change le "S"top en "W"
     move.b    #"W",(a4)
-; Attend qu'il se retransforme en " "
+; Attend qu''il se retransforme en " "
 .Wait    move.l    T_GfxBase(a5),a6
     jsr    -270(a6)
     cmp.b    #"W",(a4)
@@ -4091,7 +4116,7 @@ AMOS_Stopped
     include "src/AmosProUnityAGA_library/Text.s"
 
 ***********************************************************
-*    MESSAGES D'ERREUR
+*    MESSAGES D''ERREUR
 ***********************************************************
 PErr7:    moveq    #16,d0
     rts
