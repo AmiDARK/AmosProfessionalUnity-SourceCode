@@ -746,7 +746,7 @@ RamFree    move.l    a0,-(sp)
 ; ************************************* 2020.11.24 Extracted ResTempBuffer to push it into AmosProUnityECS.library
 ResTempBuffer:
 ;    move.l      a0,-(sp)
-    SyCall       AMPResTempBuffer
+    AmpLCall     A_ResTempBuffer
 ;    move.l      (sp)+,a0
     rts
 
@@ -1336,9 +1336,9 @@ BugBug    movem.l    d0-d2/a0-a2,-(sp)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IFNE    Debug=2
 Mon_Debug:
-    Include    "+Monitor.s"
+    Include    "src/AMOSProUnity_Monitor/AmosProUnity_Monitor.s"
 Edit_Debug:
-    Include   "+Edit.s"
+    Include   "src/AMOSProUnity_Editor/AmosProUnity_Editor."
     ENDC
     IFEQ    Debug=2
 Mon_Debug
@@ -2962,14 +2962,17 @@ AssInst:
     dc.b       "c:assign",0
 AssCall:
     dc.b       "c:assign ",0 
+
 ; System Association updated to Unity mode
 Ass0:
     dc.b       "AMOSProUnity_System:",0
     dc.b       0
+
 ; Compiler Association updated to Unity mode
 Ass6:
     dc.b       "AMOSProUnity_Compiler:",0
     dc.b       "APUCompiler",0
+
 ; General Association remains unchanged as they contain original Amos Professional (compatibles) datas
 Ass1:
     dc.b       "AMOSPro_Accessories:",0

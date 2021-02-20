@@ -33,6 +33,7 @@ GfxA5        MACRO
         Rl    SyVect,1
         Rl    EcVect,1
         Rl    WiVect,1
+        Rl    AgaVect,1
         Rl    AmpLVect,1               ; 2020.12    Added for methods (graphics dependant) extracted from AmosPro.lib
         Rl    ColorSupport,1           ; 2020.12.05 Added for advanced color support (conversions)
 
@@ -87,12 +88,13 @@ WiRepL        equ    80
 ***************************************************************
 
 *************** Variables gestion
-EcMax:        equ     12    
+EcMax:  equ   12    
         Rw    DefWX,1
         Rw    DefWY,1
         Rw    DefWX2,1
         Rw    DefWY2,1
         Rl    EcCourant,1
+        Rl    cScreen,1                ; 2020.08.11 Used for the Bitmap update
         Rw    EcFond,1
         Rw    EcYAct,1
         Rw    EcYMax,1
@@ -106,7 +108,7 @@ EcMax:        equ     12
         Rl    EcAdr,EcMax
 
 *************** Table de priorite
-        Rl    EcPri,EcMax+1
+        Rl    EcPri,EcMax+1                 ; Screen priorities list.
 
 *************** FLASHEUR
 FlMax:        equ     16    
@@ -121,11 +123,17 @@ LShift:        equ     2+2+4+2+2+2
 *************** FADER
         Rw    FadeFlag,1
         Rw    FadeNb,1
-        Rw    FadeCpt,1
-        Rw    FadeVit,1
-        Rl    FadePal,1
-        Rl    FadeCop,1
-        Rb    FadeCol,8*32
+        Rw    FadeCpt,1 
+        Rw    FadeVit,1                ; The speed which is used to fade the color palette
+        Rl    FadePal,1                ; Source palette from where colors are taken to calculate the Colors fading effect
+        Rl    FadeCop,1                ; Where does the screen color palette is located in the Copper list. Pointer to : T_CopMark + ( ScreenNumber * 128 )
+        Rb    FadeCol,8*256            ; 2020.09.15 Updated from 8 * 32 to 8 * 256 ; Use 8 bytes per color .w = Color Index ; .b RedSource,RedTarget,GreenSource,GreenTarget,BlueSource,BlueTarget
+        Rw    SeparatorFadeCol,1       ; 2020.09.16 Separator added to mark the end of color list with a #$$$$
+        Rw    isFadeAGA,1              ; 2020.09.16 Added to separate the call from the original commands to new commands handling 256 RGB24 colors.
+        Rl    FadeScreen,1             ; 2020.09.06 Added to memorize the screen pointer for better convenience
+        Rl    CurScreen,1              ; 2020.09.16 Added to optimise color palette updates
+        Rw    FadeStep,1               ; 2020.09.16 Added to create faste fade color system.
+        Rl    NewPalette,1             ; 2020.09.29 Added for fading to specific AGA color palette
 
 ***********************************************************************************************************
 *        2020.12.05 AMOS PROFESSIONAL UNITY - SUPPORT FOR COLOR CONVERTION RGB24 / RGB12
@@ -138,44 +146,47 @@ LShift:        equ     2+2+4+2+2+2
 *        GESTION COPPER
 ***************************************************************
 EcTCop        equ      1024
-        Rl    EcCop,1
+        Rl    EcCop,1             ; Screens for copper list.
         Rw    Cop255,1
         Rl    CopLogic,1
         Rl    CopPhysic,1
-        Rw    CopON,1
+        Rw    CopON,1             ; data to handle enabling/disabling AMOS auto copper list support
         Rl    CopPos,1
         Rl    CopLong,1
+        Rl    EcStartEdit,1            ; 2020.10.13 Added for auto-calculation of the position to populate Copper Lists
 
 ***************************************************************
 *        GESTION RAINBOWS
 ***************************************************************
-NbRain: equ   4
+NbRain        equ    4
         RsReset
-RnDY    rs.w  1
-RnFY    rs.w  1
-RnTY    rs.w  1
-RnBase  rs.w  1
-RnColor rs.w  1
-RnLong  rs.l  1
-RnBuf   rs.l  1
-RnAct   rs.w  1
-RnX     rs.w  1
-RnY     rs.w  1
-RnI     rs.w  1
-RainLong rs.w  1
+RnDY        rs.w    1
+RnFY        rs.w    1
+RnTY        rs.w    1
+RnBase        rs.w    1
+RnColor        rs.w    1
+RnLong        rs.w    1
+RnBuf        rs.l    1
+RnAct        rs.w    1
+RnX        rs.w    1
+RnY        rs.w    1
+RnI        rs.w    1
+RainLong    rs.w    1
         Rb    RainTable,RainLong*NbRain
         Rw    RainBow,1
         Rw    OldRain,1
 
 * Marques copper liste
-CopL1:        equ     16*4*2
-CopL2:        equ     16*4
-CopML:        equ     (EcMax*CopL1)+10*CopL2
-        Rb    CopMark,CopML+4
+CopL1   equ    16*4*2                  ; CopL1 = 128
+CopL2   equ    16*4                    ; CopL2 = 64
+CopML   equ    (EcMax*CopL1)+10*CopL2  ; (12*128)+10*64 = 2176
+        Rb     CopMark,CopML+4         ; T_CopMark = Count 2176
 
-* Liste screen swaps
-SwapL:        equ     32
-        Rl    SwapList,SwapL*8+4
+
+; Method AmosProAGA_Library/Screen.s/ScSwap stores screen to swap in the SwapList
+SwapL        equ     32+4+4            ; 2020.09.11 Updated to handle BPLCount(1x.w)+Bitplanes(8x.l)=34
+
+        Rl    SwapList,SwapL*8+4       ; SwapList Allow 8 Screen to swap at one ( + 4 long )
 
 * Interlaced!
         Rw    InterInter,1
@@ -282,6 +293,7 @@ HsLong:        equ     20
 ***************************************************************
         Rl    GPile,1
         Rl    IntBase,1
+        Rl    IntScreen,1              ; 2021.02.19 Reinserted
         Rl    ViewPort,1
         Rl    GfxBase,1
         Rl    LayBase,1
@@ -302,9 +314,9 @@ HsLong:        equ     20
 * Sauvegarde de la fonte systeme
         Rb    Libre5,14+4        Libre!
 * Interrupt VBL
-Lis:    equ   $16
-Lio:    equ   $30
-Lmsg:   equ   $20
+Lis        equ    $16
+Lio        equ    $30
+Lmsg        equ    $20
         Rb    VBL_Is,Lis
 * Interrupt clavier
         Rb    IoDevice,Lio+Lmsg+8
@@ -365,13 +377,11 @@ FFkLong        equ     24
         Rw     gfxChipsetID,1          ; 0 = ECS/OCS , 1 = AGA, 2 = SAGA
         Rw     audioChipsetID,1        ; 0 = ECS/OCS/AGA, 2 = SAGA
 
-
-; Previous Amos Pro Aga version color palettes datas :
-;*************** Global Aga Palette
-PalCnt      equ 8                   ; Define the maximum of Aga color palette that can be created.
+*************** Global Aga Palette
+agaPalCnt      equ 8                   ; Define the maximum of Aga color palette that can be created.
         Rw     isAga,1                 ; 2019.11.30 Will be set (<>0) if Aga Chipset is detected
-        Rl     ColorPals,PalCnt        ; 2019.12.04 8 registers to store 8 color palettes lists in RGB25 format
-        Rl     CMAPColorFile,1         ; 2020.09.17 Added to store (at max) a full IFF/ILBM Color map file.
+        Rl     AgaColorPals,agaPalCnt  ; 2019.12.04 8 registers to store 8 color palettes lists in RGB25 format
+        Rl     AgaCMAPColorFile,1      ; 2020.09.17 Added to store (at max) a full IFF/ILBM Color map file.
         Rl     AgaColor1,1             ; 2019.11.24 Saved for AGA Color palette 1 Higher Bits
         Rl     AgaColor2,1             ; 2019.11.24 Saved for AGA Color palette 2 Higher Bits
         Rl     Null1,1
@@ -383,13 +393,11 @@ PalCnt      equ 8                   ; Define the maximum of Aga color palette th
         Rw     globAgaPalL,224         ; 2020.08.13 Adding low registers of AGA Palette. Storing 24 bit
         Rw     Separator2,1
         Rb     agaPalLoad,1024         ; 2020.09.17 Load Aga Palette Here
-;*************** Global Aga Rainbow systems
+*************** Global Aga Rainbow systems
 agaRainCnt     equ 4                   ; 2020.10.02 Define the maximum of AGA Rainbows that can be created.
         Rl     AgaRainbows,agaRainCnt  ; 2020.10.02 Pointers for the AGA Rainbows buffers
-
-
 *************** Longueur de la structure W.S
-        Rb    L_Trp,4
+        Rb     L_Trp,4
 L_Trappe    equ    -Count
 ***********************************************************
 

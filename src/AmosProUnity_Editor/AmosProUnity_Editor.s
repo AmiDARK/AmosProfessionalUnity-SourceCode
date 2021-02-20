@@ -4998,6 +4998,7 @@ EdC_Load:
     lea    Ed_Messages(a5),a0
     bsr    EdC_LoadTextes
     bne    EdC_Out
+    bsr    UpdateAboutBuild
     bsr    UpdateAboutChipset              ; 2021.02.18 Call the method to update the CHIPSET view in the About popup
 ; Charge les messages erreur TEST TIME
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -5063,11 +5064,10 @@ AboutSAGA:
 UpdateAboutChipset:
     movem.l   d0/a0/a2,-(sp)
     move.l    Ed_Messages(a5),a2
-    move.l    #4096,d0
+    move.l    #8192,d0
 .continue:
     cmp.b     #"*",(a2)+
     beq.s     .isFound
-    add.l     #1,a2
     dbra      d0,.continue
     bra.s     .isEnded        ; if not found, we do not patch.
 ; ** 2 Security check to be sure it is the correct word that was found.
@@ -5107,6 +5107,42 @@ UpdateAboutChipset:
     movem.l   (sp)+,d0/a0/a2
     rts
 
+
+; ******** 2021.02.19 Patch Editor popup to tell us on which configuration we run the editor
+; ** 1. Try to detect the "*BUILD*" datas inside the dialogues for the About popup.
+UpdateAboutBuild:
+    movem.l   d0/a0/a2,-(sp)
+    move.l    Ed_Messages(a5),a2
+    move.l    #8192,d0
+.continueB:
+    cmp.b     #"*",(a2)+
+    beq.s     .isFoundB
+    dbra      d0,.continueB
+    bra.s     .isEndedB        ; if not found, we do not patch.
+; ** 2 Security check to be sure it is the correct word that was found.
+.isFoundB:
+    cmp.b     #"B",(a2)+
+    bne.s     .continueB
+    cmp.b     #"U",(a2)+
+    bne.s     .continueB
+    cmp.b     #"I",(a2)+
+    bne.s     .continueB
+    cmp.b     #"L",(a2)
+    bne.s     .continueB
+    sub.l     #4,a2
+; ** 3. Dialog is found, we check the Build version is on the go to load the correct datas
+    lea.l     BuildVersionToCast(pc),a0
+    moveq     #10,d0
+.isUpdatingB:
+    move.b    (a0)+,(a2)+
+    dbra      d0,.isUpdatingB
+; ** 5. End of the process or not update at all (already updated)
+.isEndedB:
+; ******** 2021.02.19 Patch Editor popup to tell us on which configuration we run the editor
+    movem.l   (sp)+,d0/a0/a2
+    rts
+BuildVersionToCast:
+    BuildVersion ; Insert Build Version MACRO With the dc.l
 
 
 

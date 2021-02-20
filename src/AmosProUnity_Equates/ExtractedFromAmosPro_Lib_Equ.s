@@ -42,7 +42,14 @@ A_InSPack6             equ  37
 A_InRain               equ  38
 A_FnRain               equ  39
 A_PalRout              equ  40
-
+; ******** 2021.02.19 Came from Amos Professional X project
+A_agaHam8BPLS          equ  41
+A_UpdateAGAColorsInCopper equ 42
+A_getAGAPaletteColourRGB12 equ 43
+A_SColAga24Bits        equ  44
+A_SPalAGA_CurrentScreen equ 45
+A_SPalAGA_ScreenA0     equ  46
+A_SPalAGAFull          equ  47
 ; ************************************************************
 ; Function to use to call the methods.
 AmpLCall:        MACRO

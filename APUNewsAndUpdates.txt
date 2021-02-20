@@ -4,6 +4,8 @@ Rainbow RGB24 Bits color support :
 
 TO DO AFTER :
 - Create a compilation process that allow to load .ASCII, tokenise them (test) and then compiles them to .exe (like compiler) to make .ASCII being compilable from commons IDE.
+- Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
+- Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
 Issues :
 - Sprite bank erase CRASH.
@@ -12,7 +14,22 @@ Issues :
 ; ************************************************************************
 ; 2021.02.19
 - Added AGA Chipset detection in the AmosProfessionalUnityAGA.library to validate full activation of AGA features.
+-----
+- Reinserted missing AGA data in the AmosProUnity_library_equ.s definition file.
+- Inserted the Build version display inside the ABOUT popup at startup
+- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : Bnk.SaveA0, AMP_BnkEffBobA0, AMP_BnkReserveIC2 (Bnk.Ric2), AMP_InScreenOpen (L_InScreenOpen)
+- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : AMP_InScreenDisplay (L_InScreenDisplay), AMP_InGetPalette2 (L_InGetPalette2), AMP_GSPal (L_GSPal)
+- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : AMP_PalRout (L_PalRout), AMP_InPen (L_InPen), AMP_WnPp (L_WnPp), AMP_UnPack_Screen (L_UnPack_Screen)
+- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : AMP_UnPack_Bitmap (L_UnPack_Bitmap)
+- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : AMP_IffFormLoad, AMP_IffForm, IffFormPlay, IffScreen, IffPal, SaveCMAP, 
+- Updated methods with AGA support (AmosProUnity.lib.s) : Bnk.Load, Bnk.AdBob, Bnk.Change, L_InSetRainbow7, L_InRainbow, L_InGetSprite6, L_InGetSprite5, L_GS
+- Inserted prepareHam8Logic method to ExtractedFromAmosPro_lib.s
+- Reintegration of AmosProfessionalX files : AmosProLibrary_Start.s, Windows.s, Screens.s, Autoback.s, CopperListSystem.s
 
+
+- ExtractedFromAmosPro_lib.s/IffBODY : New Error Message not updated
+
+- ExtractedFromAmosPro_lib.s : Restore EcSPalAGA_CurrentScreen or SPalAGA_CurrentScreen calls (x2) that are actually commented at line 713 & 1445/6, 
 
 ; ************************************************************************
 ; 2021.02.18

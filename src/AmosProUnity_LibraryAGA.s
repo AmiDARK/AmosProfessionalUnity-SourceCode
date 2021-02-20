@@ -2307,44 +2307,6 @@ Bmal7:    add.l    d4,a0
     rts
 
 
-***********************************************************
-*    Calcul de PEN/PAPER
-***********************************************************
-AdColor:
-    move.w    WiNPlan(a5),d1
-
-    move.w    WiPaper(a5),d2
-    move.w    WiPen(a5),d3
-    move.w    d2,d4
-    move.w    d3,d5
-    lea    TAdCol(pc),a0
-    lea    WiColor(a5),a1
-    lea    WiColFl(a5),a2
-
-ACol:    moveq    #16,d0
-    btst    d1,WiSys+1(a5)
-    bne.s    ACol1
-    clr.w    d0
-    lsr.w    #1,d2
-    roxl.w    #1,d0
-    lsr.w    #1,d3
-    roxl.w    #1,d0
-    lsl.w    #2,d0
-ACol1    move.l    0(a0,d0.w),d0
-    add.l    a0,d0
-    move.l    d0,(a1)+
-
-    lsr.w    #1,d4
-    subx.w    d0,d0
-    move.w    d0,(a2)+
-    lsr.w    #1,d5
-    subx.w    d0,d0
-    move.w    d0,(a2)+
-
-    dbra    d1,ACol
-
-    rts
-
     include "src/AmosProUnityAGA_library/Screens_Init.s"
 
     include "src/AmosProUnityAGA_library/BraList_Screens.s"
@@ -2456,6 +2418,10 @@ cEcs:
 
     include    "src/AmosProUnityAGA_library/AmosProLibrary_End.s"
 
+
+; ******** 2021.02.19 Added because Windows & AdColor are too far together.
+AdColorBis:
+    bra      AdColor
 
 
 ;    Envoie un signal à l''AMOS_Switcher (D3= signal)

@@ -60,6 +60,13 @@ amosprolib_functions:
     bra        AMP_InRain              ;  38 A_InRain
     bra        AMP_FnRain              ;  39 A_FnRain
     bra        AMP_PalRout             ;  40 A_PalRout
+    bra        AMP_agaHam8BPLS         ;  41 A_agaHam8BPLS
+    bra        AMP_UpdateAGAColorsInCopper ; 42 A_UpdateAGAColorsInCopper
+    bra        AMP_getAGAPaletteColourRGB12 ; 43 A_getAGAPaletteColourRGB12
+    bra        AMP_SColAga24Bits       ;  44 A_SColAga24Bits
+    bra        AMP_SPalAGA_CurrentScreen ; 45 A_SPalAGA_CurrentScreen
+    bra        AMP_SPalAGA_ScreenA0    ;  46 A_SPalAGA_ScreenA0
+    bra        AMP_SPalAGAFull         ;  47 A_SPalAGAFull
 
 ;   bra        .........
     dc.l       0
@@ -103,10 +110,10 @@ AMP_ResTempBuffer:
     movem.l    a0-a2/d0-d1,-(sp)
     lea        .LibClr(pc),a1
     lea        Sys_ClearRoutines(a5),a2
-    bsr        WAddRoutine
+    SyCall     AddRoutine                ;  bsr        WAddRoutine
     lea        .LibErr(pc),a1
     lea        Sys_ErrorRoutines(a5),a2
-    bsr        WAddRoutine
+    SyCall     AddRoutine                ;  bsr        WAddRoutine
     movem.l    (sp)+,a0-a2/d0-d1
 .Exit:
     movem.l    (sp)+,d1/a1
@@ -147,53 +154,58 @@ AMP_IffSeek:
     jsr        _LVOSeek(a6)
     movem.l    (sp)+,a0/a1/a6/d1
     rts
-; *************************************************************************************
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Interpretation des formes chargees
-AMP_IffFormPlay:
-;    D7=    Nombre de formes a interpreter
+;    D7=    Amount of form to play.
 ;    Bit #30 >>> Sauter tout
-;    D6=     Adresse à voir
+;    D6=     Buffer where the IFF was loaded
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_IffFormPlay:
+; - - - - - - - - - - - - -
     movem.l    a0-a2/d0-d5/d7,-(sp)
     clr.l      IffFlag(a5)
     clr.l      IffReturn(a5)
     bclr       #31,d7
 .FLoop:
-    move.l     d6,a0
-    cmp.l      #"FORM",(a0)
-    beq.s      .Form
-    cmp.l      #"AenD",(a0)
-    beq.s      .End
-    btst       #31,d7
-    Beq        IffFor
+    move.l     d6,a0                   ; A0 = IFf/ILBM buffer start
+    cmp.l      #"FORM",(a0)            ; are ware in an ILBM/FORM buffer ?
+    beq.s      .Form                   ; YES -> We are seeing a new FORM -> Jump .Form to get it.
+    cmp.l      #"AenD",(a0)            ; Are we at the end of the ILBM/FORM buffer ?
+    beq.s      .End                    ; YES -> End of the play.
+    btst       #31,d7                  ; Bit #31 clear ?
+    beq        IffFor                  ; YES -> Interpret current buffer form.
+
+* a new chunk to read
+    lea        Chunks(pc),a1           ; A1 lea list of existing IFF/ILBM chunks
+    bsr        GetIff                  ; Get the current CHUNK to read from the buffer
+    bmi.s      .Saute                  ; Current Chunk = -1 -> Jump to end of loop for next chunk loop
+
+* Setup flags
+    btst       #30,d7                  ; if bit #39 = %1 (simulation mode)
+    bne.s      .Saute                  ; YES = -> Jump to end of loop for next chunk loop
+    move.l     IffMask(a5),d1          ; Load IffMask -> d1
+    btst       d0,d1                   ; Is current Chunk is set %1 (active/readable) in IffMask 
+    beq.s      .Saute                  ; NO -> ump to end of loop for next chunk loop
+    move.l     IffFlag(a5),d1          ; Load IffFlags -> D1
+    bset       d0,d1                   ; Set current chunk bit to #%1 in D1
+    move.l     d1,IffFlag(a5)          ; Save D1 -> IFfFlags (update with the information of the latest chunk loaded)
+
+* Call the current chunk method to examine it.
+    lsl.w      #2,d0                   ; D0 = D0 * 4 (IOffJumps list is composed of .l jump pointers )
+    lea        IffJumps(pc),a0         ; Use a jump list of methods to setup all components of an IFF/ILBM file
+    movem.l    d6/d7,-(sp)             ; Save d6/d7 in SP
+    jsr        0(a0,d0.w)              ; Call the current Chunk sub routine
+    movem.l    (sp)+,d6/d7             ; Restore d6/d6 from SP
+    bra.s      .Saute                  ; Jump to end of loop for next chunk loop
 *
-* Un chunk.
-    lea        Chunks(pc),a1
-    bsr        GetIff
-    bmi.s      .Saute
-* Positionne les flags
-    btst       #30,d7
-    bne.s      .Saute
-    move.l     IffMask(a5),d1        * Peut charger le chunk?
-    btst       d0,d1
-    beq.s      .Saute
-    move.l     IffFlag(a5),d1
-    bset       d0,d1
-    move.l     d1,IffFlag(a5)
-* Appelle la routine
-    lsl.w      #2,d0
-    lea        IffJumps(pc),a0
-    movem.l    d6/d7,-(sp) 
-    jsr        0(a0,d0.w)
-    movem.l    (sp)+,d6/d7    
-    bra.s      .Saute
-*
-* Une forme.
+* We are seeing a Form
 .Form:
-    subq.w     #1,d7
-    bmi.s      .End
-    bset       #31,d7
-    addq.l     #8,a0
-    lea        Forms(pc),a1
+    subq.w     #1,d7                   ; Decrease amount of Form to decode
+    bmi.s      .End                    ; Form =-1 -> The Iff/Ilbm Form reading is finished/Completed
+    bset       #31,d7                  ; Set D7 Bit #31 to #%1 to say "we've just read a Form"
+    addq.l     #8,a0                   ; Add A0, 8 (Jump the Form header to reach the Form itself)
+    lea        Forms(pc),a1 
     bsr        GetIff
     bmi.s      .Saute
     add.l      #12,d6
@@ -326,8 +338,9 @@ IffB1:
     move.w     ScOn(a5),d1
     subq.w     #1,d1
     bmi        ScNOp
-                                    EcCall    Active
-    move.l     a0,a2
+    EcCall     Active                  ; A0 = Get Current Active Screen
+    move.l     a0,a2                   ; A2 = Screen where the IFF/ILBM output will be done.
+    bsr        prepareHam8Logic        ; 2020.08.12 Prepare the Ham8Logic bitplanes list depending on Ham8 requirement (or not)
     move.l     IffFlag(a5),d7        * BMHD charge?
     btst       #0,d7
     beq        FonCall
@@ -367,7 +380,8 @@ IffB3:
     subq.w     #1,d6
     moveq      #0,d4
 .Bd2:
-    lea        EcLogic(a2),a0
+;    lea        EcLogic(a2),a6          ; 2020.08.12 This was originally where the IFF/ILBM datas will be sent
+    lea        EcH8Logic(a2),a6        ; 2020.08.12 This is now where the IFF/ILBM datas will be sent
     move.w     d5,d7
 .Bd3:
     move.l     (a0)+,a1
@@ -393,7 +407,8 @@ BodyC:
     subq.w     #1,d2
     moveq      #0,d6
 Bb2:
-    lea        EcLogic(a2),a6
+;    lea        EcLogic(a2),a6          ; 2020.08.12 This was originally where the IFF/ILBM datas will be sent
+    lea        EcH8Logic(a2),a6        ; 2020.08.12 This is now where the IFF/ILBM datas will be sent
     move.w     d3,d7
 Bb3:
     move.l     (a6)+,a4
@@ -440,6 +455,28 @@ FinBody:
     move.l     (sp)+,a3
     rts
 
+; ********************************************** HAM8 Support : Move Bpls 01234567 to 23456701 if Ham8 Is set - Start
+prepareHam8Logic:
+    movem.l    a0-a1/d0-d2,-(sp)
+    lea        EcLogic(a2),a0
+    lea        EcH8Logic(a2),a1
+    moveq      #0,d0                   ; Default Source start at BPL0
+    tst.w      Ham8Mode(a2)            ; Load HAM8 mode flag stored in the screen datas structure
+    beq.s      .ns
+    addq       #8,d0                   ; Source start at BPL2 ( The objective is to make Bitplanes 0 and 1 become 6 and 7 to makes AMOS Being able to draw graphics with correct colors)
+.ns:
+    moveq      #0,d1                   ; Target start at BPL0 ( Because HAM6 used bitplanes 4 a 5 for controls datas and HAM8 used bitplanes 0 and 1 for this)
+cpyBPLx:
+    Move.l     (a0,d0.w),(a1,d1.w)     ; Copy BPL shifting/Rolling 0 or 2 BPLs (D0) to the left of the list
+    Add.w      #4,d0                   ; Next Source BPLx
+    And.w      #31,d0                  ; Makes > 31 become value in range 00-31
+    Add.w      #4,d1                   ; Next Target BPLx
+    Cmp.w      #32,d1                  ; Ensure D1 will be from 00-28 (Bpls0-7Max) and finish then
+    blt.s      cpyBPLx
+    movem.l    (sp)+,a0-a1/d0-d2
+    rts
+
+
 ;------ Fabrique l''ecran avec les donnees
 IffScreen:
 * Peut-on fabriquer un ecran?
@@ -455,11 +492,11 @@ IffScreen:
     ext.l      d2
     move.w     2(a0),d3    * Hauteur
     ext.l      d3
-    move.b     8(a0),d4    
-    ext.w      d4        * Nb plans
-    ext.l      d4
-    moveq      #2,d6        * Calcule le nb de couleurs
-    move.w     d4,d0
+    move.b     8(a0),d4                ; 2020.08.27 Warning DPaintV put 18 bitplanes for HAM8 ( 262144 colors ) in RGB24 Backing mode.
+    ext.w      d4                      ; D4.w = Amonut of bitplanes
+    ext.l      d4                      ; D4.l = Amount of bitplanes
+    moveq      #2,d6                   : D6=2 Used to determine the amount of colors in the screen
+    move.l     d4,d0                   ; D0.l = Amount of bitplanes
 IfS0:
     subq.w     #1,d0
     beq.s      IfS0a
@@ -471,8 +508,8 @@ IfS0a:
     cmp.w      #640,16(a0)
     bcs.s      IfS0d
 IfS0c:
-    cmp.w      #4,d4
-    bhi.s      IfS0d
+;    cmp.w     #4,d4                    ; 2020.08.30 Remove 4 bitplanes limits for highres IFF/ILBM pictures.
+;    bhi.s     IfS0d
     bset       #15,d5
 IfS0d:
     cmp.w      #400,18(a0)
@@ -485,18 +522,64 @@ IfS0e
     moveq      #0,d5
     move.l     BufCAMG(a5),a0    * Modes graphiques
     move.l     (a0),d0
+; ***************************** 2020.08.25 Update for HAM8 support - START
 IfS1:
-    btst       #11,d0            * HAM?
-    beq.s      IfS2
-    moveq      #6,d4
-    move.w     #$0800,d5
-    moveq      #64,d6
+    btst       #11,d0                  ; Ham Requested ?
+    beq.s      IfS2B                   ; Bit #11 = 0 = No Ham -> Jump IfS2B
+    move.w     #$800,d5                ; Enable HAM mode
+    cmp.b      #8,d4                   ; Check if picture contains 8 bitplanes (HAM8) or 6 (HAM6)
+    beq.s      IfS2                    ; If HAM Mode is set and picture containt 8 Bitplanes -> Ham8
+    moveq      #6,d4                   ; Ham6 uses 6 bitplanes
+    moveq      #64,d6                  ; Ham6 equal 64 colors ( 6 Bitplanes )
+    bra.s      IfS2B
 IfS2:
-    and.w      #%1000000000000100,d0    * HIRES? INTERLACED? //
+;    moveq      #8,d4                   ; Ham8 uses 8 bitplanes
+    move.l     #256,d6                 ; Ham8 equal 262144 colors ( 8 Bitplanes )
+    bset       #19,d5                  ; Used by AmosProAGA.library/EcCree to detect that Ham8Mode is set.
+IfS2B:
+    and.w      #%1000000000000100,d0   ; HIRES? INTERLACED?
     or.w       d0,d5
+; ***************************** 2020.08.25 Update for HAM8 support - END
 IfS5:
     moveq      #-1,d0
     rts
+
+; CAMG details :
+; GENLOCK_VIDEO     EQU       $00000002 / 00000000000000000010
+; V_LACE            EQU       $00000004 / 00000000000000000100
+; V_DOUBLESCAN      EQU       $00000008 / 00000000000000001000
+; V_SUPERHIRES      EQU       $00000020 / 00000000000000100000
+; V_PFBA            EQU       $00000040 / 00000000000001000000
+; V_EXTRA_HALFBRITE EQU       $00000080 / 00000000000010000000
+; GENLOCK_AUDIO     EQU       $00000100 / 00000000000100000000
+; V_DUALPF          EQU       $00000400 / 00000000010000000000
+; V_HAM             EQU       $00000800 / 00000000100000000000
+; V_EXTENDED_MODE   EQU       $00001000 / 00000001000000000000
+; V_VP_HIDE         EQU       $00002000 / 00000010000000000000
+; V_SPRITES         EQU       $00004000 / 00000100000000000000
+; V_HIRES           EQU       $00008000 / 00001000000000000000
+
+; Ham6 320x256 Lowres        : 00021800 / 00100001100000000000
+; Ham6 320x512 Lowres + Lace : 00021804 / 00100001100000000100
+; Ham6 640x256 Hires         : 00029800 / 00101001100000000000 
+; Ham6 640x512 Hires + Lace  : 00029804 / 00101001100000000100
+; Ham8 640x512 Hires + Lace  : 000A9804 / 10101001100000000100
+; Ham8 640x512 Hires + Lace  : 00029804 / 00101001100000000100 Deluxe Paint V
+; Ham8 640x512 Hires + Lace  : 00008804 / 00001000100000000100 Art Department Pro
+;                                             H  EH        L
+;                                             I  XA        A
+;                                             R  TM        C
+;                                             E            E
+;                                             S  M         D
+;                                                O
+;                                                D
+;                                                E
+; ------------------------------------------------------------
+; Bit 03 = Interlaced
+; Bit 11 = Ham6
+; Bit 16 = Hires
+; Bit 19 = Ham8
+
 
 ;------ Centre l''ecran IFF dans l''ecran
 IffCentre:
@@ -557,36 +640,84 @@ IffShX:
 
 ;------ Recupere la palette IFF
 IffPal:
-    lea        DefPal(a5),a2
-    move.l     Buffer(a5),a0
-    move.l     a0,a1
-    moveq      #31,d0
+    movem.l    d4-d5,-(sp)             ; Save D4/D5 to SP
+    lea        DefPal(a5),a2           ; A2 = Default color palette
+    move.l     Buffer(a5),a0           ; A0 = Temporar buffer for Color palette
+    move.l     a0,a1                   ; A1 = Temporar buffer for Color palette
+    moveq      #31,d0                  ; D0 = 32 colors to copy from the Default Color palette
 IfSa:
-    move.w     (a2)+,(a0)+
-    dbra       d0,IfSa
-    move.l     IffFlag(a5),d7
-    btst       #2,d7
-    beq        IfSc
-    move.l     a1,a0
-    move.l     BufCMAP(a5),a2
-    move.l     4(a2),d0
-    divu       #3,d0
-    subq.w     #1,d0
-    addq.l     #8,a2
+    move.w     (a2),514(a0)            ; 2020.09.04 Copy Default Color palette LOW BITS into Temporar Buffer
+    move.w     (a2)+,(a0)+             ; Copy Default Color palette HIGH BITS into Temporar Buffer
+    dbra       d0,IfSa                 ; D0 = Next Color. All done ? No = Jump IfSa.
+    move.l     IffFlag(a5),d7          ; D7 = IFF Flags
+    btst       #2,d7                   ; Is color palette defined ?
+    beq        IfSc                    ; No Color Palette = Jump -> IfSc.
+    move.l     a1,a0                   ; A0 = Temporar buffer for Color palette
+    move.l     BufCMAP(a5),a2          ; A2 = CMAP buffer. Start with "CMAP" datas at index = 0
+    move.l     4(a2),d0                ; D0 = CMAP hunk size
+    divu       #3,d0                   ; D0 = CMAP Color amount ( = CMAP hunk size / 3 )
+    move.w     d0,d3                   ; 2019.11.18 D3 = Color amount backup for palette update selection ECS/AGA
+
+; ************************************* 2020.05.15 AGAP for AGA color Palette
+    cmp.w      #32,d3                  ; Do we have more than 32 colors in this palette ?
+    ble.s      iffEcsPal               ; No -> Jump to iffEcsPal
+iffAgaPal:                             ; Yes -> Insert AGA informations
+    Move.l     #"AGAP",(a0)+           ; 2020.08.14 Not Push 'AG24' instead of 'AGAP' inside the buffer to mean AGA 24 Bit color palette
+    Move.w     d3,(a0)+                ; Push Color Amount inside buffer
+iffEcsPal:
+; ************************************* 2020.05.15 AGAP for AGA color Palette
+    subq.w     #1,d0                   ; D0 = Color Amount -1 to makes dbra handle color count up to negative D0.
+    addq.l     #8,a2                   ; A2 = located to the first R8G8B8 color CMAP value.
+    moveq      #0,d1                   ; 2020.08.25 Clear register
+    moveq      #0,d4                   ; 2020.08.25 Clear register
+    moveq      #0,d2                   ; 2020.08.25 Clear register
+    moveq      #0,d5                   ; 2020.08.25 Clear register
 IfSb:
-    move.b     (a2)+,d1
-    and.w      #$00F0,d1
-    move.b     (a2)+,d2
-    lsr.b      #4,d2
-    or.b       d2,d1
-    lsl.w      #4,d1
-    move.b     (a2)+,d2
-    lsr.b      #4,d2
-    or.b       d2,d1
-    move.w     d1,(a0)+
-    dbra       d0,IfSb
+    ; Read R8 value
+    move.b     (a2)+,d1                ; D1 = ....RhRl
+    move.b     d1,d4                   ; D4 = ....RhRl
+    and.w      #$00F0,d1               ; D1 = 0000Rh00 2020.08.25 added
+    lsl.w      #4,d4                   ; D4 = ....Rl..
+    and.w      #$00F0,d4               ; D4 = 0000Rl00 2020.08.25 added
+
+    ; Read G8 value
+    move.b     (a2)+,d2                ; D2 = ....GhGl
+    move.b     d2,d5                   ; D5 = ....GhGl
+    lsr.b      #4,d2                   ; D2 = ......Gh
+    and.b      #$F,d2                  ; D2 = 000000Gh In case lsr keep the upper bit  2020.08.25 added
+    or.b       d2,d1                   ; D1 = ....RhGh
+    lsl.w      #4,d1                   ; D1 = ..RhGh..
+    and.w      #$FF0,d1                ; D1 = 00RhGh00 2020.08.25 added
+    and.w      #$0F,d5                 ; D5 = 000000Gl 2020.08.25 added
+    or.w       d5,d4                   ; D4 = ....RlGl
+    lsl.w      #4,d4                   ; D4 = ..RlGl..
+    and.w      #$FF0,d4                ; D4 = 00RlGl00 2020.08.25 added
+
+    ; Read B8 value
+    move.b     (a2)+,d2                ; D2 = ....BhBl
+    move.b     d2,d5                   ; D5 = ....BhBl
+    lsr.b      #4,d2                   ; D2 = ......Bh
+    and.w      #$F,d2                  ; D2 = 000000Bh 2020.08.25 added
+    or.w       d1,d2                   ; D2 = ..RhGhBh 2020.08.25 updated to .w instead of .b
+    and.w      #$F,d5                  ; D5 = 000000Bl 2020.08.25 Updated to AND instead of OR
+    or.w       d5,d4                   ; D4 = ..RlGlBl
+
+    move.w     d4,514(a0)              ; (A0) + 512 + 2 = D4 = RlGlBl
+    move.w     d2,(a0)+                ; (A0)       = D2 = RhGhBh, A0+
+    dbra       d0,IfSb                 ; d0, next color > -1 Jump IfSb (Loop)
 IfSc:
-    EcCall     SPal                    ; bsr EcSPal
+
+; ************************************************************* 2020.08.30 Passage to AGA have broken default limit checking with negative value. Reinsert it - Start
+    move.w     #$FFFF,514(a0)          ; (A0) + 512 + 2 = NEGATIVE VALUE
+    move.w     #$FFFF,(a0)             ; (A0)       = NEGATIVE VALUE
+; ************************************************************* 2020.08.30 Passage to AGA have broken default limit checking with negative value. Reinsert it - End
+    movem.l    (sp)+,d4-d5
+;    cmp.w      #32,d3                  ; 2019.11.18 Adding to select which palette mode we update. ECS or AGA
+;    bhi.s      IFFAgaVersion           ; 2019.11.18 If more than 32 Colors, then -> Jump to AGA palette update.
+;    EcCall     SPal
+;    rts
+;IFFAgaVersion:                         ; 2019.11.18 call the updated method that handle full 256 colors AGA palette 
+;    bsr         SPalAGA_CurrentScreen
     rts
 
 ;------ Chunk DLTA, animation IFF!!!
@@ -802,22 +933,23 @@ AMP_IffFormSize:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AMP_IffForm:
 ; - - - - - - - - - - - - -
-    bsr        AMP_IffFormSize    Demande la taille
-    add.l      #16,d0
-    bsr        AMP_ResTempBuffer
-    beq        .Err
-    move.l     a0,d6
-    bsr        AMP_IffFormLoad
-    cmp.w      d0,d7
-    bne        DiskError
-    move.l     TempBuffer(a5),d6
-    bsr        AMP_IffFormPlay
-    moveq      #0,d0
-    bsr        AMP_ResTempBuffer
+    bsr        AMP_IffFormSize   ; Ask for the frame size 
+    add.l      #16,d0            ; D0 = IFF Form buffer size + 16 bytes
+    bsr        AMP_ResTempBuffer ; Reserve a temporary buffer for IFF/ILBM form
+    beq        .Er               ; On error -> .Er
+    move.l     a0,d6             ; D6 = A0 = Temporar memory buffer ?
+    bsr        AMP_IffFormLoad  ; Load IFF Frame in the buffer
+    cmp.w      d0,d7             ; Compare D0 with D7 (Frames amount)
+    bne        DiskError         ; On error -> L_DiskError
+    move.l     TempBuffer(a5),d6 ; D6 = TempBuffer(a5)
+    bsr        AMP_IffFormPlay   ; Play/Decode the IFF frame
+    moveq      #0,d0             ; D0 = 0
+    bsr        AMP_ResTempBuffer ; Release temporary frame buffer
     rts
-.Err:
-    moveq    #-1,d0
+.Er:
+    moveq    #-1,d0              ; Error -1
     rts
+
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     FORM LOAD
@@ -830,54 +962,54 @@ AMP_IffForm:
 AMP_IffFormLoad:
 ; - - - - - - - - - - - - -
     movem.l    a0-a1/d1-d4/d7,-(sp)
-    moveq      #0,d4
-.Loop:
-    move.l     Buffer(a5),d2
-    moveq      #12,d3
-    bsr        AMP_IffRead
+    moveq      #0,d4           ; D4 = Internal counter initialized to 0.
+.Loop
+    move.l     Buffer(a5),d2   ; D2 = ResTempBuffer ( +CLib.s/ResTempBuffer L97 )
+    moveq      #12,d3          ; Read 12 Bytes ( HEADER.l, SIZE.l, HEADERTYPE.l )
+    bsr        AMP_IffRead     ; D1=File, D2=Buffer, D3=Length to read
     beq.s      .Skip
-    cmp.l      #12,d0
-    bne        DiskError
-    move.l     d2,a0
-    move.l     (a0)+,d0
-    move.l     (a0)+,d2
-    move.l     (a0)+,d1
-    cmp.l      #"FORM",d0
-    bne        IffFor
-    cmp.l      #"ANIM",d1
-    beq.s      .Loop
-    tst.l      d6
-    beq.s      .SkipIt
-    move.l     d6,a1
-    move.l     d0,(a1)+
-    move.l     d2,(a1)+
-    move.l     d1,(a1)+
-    move.l     d2,d3
-    Pair       d3
-    subq.l     #4,d3
-    move.l     a1,d6
-    move.l     a1,d2
-    bsr        AMP_IffRead
-    cmp.l      d0,d3
-    bne        DiskError
-    add.l      d3,d6
-    addq.l     #1,d4
-    subq.l     #1,d7
-    bne.s      .Loop
+    cmp.l      #12,d0          ; Verify 12 bytes were read
+    bne        DiskError       ; Nope ? Error -> L_DiskError
+    move.l     d2,a0           ; A0 = Buffer to an adress register
+    move.l     (a0)+,d0        ; Read 0.L ( = "FORM" header )
+    move.l     (a0)+,d2        ; Read 4.L ( = File Size )
+    move.l     (a0)+,d1        ; Read 8.L ( = "ANIM" header )
+    cmp.l      #"FORM",d0      ; Is the file an IFF/ILBM FORM ?
+    bne        IffFor          ; If wrong header -> Error IffFor
+    cmp.l      #"ANIM",d1      ; Does the IFF/ILBM File is an Animation of single frame ?
+    beq.s      .Loop           ; IF Wrong Header <> "ANIM" -> ANIM initial block is useless, we go to the next one.
+    tst.l      d6              ; Is Buffer to load iff created ? or Null ?
+    beq.s      .SkipIt         ; if buffer = null -> Jump to .skipIt
+    move.l     d6,a1           ; A1 = Buffer to load the IFF/ILBM file
+    move.l     d0,(a1)+        ; A1.0.L = Header "FORM"
+    move.l     d2,(a1)+        ; A1.4.L = FIle Size
+    move.l     d1,(a1)+        ; A1.8.L = Header of the block type.
+    move.l     d2,d3           ; D3 = FIle Size
+    Pair       d3              ; ?????
+    subq.l     #4,d3           ; File Size -4 ( as true fileSize is 8 bytes lenght + than read FileSize, and we have read 12 bytes, FileSize-4 bytes remain to read)
+    move.l     a1,d6           ; D6 = New position in the file buffer (after the "FORM....ANIM" header)
+    move.l     a1,d2           ; D2 = New Position in the file buffer (after the "FORM....ANIM" header)
+    bsr        AMP_IffRead     ; D1=File, D2=Buffer, D3=Length to read
+    cmp.l      d0,d3           ; Verify that D3 bytes were read in D0 result
+    bne        DiskError       ; -> Error DiskError (file read error, incorrect block size)
+    add.l      d3,d6           ; D6 = Position at the end of file content.
+    addq.l     #1,d4           ; D4 +1 = Next Form to read ? (counter)
+    subq.l     #1,d7           ; D7 -1 = Decrease max frames amount (decrease counter)
+    bne.s      .Loop           ; D7 > 0 -> Jump to .Loop
 .Skip:
-    move.l     d6,a0
-    move.l     #"AenD",(a0)
-    bra.s      .End
-.SkipIt:
-    Pair       d2
-    subq.l     #4,d2
-    moveq      #0,d3
-    bsr        AMP_IffSeek
-    addq.l     #1,d4
-    subq.l     #1,d7
-    bne.s      .Loop
+    move.l     d6,a0           ; D6 = Current position at the end of the file in the file buffer
+    move.l     #"AenD",(a0)    ; Add Ending header "AenD" at the end of the file buffer
+    bra.s      .End            ; File processed successfully -> Jump to .End
+.SkipIt:                       ; File loading aborded (Simulation)
+    Pair       d2              ; ?????
+    subq.l     #4,d2           ; D2 = ResTempBuffer +2
+    moveq      #0,d3           ; D3 = 0
+    bsr        AMP_IffSeek     ; Jump to the beginning of the file
+    addq.l     #1,d4           ; D4 +1 = Next Form to read ? (counter)
+    subq.l     #1,d7           ; D7 -1 = Decrease max frames amount (decrease counter)
+    bne.s      .Loop           ; D7 > 0 -> Jump to .Loop
 .End:
-    move.l     d4,d0
+    move.l    d4,d0            ; D0 = Total FORMS read.
     movem.l    (sp)+,a0-a1/d1-d4/d7
     rts
 
@@ -953,23 +1085,45 @@ Sbmhd2:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SaveCMAP:
 ; - - - - - - - - - - - - -
-    move.l     Buffer(a5),a1
+    move.l     Buffer(a5),a1           ; A1 = Output buffer for CMAP color palette
     move.l     #"CMAP",(a1)+
-    move.l     #32*3,(a1)+
-    moveq      #31,d0
-    lea        EcPal(a2),a0
+;    move.l     #32*3,(a1)+             ; Default CMAP size is 32 colors x 3 bytes ( RGB24 IFF/ILBM format )
+;    moveq      #31,d0                  ; Default save 32 colors
+
+; ************************************* 2020.05.16 Update CMAP to save up to 256 colors depending on the screen depth
+    clr.l      d0                      ; Clear D0 as EcNbCol is 16 bits instead of 32.
+    move.w     EcNbCol(a2),d0          ; D0 = Sceen Colour Amount ( 2, 4, 8, 16, 32, 64, 128 or 256 )
+    move.l     d0,d1                   ; D1 = D0
+    mulu       #3,d1                   ; D1 = D0 * 3 ( = FULL COLOR CMAP SIZE )
+    move.l     d1,(a1)+                ; Save CMAP bloc size
+    Sub.l      #1,d0                   ; D0 = Colour Amount -1 (to makes negative escape copy loop)
+; ************************************* 2020.05.16 Update CMAP to save up to 256 colors depending on the screen depth END
+; ************************************* 2020.09.07 Update CMAP to save now using RGB24 instead of previous RGB12 mode - Start
+    lea        EcPal(a2),a0            ; A0 = Screen Color palette ( 32 + 224 colors )
 SCm1:
-    move.w     (a0)+,d1
-    lsl.w      #4,d1
-    moveq      #2,d2
+    move.w     EcPalL-EcPal(a0),d4     ; D4.w = ....RLRLGLGLBLBL
+    move.w     (a0)+,d1                ; D1.w = ....RHRHGHGHBHBH
+    lsl.w      #4,d4                   ; D4.w = RLRLGLGLBLBL....
+    lsl.w      #4,d1                   ; D1.w = RHRHGHGHBHBH....
+    moveq      #2,d2                   ; D2 = 2
 SCm2:
-    rol.w      #4,d1
-    move.w     d1,d3
-    and.w      #$000F,d3
-    lsl.w      #4,d3
-    move.b     d3,(a1)+
-    dbra       d2,SCm2
-    dbra       d0,SCm1
+    rol.w      #4,d4                   ; D4.w = GLGLBLBL....RLRL 2020.09.07 ( the loop makes this 3 times to push RRRR, then GGGG, then BBBB the last time)
+    rol.w      #4,d1                   ; D1.w = GHGHBHBH....RHRH ( the loop makes this 3 times to push RRRR, then GGGG, then BBBB the last time)
+    lsl.b      #4,d1                   ; D1.b = RHRH....
+    and.b      #$F0,d1                 ; D1.b = RHRH....
+    and.b      #$F,d4                  ; D4.b = ....RLRL
+    and.b      d4,d1                   ; D1.b = RHRHRLRL
+;
+; ************************************************************* 2020.09.07 Removed useless updated now that Save IFF use R8G8B8 datas - Start
+;    move.w     d1,d3                   ; D3.w = GGGGBBBB....RRRR
+;    and.w      #$000F,d3               ; D3 = ............RRRR
+;    lsl.w      #4,d3                   ; D3 = ........RRRR....
+;    move.b     d3,(a1)+                ; (A1)+ = D3.b ( Write RRRR )
+; ************************************************************* 2020.09.07 Removed useless updated now that Save IFF use R8G8B8 datas - End
+    move.b     d1,(a1)+                ; 2020.09.07 No more need to use alternate D3 to output datas, D1 now contains direct 8 bits data
+; ************************************* 2020.09.07 Update CMAP to save now using RGB24 instead of previous RGB12 mode - End
+    dbra       d2,SCm2                 ; D2 = D2 -1 Repeat SCm2 until D2 < 0 ( Repeat loop for RRRR, GGGG then BBB as explained upper)
+    dbra       d0,SCm1                 ; D0 = D0 -1 Repeat the whole loop until all colors are copied.
     bra        SaveA1
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1166,54 +1320,69 @@ SBc11:
 ;                     SCREEN OPEN
 AMP_InScreenOpen:
     bsr        SaveRegs
-    move.l     d3,d5            * Mode
-    and.l      #$8004,d5
-* Ham?
+    move.l     d3,d5                   ; D5 = D3 = Display Mode (Lowres, Hires, Lace)
+    and.l      #$8004,d5               ; D5 = Display Mode (Hires, Laced, etc. ) && Bits : Hires || Laced
+;     ************************ Check for HAM mode and its limitations
     move.l     (a3)+,d6
-    cmp.l      #4096,d6
-    bne.s      ScOo0
-    tst.w      d5            * Lowres only!
-    bmi        FonCall
-    moveq      #6,d4
+    cmp.l      #4096,d6                ; If HAM Mode is requested ?
+    bne.s      ScOo0                   ; If not -> Jump to ScOo0
+; **************** 2020.07.31 Remove Lowres limitation and allow Ham in HIRES - START
+;    tst.w      d5                      ; Check if HAM Mode is requested in HiRes
+;    bmi        FonCall                 ; If yes, -> Jump to error L_FonCall
+; **************** 2020.07.31 Remove Lowres limitation and allow Ham in HIRES - END
+    moveq      #6,d4                    ; HAM used 6 bitplanes.
     or.w       #$0800,d5
     moveq      #64,d6
     bra.s      ScOo2
-* Nombre de couleurs-> plans
+* Amount of colours -> Planes
 ScOo0:
-    moveq      #1,d4            * Nb de plans
-    moveq      #2,d1
+; **************** 2020.07.31 Test for HAM8 mode - START
+    cmp.l      #262144,d6              ; Ham8 Requested ?
+    bne.s      ScOo0b
+    moveq      #8,d4                   ; HAM used 8 bitplanes.
+    or.w       #$0800,d5
+    move.l     #256,d6
+    bset       #19,d5                  ; Enable HAM8 Mode in Display Mode (Ham8)
+    bra.s      ScOo2
+ScOo0b:
+; **************** 2020.07.31 Test for HAM8 mode - END
+    ; ***** Loop to define the amount of colours depending on the amount of bitplanes requested
+    moveq      #1,d4                   ; = Bitplane amount
+    moveq      #2,d1                   ; = Colour amount
 ScOo1:
     cmp.l      d1,d6
     beq.s      ScOo2
     lsl.w      #1,d1
     addq.w     #1,d4
-    cmp.w      #7,d4
+    cmp.w      #EcMaxPlans+1,d4        ; 2019.11.05 Updated to handle directly max amount of planes allowed (original was = #7)
     bcs.s      ScOo1
 IlNCo:
-    moveq      #5,d0            * Illegal number of colours
+    moveq      #5,d0                   ; Illegal number of colours
     bra        EcWiErr
 ScOo2:
     move.l     (a3)+,d3        * TY
     move.l     (a3)+,d2        * TX
     move.l     (a3)+,d1        * Numero
     bsr        CheckScreenNumber
-    tst.w      d5            * Si HIRES, pas plus de 16 couleurs
-    bpl.s      ScOo3
-    cmp.w      #4,d4
-    bhi        FonCall    
+; ********************* 2019.11.18 Removed 16 Color Hires resolution limitation
+;    tst.w    d5            * Si HIRES, pas plus de 16 couleurs
+;    bpl.s    ScOo3
+;    cmp.w    #4,d4
+;    Rbhi    L_FonCall    
+; ********************* 2019.11.18 Removed 16 Color Hires resolution limitation
 ScOo3:
-    lea        DefPal(a5),a1
-    EcCall     Cree
-    bne        EcWiErr
-    move.l     a0,ScOnAd(a5)
-    move.w     EcNumber(a0),ScOn(a5)
-    addq.w     #1,ScOn(a5)
-* Fait flasher la couleur 3 (si plus de 2 couleurs)
-    cmp.w      #1,d4
-    beq.s      ScOo4
-    moveq      #3,d1
-    moveq      #46,d0
-    Bsr        Sys_GetMessage
+    lea        DefPal(a5),a1           ; Load Default Palette adress -> a1
+    EcCall     Cree                    ; Call +W.s/EcCree method
+    bne        EcWiErr                 ; If screen was not created -> Error
+    move.l     a0,ScOnAd(a5)           ; Save Screen Adresse -> ScOnAd(a5)
+    move.w     EcNumber(a0),ScOn(a5)   ; Save Screen number  -> ScOn(a5)
+    addq.w     #1,ScOn(a5)             ; ScOn(a5) = Screen number + 1
+* Flash on color 3 if more than 2 colors are displayed
+    cmp.w      #1,d4                   ; D4 = Bitplane Amount
+    beq.s      ScOo4                   ; BitPlane Amount = 1 means Color Amount = 2 -> Jump No Flash color ScOo4.
+    moveq      #3,d1                   ; Select color 3 for flashing
+    moveq      #46,d0                  ; Move #46, D0 ????
+    Bsr        Sys_GetMessage          ;
     move.l     a0,a1
     EcCall     Flash
 ScOo4:
@@ -1263,35 +1432,74 @@ GetMessage:
 
 ; **************************************************************************************************
 AMP_InGetPalette2:
-    move.l     (a3)+,d1
-    bsr        AMP_GetEc
-    lea        EcPal(a0),a0
-;    bra        AMP_GSPal
+    move.l     (a3)+,d1            ; D1 = Current Screen ID
+    bsr        AMP_GetEc           ; A0 = Current Screen
+    Move.l     a0,d7               ; D7 = Save Current Screen
+    lea        EcPal(a0),a0        ; A0 = Current Screen Color Palette 00-31
+    sub.l      #6,a0               ; To Get AGAP informations.
+;    bra        AMP_GSPal           ; Jump to GSPal
 ; **************************************************************************************************
 AMP_GSPal:
+; ************************************* 2020.05.15 New version with 'AGAP' mode support
     bsr        AMP_PalRout
+    cmp.w      #32,d4                  ; d4 was set during L_PalRout to set default ECS 32 color of AGA > 32 
+    bhi.s      prAgaUpdate
+prEcsUpdate:
     EcCall     SPal
     bne        EcWiErr
     rts
+prAgaUpdate:
+    bsr        AMP_SPalAGA_CurrentScreen
+    bne        EcWiErr
+    rts
+; ************************************* 2020.05.15 New version with 'AGAP' mode support End
 ; **************************************************************************************************
 AMP_PalRout:
-    tst.w      ScOn(a5)
-    beq        ScNOp
-    move.l     Buffer(a5),a1
+; ************************************* 2020.05.15 New version with 'AGAP' mode support
+    tst.w      ScOn(a5)              ; Check if current screen is valid
+    beq        ScNOp                 ; No Current Screen -> Jum ScNOp (Error)
+clrBuffe:
+    move.l     Buffer(a5),a1        ; A1 = Buffer(a5)
+    move.l     #128,d0
+cbC:
+    clr.l      (a1)+
+    dbra       d0,cbC
+
+    move.l     Buffer(a5),a1        ; A1 = Buffer(a5)
     moveq      #0,d0
-.PalR1:
+
+    cmp.l      #"AGAP",(a0)
+    bne.s      prECSpal
+    move.w     4(a0),d4                ; D4 = Color Count
+    move.l     #"AGAP",(a1)+           ; Save 'AGAP' mode in buffer
+    add.l      #6,a0                   ; Push A0 to 1st color value
+    Move.w     d4,(a1)+                ; Save Colour Amount .w in buffer
+    move.w     d4,d0                   ; D0 = Colour Amount
+    sub.w      #1,d0                   ; D0 = Colour Amount -1
+prAGAloop:
+    move.w     (a0)+,(a1)+             ; Push (A0)+ color in Buffer (a1)+
+    Dbra       d0,prAGAloop            ; D0-1 >0 -> Jump prAGAloop
+    bra.s      prContPal               ; Continue after copy
+
+prECSpal:
+    Move.w     #32,d4                  ; D4 = 32 colors ECS mode
+    moveq      #0,d0
+PalR1:
     move.w     #$FFFF,(a1)
     btst       d0,d3
-    beq.s      .PalR2
+    beq.s      PalR2
     move.w     (a0),(a1)
-.PalR2:
+PalR2:
     addq.l     #2,a0
     addq.l     #2,a1
     addq.w     #1,d0
     cmp.w      #32,d0
-    bcs.s      .PalR1
+    bcs.s      PalR1
+
+prContPal:
     move.l     Buffer(a5),a1
     rts
+; ************************************* 2020.05.15 New version with 'AGAP' mode support End
 
 
 ; **************************************************************************************************
@@ -1299,19 +1507,24 @@ AMP_InPen:
     lea        ChPen(pc),a1
     bra        AMP_WnPp
 ChPen:
-    dc.b       27,"P0",0
+    dc.b 27,"P0", 0 ; Ajoute un autre code de contrôle suivi de la complémentarité pour avoir 256 couleurs...
 
 ; **************************************************************************************************
 AMP_WnPp:
 ; - - - - - - - - - - - - -
-    add.b      #"0",d3    
-    move.b     d3,2(a1)
+    cmp.w    #208,d3               ; 2020.05.13 Avoid a but for color 208 that gives $100 when adding #"0" and then results in color $00
+    blt.s    .noUpdate
+    Add.w    #1,d3
+.noUpdate:
+    add.b    #"0",d3               ; 2020.05.13 No Changes. Update is done when the #"0" is sub to D1 in +AmosProAGA_Library.s/Esc method.        
+    move.b    d3,2(a1)
 ;    bra        AMP_GoWn
 
 ; **************************************************************************************************
 AMP_GoWn:
     tst.w      ScOn(a5)
     beq        ScNOp
+    ; See +AmosProAGA_Equ.s file L740+ Print Equ 1, WiCall T_WiVect(a5) -> +AmosProAGA_Library.s/WiIn L14069 WPrint Equ 1
     WiCall     Print
     bne        EcWiErr
     rts
@@ -1366,6 +1579,8 @@ AMP_InScreenDisplay:
     bsr        CheckScreenNumber
     EcCall     AView
     bne        EcWiErr
+    SyCall     WaitVbl                 ; 2019.11.06 Added to be sure that a following call to "Dual Playfield"
+    Rjsr       L_Test_Normal           ; will not cause garbage as Screen display registers are not finished to be updated.
     rts
 
 
@@ -1511,58 +1726,62 @@ UPile:         equ     20
 ; - - - - - - - - - - - - -
 AMP_UnPack_Screen:
     movem.l    a2-a6/d2-d7,-(sp)
-    cmp.l      #SCCode,PsCode(a0)
-    bne        .NoPac
-    move.w     d0,d1
-    moveq      #0,d2
-    moveq      #0,d3
-    moveq      #0,d4
-    moveq      #0,d5
-    move.w     PsTx(a0),d2
-    move.w     PsTy(a0),d3
-    move.w     PsNPlan(a0),d4
-    move.w     PsCon0(a0),d5
-    move.w     PsNbCol(a0),d6
-    lea        PsPal(a0),a1
-    move.l     a0,-(sp)
-    EcCall     Cree
-    move.l     a0,a1
-    move.l     (sp)+,a0
-    bne.s      .NoScreen
+    cmp.l    #SCCode,PsCode(a0)
+    bne    .NoPac
+    move.w    d0,d1
+    moveq    #0,d2
+    moveq    #0,d3
+    moveq    #0,d4
+    moveq    #0,d5
+    moveq    #0,d6                     ; 2020.04.30 Minor fix.
+    move.w    PsTx(a0),d2
+    move.w    PsTy(a0),d3
+    move.w    PsNPlan(a0),d4
+    move.w    PsCon0(a0),d5
+    move.w    PsNbCol(a0),d6           ; D6 = Amount of colours in the compressed screen
+    ; Load the default colors into registers.
+    Move.l    #"AGAP",PsAGAP(a0)       ; Insert the "AGAP" header
+    lea       PsAGAP(a0),a1            ; 2020.09.10 Updated with AGAP to makes EcCree being able to detect color palette.
+    move.l    a0,-(sp)
+    EcCall    Cree
+    move.l    a0,a1
+    move.l    (sp)+,a0
+    bne.s     .NoScreen
 * Enleve le curseur
-    movem.l    a0-a6/d0-d7,-(sp)
-    lea        .CuCp(pc),a1
-    WiCall     Print
-    movem.l    (sp)+,a0-a6/d0-d7
+    movem.l   a0-a6/d0-d7,-(sp)
+    lea       .CuCu(pc),a1
+    WiCall    Print
+    movem.l   (sp)+,a0-a6/d0-d7
 * Change View/Offset
-    move.w     PsAWx(a0),EcAWX(a1)
-    move.w     PsAWy(a0),EcAWY(a1)
-    move.w     PsAWTx(a0),EcAWTX(a1)
-    move.w     PsAWTy(a0),EcAWTY(a1)
-    move.w     PsAVx(a0),EcAVX(a1)
-    move.w     PsAVy(a0),EcAVY(a1)
-    move.b     #%110,EcAW(a1)
-    move.b     #%110,EcAWT(a1)
-    move.b     #%110,EcAV(a1)
+    move.w    PsAWx(a0),EcAWX(a1)
+    move.w    PsAWy(a0),EcAWY(a1)
+    move.w    PsAWTx(a0),EcAWTX(a1)
+    move.w    PsAWTy(a0),EcAWTY(a1)
+    move.w    PsAVx(a0),EcAVX(a1)
+    move.w    PsAVy(a0),EcAVY(a1)
+    move.b    #%110,EcAW(a1)
+    move.b    #%110,EcAWT(a1)
+    move.b    #%110,EcAV(a1)
 * Unpack!
-    lea        PsLong(a0),a0
-    moveq      #0,d1
-    moveq      #0,d2
-    bsr        AMP_UnPack_Bitmap
-    move.l     a1,a0
-    bra.s      .Out
-.NoPac:
-    moveq      #0,d0
-    moveq      #0,d1
-    bra.s      .Out
-.NoScreen:
-    moveq      #0,d0
-    moveq      #1,d1
-.Out:
-    movem.l    (sp)+,d2-d7/a2-a6
+    lea       PsLong(a0),a0
+    moveq     #0,d1
+    moveq     #0,d2
+    bsr       AMP_UnPack_Bitmap
+    move.l    a1,a0
+    bra.s     .Out
+.NoPac
+    moveq     #0,d0
+    moveq     #0,d1
+    bra.s     .Out
+.NoScreen    
+    moveq     #0,d0
+    moveq     #1,d1
+.Out 
+
+   movem.l    (sp)+,d2-d7/a2-a6
     rts
-.CuCp:
-    dc.b       27,"C0",0
+.CuCu:
+    dc.b      27,"C0",0
     even
 ; _________________________________________________
 ;
@@ -1584,9 +1803,19 @@ AMP_UnPack_Bitmap:
     bne.s      dec0
     lea        PsLong(a0),a0
 * Is it a packed bitmap?
+; ******************************* 2020.09.09 Updated to handle RGB24 mode instead of previous RGB12 - Start
+; ******************************* 2020.04.30 Added support for both AGA (PsLong) and ECS (PsLong-448) packed pictures.
 dec0:
-    cmp.l      #BMCode,(a0)
-    bne        NoPac
+    cmp.l    #BMCode,(a0)
+    beq.s    dec0b
+    Sub.l    #PsLong-PsPalAga,a0        // 2020.09.09 : Updated to jump just after ECS 32 colors data
+    cmp.l    #BMCode,(a0)
+    beq.s    dec0b
+    Add.l    #PsLong-PsPalAga,a0        // 2020.09.09 : Updated to go back to original value
+    bra      NoPac
+dec0b:
+; ******************************* 2020.04.30 Added support for both AGA (PsLong) and ECS (PsLong-448) packed pictures.
+; ******************************* 2020.09.09 Updated to handle RGB24 mode instead of previous RGB12 - End
 
 * Parameter preparation
     lea        -UPile(sp),sp        * Space to work
@@ -1745,7 +1974,7 @@ AMP_Bnk.SaveA0:
     move.l     a2,d2
     move.l     d4,d3
     bsr        AMP_Write
-    bne.s      SB_Err
+    bne        SB_Err
     bra.s      SB_Ok
 ;    Sauve une banque d''icones
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1800,7 +2029,19 @@ SB_Sp:
 ; ~~~~~~~~~~~~~~~~
 .NoSpr:
     move.l     a2,d2
-    moveq      #32*2,d3
+; ************************************* 2020.05.15 Update to save dynamic amount of colours in 'AGAP' mode
+    Cmp.l      #"AGAP",(a2)
+    bne.s      SBEcsSave
+SBAgaSave:    
+    move.w     4(a2),d3                ; D3 = Amount of colours saved
+    lsl.w      #2,d3                   ; 2020.09.08 Update  D3 = Amount of bytes used by colours amount ( each color = 2 bytes RGB12H + 2 bytes RGB12L )
+    add.w      #8,d3                   ; 2020.09.08 Update : D3 + AGAP (4) + Colours Count (2) + Separator (2)
+
+    bra.s      SBSave
+SBEcsSave:
+    moveq      #32*2,d3                  ; Only 32 colors each using 2 bytes.
+SBSave:
+; ************************************* 2020.05.15 Update to save dynamic amount of colours in 'AGAP' mode End
     bsr        AMP_Write
     bne.s      SB_Err
 SB_Ok:
@@ -1866,103 +2107,142 @@ AMP_BnkUnRev:
 ; *************************************************************************
 AMP_BnkReserveIC2:
 ; - - - - - - - - - - - - -
-    move.w     d2,d4
-    moveq      #0,d3
-    move.w     d1,d3
-    move.l     d0,d2
-    move.l     a1,a3
+    move.w     d2,d4                    ; D4 = D2 = Flags (Bnk_BitData + Bnk_BitBob + Bnk_BitIcon + ... )
+    moveq      #0,d3                    ; D3 = 0
+    move.w     d1,d3                    ; D3 = D1 = Amount of objects in new bank
+    move.l     d0,d2                    ; D2 = D0 = Flags (0=Clear, 1=Append, -1=NoCopy+Keep)
+    move.l     a1,a3                    ; A3 = A1 = Source Bank ( Save to A3 )
 ; Reserve une nouvelle table de pointeurs
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    move.l     d3,d0                    ; D0 = Amount of objects in new bank
+    lsl.l      #3,d0                    ; D0 = Amount of Object * 8 ( Each Element apparently takes 8 bytes )
+
     move.l     d3,d0
     lsl.l      #3,d0
-    add.l      #8*2+2+64,d0
-    move.l     Cur_Banks(a5),a0
-    bsr        AMP_ListNew
-    beq        .Err
-    lea        8(a1),a2
+    add.l      #8*2+2+522+512,d0         ; 2020.09.08 Updated from 32 colors (64) to 256 colors (512+"AGAP"+colourAmount.w+$FFFF) Now using RGB24 instead of RGB12
+;    add.l      #8*2+2+522,d0           ; Updated from 32 colors (64) to 256 colors (512+"AGAP"+colourAmount.w+$FFFF)
+;    add.l      #8*2+2+1032,d0           ; 2020.08.30 Updated from 32 colors (64) to 256 colors ("AGAP"+colourAmount+256x*2(Lowbits)+2(Separator)+256*2(HighBits))
+
+    move.l     Cur_Banks(a5),a0        ; A0 = Current Banks List
+    bsr        AMP_ListNew             ; Call +AmosProAGA_Loaders.s/Lst.New L1200 / -> A1/D0 = New Element (contains at +0.l previous element memory block pointer, chained list Cur_Banks(a5))
+    beq        .Err                    ; = 0 -> Jump .Err (Error) / if no error, note that 4(a1) contains memory size + 8 // D0 - ( 8 + ( 8 * 2 ) + 2 ) / 2 = Color amount
+    lea        8(a1),a2                ; A2 = Start of the new Element
 ; Entete de la banque
 ; ~~~~~~~~~~~~~~~~~~~
-    moveq      #1,d0            Numero (1 ou 2)
-    lea        BkSpr(pc),a0
-    btst       #Bnk_BitIcon,d4
-    beq.s      .Pai
-    moveq      #2,d0
-    lea        BkIco(pc),a0
-.Pai:
-    move.l     d0,(a2)+        Numero        
-    move.w     d4,(a2)+        Flag
-    clr.w      (a2)+            Vide!
-    move.l     (a0)+,(a2)+        Nom
-    move.l     (a0)+,(a2)+
-    move.l     a2,a1
+    moveq      #1,d0                   ; Element Type 1
+    lea        BkSpr(pc),a0            ; Load Adress of dc.b "sprites ", 0 -> A0
+    btst       #Bnk_BitIcon,d4         ; Is requested element a Sprite/Bob or Icon ?
+    beq.s      .Pai                    ; Sprite/Bob -> Jump to .Pai
+    moveq      #2,d0                   ; Element Type 2
+    lea        BkIco(pc),a0            ; Load Adress of dc.b "icons   ", 0 -> A0
+.Pai: 
+    move.l     d0,(a2)+                ; Element Adr # 0.l = Type 1/2
+    move.w     d4,(a2)+                ; Element Adr # 4.w = flags ( BitData, BitBob, BitIcon, ... )
+    clr.w      (a2)+                   ; Element Adr # 6.w = EMPTY
+    move.l     (a0)+,(a2)+             ; Element Adr # 8.l = Bank Name "Spri" or "Icon"
+    move.l     (a0)+,(a2)+             ; Element Adr #12.l = Bank Name "tes " or "s   "
+    move.l     a2,a1                   ; A1 = A2 = Start of the new bank content
 ; Recopier l''ancienne banque?
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    move.w     d3,(a1)+        Nombre de bobs
-    tst.w      d2            Negatif>>> copie la palette
-    bmi.s      .ECop
-    beq        .PaCopy
-    move.l     a3,d0
-    beq.s      .PaCopy
-    move.l     a3,a0
-    move.w     (a0)+,d0    
-    cmp.w      d3,d0            Moins de bobs dans la nouvelle?
-    bls.s      .Paplu
-    move.w     d3,d0
+    move.w     d3,(a1)+                ; Bank Adr A1 #0.l = Amount of elements in the bank
+    tst.w      d2                      ; Check D2 Flag ( 0=Clear, 1=Append, -1=NoCopy+Keep)
+    bmi.s      .ECop                   ; If D2=-1 -> Jump To .ECop : Element Copy
+    beq        .PaCopy                 ; If D2= 0 -> Jump to .PaCopy : No Element Copy (Clear)
+    move.l     a3,d0                   ; D0 = Source Bank
+    beq.s      .PaCopy                 ; if = NULL = 0 -> Jump to .PaCopy : Clear (because there is no source, full creation)
+    move.l     a3,a0                   ; A0 = Source Bank
+    move.w     (a0)+,d0                ; D0 = Amount of Element in the new list.
+    cmp.w      d3,d0                   ; Compare New List Element Amount (D0) and Previous List ones (D3)
+    bls.s      .Paplu                  ; If < -> Jump to .Paplu (no more elements in the bank)
+    move.w     d3,d0                   ; D0 = D3
 .Paplu:
-    subq.w     #1,d0            Copie des bobs
-    bmi.s      .ECop
-.BCop:
-    move.l     (a0),(a1)+        Efface leur origine,
-    clr.l      (a0)+            car la banque sera effacee!
-    move.l     (a0),(a1)+
-    clr.l      (a0)+
-    dbra       d0,.BCop
-.ECop:
-    move.w     (a3),d0            Copie de la palette
-    lsl.w      #3,d0
-    lea        2(a3,d0.w),a0
-    bra.s      .PPal
-; Pas de recopie de l''ancienne banque
+    subq.w     #1,d0                   ; D0 = Element Amount -1 (To use <0 to check end of loop.)
+    bmi.s      .ECop                   ; D0 < 0 -> Jump to .ECop (Element Copy)
+.BCop
+    move.l     (a0),(a1)+              ; Save (A0)->(A1)+
+    clr.l      (a0)+                   ; Clear (A0) because source bank will be deleted.
+    move.l     (a0),(a1)+              ; Save (A0)->(A1)+
+    clr.l      (a0)+                   ; Clear (A0) because source bank will be deleted.
+    dbra       d0,.BCop                ; Loop Until d0 = -1
+.ECop:                                 ; Copy Color Palette
+    move.w     (a3),d0                 ; D0 = Amount of Elements in the old list
+    lsl.w      #3,d0                   ; D0 * 8 (To get the pointer to the memory area just after the elements list.)
+    lea        2(a3,d0.w),a0           ; A0 = 2(A3,D0) = Color Palette memory start
+; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
+    Move.l     (a0),d0
+    cmp.l      #"AGAP",d0
+    bne.s      .PPal
+    Add.l      #6,a0                   ; A0 = First color in the list
+; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
+    bra.s      .PPal                   ; Jump to .PPal -> Copy Color Palette
+
+; .PaCopy : No copy of the previous Color Palette. Instead, use default color palette or current screen one
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .PaCopy:
-    lea        DefPal(a5),a0
-    move.l     ScOnAd(a5),d0
-    beq.s      .PPal
-    move.l     d0,a0
-    lea        EcPal(a0),a0
+    lea        DefPal(a5),a0           ; A0 = Default color Palette
+    move.l     ScOnAd(a5),d7           ; D7 = Current Screen
+    beq.s      .PPal                   ; If No Curren Screen -> Jump to .PPal (Copy default color palette to the bank)
+    move.l     d7,a0                   ; A0 = Current Screen
+    lea        EcPal(a0),a0            ; A0 = Current Screen Color Palette (to copy to the bank)
+; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
+    Move.l     #"AGAP",d0
+; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
+
+; .PaCopy : Copy selected color palette to the bank
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .PPal:
-    move.w     d3,d1
-    lsl.w      #3,d1
-    lea        2(a2,d1.w),a1
-    moveq      #32-1,d0
+    move.w     d3,d1                   ; D1 = Amount of elements in the bank
+    lsl.w      #3,d1                   ; D1 * 8 (To get the pointer to the memory area just after the elements list.)
+    lea        2(a2,d1.w),a1           ; A1 = 2(A2,D1) = Color Palette memory start
+; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
+    cmp.l      #"AGAP",d0
+    bne.s      .EcsMode
+.AgaMode:
+    move.l     #256-1,d0               ; Amount of colors to Copy -1 (for negative checking loop) 2020.05.14 Updated from 32-1 to 256-1 for direct 256 colors copy
+    move.l     #"AGAP",(a1)+           ; 2020.05.14 If this header is available, we know that we are on an AGA palette. Of not available, we are not on AGA but default ECS 32 colors
+    move.w     #256,(a1)+              ; Push 256 colors to update.
+    bra.s      .CPal
+.EcsMode:
+; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
+    move.l     #32-1,d0
 .CPal:
-    move.w     (a0)+,(a1)+
-    dbra       d0,.CPal
-; Efface l''ancienne banque
-; ~~~~~~~~~~~~~~~~~~~~~~~~
+    move.w     514(a0),514(a1)         ; 2020.09.08 Update to push also RGB12 Low bits in the color palette
+    move.w     (a0)+,(a1)+             ; Copy Source Palette (Selected one from old bank, default palette or current screen one) to Bank color palette
+    dbra       d0,.CPal                ; Loop Until d0 = -1 / Now that the screen color palette is continuous, no need for extra loop for colors 32-255. All are copied at once.
+    move.w     #$FFFF,(a1)+            ; 2020.09.08 Push -1 to say "Palette is over"
+    Add.l      #512,a1                 ; 2020.09.08 Push A1 at the end of the 2nd RGB12 color palette content (Low Bits)
+
+; Delete previous Bank ?
+; ~~~~~~~~~~~~~~~~~~~~~~
 .EBank:
-    tst.w      d2    
-    bmi.s      .Paeff
-    move.l     a3,d0
-    beq.s      .Paeff
-    move.l     d0,a0
-    bsr        AMP_BnkEffA0
+    tst.w      d2                      ; D2 = Flags (0=Clear, 1=Append, -1=NoCopy+Keep)
+    bmi.s      .Paeff                  ; =-1 -> Jump to .Paeff (no delete)
+    move.l     a3,d0                   ; D0 = A3 = Source Bank
+    beq.s      .Paeff                  ; = 0 = NULL -> Jump to .Paeff (no delete)
+    move.l     d0,a0                   ; A0 = D0
+    bsr        AMP_BnkEffA0            ; Delete Bank in A0.
 .Paeff:
-; Pas d''erreur
-; ~~~~~~~~~~~~
-    move.l     a2,a0
-    move.l     a3,a1
-    moveq      #0,d0
+
+; No Error ?
+; ~~~~~~~~~~
+    move.l     a2,a0                   ; A0 = Start of the bank content
+    move.l     a3,a1                   ; A1 = A3 = Source Bank
+    moveq      #0,d0                   ; DO = 0 = No Error
     bra.s      .Out
-; Out of mem!
-; ~~~~~~~~~~~
+
+; Out of memory error
+; ~~~~~~~~~~~~~~~~~~~
 .Err:
-    sub.l      a0,a0
-    moveq      #-1,d0
-; Sortie, envoie l''adresse des bobs à la trappe
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    sub.l     a0,a0                    ; A0 = NULL = 0
+    moveq     #-1,d0                   ; D0 = -1 = Out Of Memory Error
+
+; Exit, sending Bob adress out
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Out:
+    movem.l    (sp)+,d2-d7/a2-a3       : Load Regs
+    tst.w      d0
     rts
+
 
 BkSpr:
     dc.b       "Sprites "
@@ -2013,28 +2293,28 @@ AMP_BnkEffA0:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AMP_BnkEffBobA0:
     movem.l    a0/a1/a2/d0/d1,-(sp)
-    move.l     a0,a2
+    move.l     a0,a2                   ; A2 = A0 (Copy)
 ; Efface le bob
-    move.l     (a2),d1
-    beq.s      .No1
-    move.l     d1,a1
-    move.w     (a1),d0
-    mulu       2(a1),d0
-    lsl.l      #1,d0
-    mulu       4(a1),d0
-    add.l      #10,d0
-    SyCall     MemFree
+    move.l     (a2),d1                 ; A2 = Adresse Bob
+    beq.s      .No1                    ; No Bob ? YES -> Jump .No1
+    move.l     d1,a1                   ; A1 = Bank Adress to delete
+    move.w     (a1),d0                 ; D0 = Read.w(a1)
+    mulu       2(a1),d0                ; D0 = D0 * (A1.w,2.w)
+    lsl.l      #1,d0                   ; D0 = D0 * 2
+    mulu       4(a1),d0                ; D0 = D0 * (A1.w,4.w)
+    add.l      #10,d0                  ; D0 = D0 + 10 = Full Bob Size
+    SyCall     MemFree                 ; Clear Memory (A1,D0)
 ; Efface le masque
 .No1:
-    move.l     4(a2),d1
-    ble.s      .No2
-    move.l     d1,a1
-    move.l     (a1),d0
-    SyCall     MemFree
+    move.l     4(a2),d1                ; D1 = Mask Adress
+    ble.s      .No2                    ; No Make ? YES -> Jump .No2
+    move.l     d1,a1                   ; A1 = Mask Adress
+    move.l     (a1),d0                 ; D0 + Mask Size
+    SyCall     MemFree                 ; Clear Memory (A1,D0)
 .No2:
-    clr.l      (a2)+
-    clr.l      (a2)+
-    movem.l (sp)+,a0/a1/a2/d0/d1
+    clr.l      (a2)+                   ; Clear Bob Pointer
+    clr.l      (a2)+                   ; Clear Mask Pointer
+    movem.l    (sp)+,a0/a1/a2/d0/d1
     rts
 
 
@@ -2721,10 +3001,10 @@ AMP_OpenD1:
     move.l     a2,-(sp)
     lea        .Struc(pc),a1
     lea        Sys_ErrorRoutines(a5),a2
-    bsr        WAddRoutine
+    SyCall     AddRoutine                ;  bsr        WAddRoutine
     lea        .Struc2(pc),a1
     lea        Sys_ClearRoutines(a5),a2
-    bsr        WAddRoutine
+    SyCall     AddRoutine                ;  bsr        WAddRoutine
     move.l     (sp)+,a2
     move.l     Handle(a5),d0
     rts
@@ -2783,4 +3063,359 @@ SaveA1:
     bsr        AMP_Write
     bne        DiskError
 .Skip:
+    rts
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : EcSHam8BPLS                                 *
+; *-----------------------------------------------------------*
+; * Description : It is a trick that only modify the way gra- *
+; *        phics are drawn. As Ham8 uses lower bitplanes bits *
+; *        (bpls0-1) to control color shifting instead of hig-*
+; *        -her bitlanes bits in ham 6 (Bpls4-5). I had to    *
+; *        find a way to makes AMOS being able to draw on bit-*
+; *        -map 2 to 7 instead of 0 to 5 when HAM8 mode is    *
+; *        enabled. To do this, I simply roll bm_Planes by 2  *
+; *        bitplanes regarding to EcCurrent content. It will  *
+; *        makes bitplanes order 0-1-2-3-4-5-6-7 be changed to*
+; *        2-3-4-5-6-7-0-1. With this, graphics operations on *
+; *        colors 00-63 will be done on bitplanes 2 to 7 ins- *
+; *        -tead of 0 & 1. and bitplanes 0&1 remain the cont- *
+; *        -rol ones
+; *                                                           *
+; * Parameters : T_cScreen(a5)                                *
+; *              Ham8Mode(T_cScreen(a5)) must be set to 1     *
+; *                                                           *
+; * Return Value :            *
+; *************************************************************
+; ************************************* 2020.07.31 Update to Add HAM8 support - START
+AMP_agaHam8BPLS:
+    movem.l    d3-d4/a0-a4,-(sp)       ; Save registers
+    move.l     T_cScreen(a5),a4        ; Load current screen from T_cScreen(a5)
+    tst.w      Ham8Mode(a4)            ; Load HAM8 mode flag stored in the screen datas structure
+    beq.s      noCopy                  ; YES -> Jump to noCopy
+    lea        EcPhysic(a4),a0         ; A4 = 1st physical bitplane in the list
+    lea        EcCurrent(a4),a1        ; A1 = Screen Currently used bitplanes.
+    move.l     Ec_BitMap(a4),a3        ; A3 = Screen Bitmap Structure pointer
+    lea        bm_Planes(a3),a3        ; A3 = 1st bitplane pointer in the BitMap Structure
+    Moveq      #8,d3                   ; Source start at BPL2 ( The objective is to make Bitplanes 0 and 1 become 6 and 7 to makes AMOS Being able to draw graphics with correct colors)
+    Moveq      #0,d4                   ; Target start at BPL0 ( Because HAM6 used bitplanes 4 a 5 for controls datas and HAM8 used bitplanes 0 and 1 for this)
+cpyBPL2:
+    Move.l     (a0,d3.w),(a1,d4.w)     ; Copy BPL shifting/Rolling 2 BPLs to the left of the list *UPDATE EcCurrent(a4) bitplanes*
+    Move.l     (a0,d3.w),(a3,d4.w)     ; Copy BPL shifting/Rolling 2 BPLs to the left of the list *UPDATE Ec_BitMap(a4).bm_Planes bitplanes*
+    add.w      #4,d3                   ; Next Source BPLx
+    and.w      #31,d3                  ; Makes > 31 become value in range 00-31
+    Add.w      #4,d4                   ; Next Target BPLx
+    cmp.w      #32,d4                  ; Ensure D4 will be from 00-28 to go to BPL0 with BPL7 is done
+    blt.s      cpyBPL2
+noCopy:
+    movem.l    (sp)+,d3-d4/a0-a4       ; Restore register before leaving this method
+    rts
+; ************************************* 2020.07.31 Update to Add HAM8 support - END
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : UpdateAGAColorsInCopper                     *
+; *-----------------------------------------------------------*
+; * Description : This method push the T_globAgaPal color da- *
+; *               -tas to the copper list to update colors re-*
+; *               -gisters from 032 to 255                    *
+; *                                                           *
+; * Parameters : -                                            *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+; ******************************************** 2019.24.11 New method to update the whole AGA color palette in copper list
+AMP_UpdateAGAColorsInCopper:
+    movem.l    d6-d7/a0-a4,-(sp)
+    Move.l     T_AgaColor1(a5),a0      ; A0 = Aga Copper 0 Colors 032-255 High Bits 
+    Move.l     T_AgaColor2(a5),a1      ; A1 = Aga Copper 1 Colors 032-255 High Bits 
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - START
+    Move.l     T_AgaColor1L(a5),a3     ; A3 = Aga Copper 0 Colors 032-255 Low Bits 
+    Move.l     T_AgaColor2L(a5),a4     ; A4 = Aga Copper 1 Colors 032-255 Low Bits 
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - END
+    ; ************ Setup inital values for the AGA palette adding to Copper list
+    Move.l     #7,d7                   ; D7 = Aga Color palette contains 224 colors.
+    lea        T_globAgaPal(a5),a2     ; A2 = First color of AGA palette ( =32 ) of the curent screen (a0)
+insert32cLoop2:
+    sub.w      #1,d7
+    bmi        insertIsOver2           ; Stop when we have reached 256 colors.
+    Addq.l     #4,a0                   ; Jump to 1st color register definition COPPER 0 HIGH BITS
+    Addq.l     #4,a1                   ; Jump to 1st color register definition COPPER 1 HIGH BITS
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - START
+    addq.l     #4,a3                   ; Jump to 1st color register definition COPPER 0 LOW BITS
+    addq.l     #4,a4                   ; Jump to 1st color register definition COPPER 1 LOW BITS
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - END
+    ; * setup for the Copy of the 32 colors registers
+    move.l     #31,d6                  ; D5 = Color00 register
+loopCopy2:
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - START
+    add.w      #2,a0                   ; A0 = Color Register Data HIGH Bits Copper 0
+    move.w     (a2),(a0)+              ; Copy the AgaPal High Bits inside the CopperList 0
+    Add.w      #2,a1                   ; Color register
+    move.w     (a2),(a1)+              ; Copy the AgaPal High Bits inside the CopperList 1
+    add.w      #2,a3                   ; Color register
+    move.w     T_globAgaPalL-T_globAgaPal(a2),(a3)+    ; Copy the AgaPal Low Bits inside the CopperList 0
+    Add.w      #2,a4                   ; Color register
+    move.w     T_globAgaPalL-T_globAgaPal(a2),(a4)+   ; Copy the AgaPal Low Bitsinside the CopperList 1
+    addq.l     #2,a2                   ; A2 = Next color data
+; ********************************************* 2020.08.14 Update for LOW BITS definition in both copper lists - START
+    sub.w      #1,d6
+    bmi        insert32cLoop2          ; Once 32 colors registers were copied, we go back at the beginning of the loop for the next group of colours.
+    bra        loopCopy2               ; If color <32 then continue the copy
+insertIsOver2:
+    movem.l    (sp)+,d6-d7/a0-a4
+; ******************************************** 2019.24.11 New method to update the whole AGA color palette in copper list
+    rts
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : getAGAPaletteColourRGB12                    *
+; *-----------------------------------------------------------*
+; * Description : This method is used by AmosProAGA.library   *
+; *               Get Colour( I ) method to return AGA colors.*
+; *                                                           *
+; * Parameters : D1 = Color ID from range 032-255             *
+; *                                                           *
+; * Return Value : D1=RGB12 Color                             *
+; *************************************************************
+AMP_getAGAPaletteColourRGB12:
+    Sub.l      #32,d1
+    lea        EcScreenAGAPal(a0),a1   ; 2019.11.28 Update for screen aga color palette backup
+    lsl.w      #1,d1
+    move.w     (a1,d1.w),d1            ; Get colour
+    moveq      #0,d0
+    rts
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : SColAga24Bits                               *
+; *-----------------------------------------------------------*
+; * Description : This method update the color D1 of the cur- *
+; *               -rent screen with 24 bits RGB values separa-*
+; *               ted in 2 registers to fit High/Low bits de- *
+; *               -finition inside Copper list color registers*
+; *                                                           *
+; * Parameters : D1 = Color Register 032-255 tp Update        *
+; *              D2 = RGB12 High bits for the D1 color        *
+; *              D4 = RGB12 Low bits for the D1 color         *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+AMP_SColAga24Bits:
+    Move.l     T_EcCourant(a5),a0
+    and.l      #255,d1                 ; Remove 32 colours limit (original = #31) for AGA support with 256 colours limit
+    sub.l      #32,d1                  ; D1 Color palette shifted with -32 to be index 00-223 in globAgaPal ( 224 registers )
+    move.l     d1,d3                   ; D3 = True Color 032-255 indexed at 000-223
+    lsl.l      #1,d3                   ; D3 = Color Index * 2 ( .w pointer )
+    ; ****** Save Aga Color in the global globAgaPal register
+    lea        T_globAgaPal(a5),a1     ; 2019.11.28 Storage for AGA colors from 32 to 255 ( 224 registers )
+    Lea        EcScreenAGAPal(a0),a2   ; Storage for current Screen AGA color palette from 32 to 255 ( 224 registers )
+    move.w     d2,(a1,d3.w)            ; Save D2 color in his AgaPal(ette) color register
+    move.w     d2,(a2,d3.w)            ; Save D2 Color in the current Screen AGA Palette color register
+
+; ************************************************************* 2020.08.31 Update to handle full RGB24 color update - Start
+    lea        T_globAgaPalL(a5),a1    ; 2019.11.28 Storage for AGA colors from 32 to 255 ( 224 registers )
+    Lea        EcScreenAGAPalL(a0),a2  ; Storage for current Screen AGA color palette from 32 to 255 ( 224 registers )
+    move.w     d4,(a1,d3.w)            ; Save D2 color in his AgaPal(ette) color register
+    move.w     d4,(a2,d3.w)            ; Save D2 Color in the current Screen AGA Palette color register
+; ************************************************************* 2020.08.31 Update to handle full RGB24 color update - End
+
+    Move.l     d1,d3                   ; D3 = true 32-255 Color Indexed at 0-224
+    cmp.w      #0,d3
+    beq        noDiv
+    divu       #32,d3                  ; D3 = Palette groupe ID ( from 0 - 6, in reality color range 32-255 cos copper contains only colors 32-255 )
+noDiv:
+    Mulu       #132,d3                 ; D3 = Shift to reach the correct color group in Copper List
+    and.l      #$1F,d1                 ; D1 = Color register driven in a 00-31 range.
+    Lsl.l      #2,d1                   ; D1 = Color ID * 4 as each color uses .w-> Register + .w-> Color Value
+    add.l      d3,d1
+    add.l      #6,d1
+    move.l     T_AgaColor1(a5),a1
+    move.l     T_AgaColor2(a5),a2
+    Move.w     d2,(a1,d1.w)            ; Update color in the copper list.
+    Move.w     d2,(a2,d1.w)            ; Update color in the copper list.
+; ************************************************************* 2020.08.31 Update to handle lower bits in full RGB24 mode or RGB12 copy mode - Start
+    move.l     T_AgaColor1L(a5),a1
+    move.l     T_AgaColor2L(a5),a2
+    Move.w     d4,(a1,d1.w)            ; Update color in the copper list.
+    Move.w     d4,(a2,d1.w)            ; Update color in the copper list.
+; ************************************************************* 2020.08.31 Update to handle lower bits in full RGB24 mode or RGB12 copy mode - End
+    ; ****** End with no error.
+    moveq      #0,d0
+    rts
+
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : SPalAGA_CurrentScreen                       *
+; *-----------------------------------------------------------*
+; * Description : This method will refresh the whole copper   *
+; *               list color palette (including global aga)   *
+; *               with the color palette provided into a1     *
+; *                                                           *
+; * Parameters : A1 = Aga Color Palette, AGAP Format supported*
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+AMP_SPalAGA_CurrentScreen:
+    movem.l    a0,-(sp)
+    move.l     T_EcCourant(a5),a0      ; A0 = Current Screen Structure pointer
+    bra        AMP_SPalAGAFull
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : SPalAGA_ScreenA0                                            *
+; *-----------------------------------------------------------*
+; * Description : This method will call the SPalAGAFull method*
+; *               to update the copper list color palette of  *
+; *               screen structure provided in a0. It will al-*
+; *               -so refresh the global aga color palette    *
+; *               with the screen AGA color palette           *
+; *                                                           *
+; * Parameters : A0 = Screen Structure Pointer                *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+AMP_SPalAGA_ScreenA0:
+    ; A0 Must contain the screen to refresh for full
+    movem.l    a0,-(sp)
+    lea.l      AGAPMode(a0),a1
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : SPalAGAFull                                 *
+; *-----------------------------------------------------------*
+; * Description : This method will update the whole color pa- *
+; *               -lette of the screen structure provided in  *
+; *               a0 and will also refresh the global aga co- *
+; *               -lor palette with the color palette provi- *
+; *               -ded in register A1 (input)                 *
+; *                                                           *
+; * Parameters : A0 = Screen Structure Pointer                *
+; *              A1 = Aga Color Palette, AGAP Format supported*
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+AMP_SPalAGAFull:
+    move.l     a0,T_CurScreen(a5)      ; To use instead of T_EcCourant(a5)
+    movem.l    a1-a4/d0-d6,-(sp)       ; 2020.08.25 Updated to handle D6 for 2nd RGB color values
+
+; ************************************* 2020.05.15 Update for AGAP mode *
+    move.l     (a1),d5
+    cmp.l      #"AGAP",d5              ; Is the "AGAP" header found ?
+    beq.s      AGAPaletteUpd           ; Colour Count <= 32
+    moveq      #32,d5                  ; D5 = Default 32 colors
+    bra.s      PalUpdCont
+AGAPaletteUpd:
+    move.w     4(a1),d5                ; D5 = Colour Count
+    And.l      #$FFFF,d5
+    add.l      #6,a1                   ; A1 = Pointer to 1st color value
+PalUpdCont:
+; ************************************* 2020.05.15 Update for AGAP mode *
+    move.w     EcNumber(a0),d2
+    lsl.l      #7,d2                   ; D2 = Screen Nombre * 128 ( 128 bytes used by each screen for Copper MArks)
+    lea        T_CopMark(a5),a2        ; A2 = 1st copper mark
+    add.w      d2,a2                   ; A2 = Screen copper mark for current screen
+    move.l     a2,d2                   ; D2 = Save of Screen copper mark
+    lea        EcPal(a0),a0            ; A0 = Screen color palette pointer
+    moveq      #0,d0
+    moveq      #0,d1
+    moveq      #31,d4                  ; 32 colors to update (32-1)
+* Boucle de pokage
+EcSP1b:
+    move.w     EcPalL-EcPal(a1),d6     ; 2020.08.25 added : D6 = 2nd RGB12 color datas
+    move.w     (a1)+,d1                ; D1 = 1st RGB12 color datas
+    bmi.s      EcSP3b
+    and.w      #$FFF,d6                ; 2020.08.25 added : D6 filtered to RGB12 R4G4B4
+    and.w      #$FFF,d1                ; D1 filtered to RGB12 R4G4B4
+* Poke dans la table
+    move.w     d6,EcPalL-EcPal(a0)     ; 2020.08.25 Insert 2nd RGB12 Color Datas into EcPalL datas storage
+    move.w     d1,(a0)
+* Poke dans le copper
+    move.l     d2,a2                   ; A2 = Slot offset 0 from Screen Copper Mark 1nd data slot
+    cmp.w      #PalMax*4,d0            ; Is D0 > PalMax (=16) ?
+    bcs.s      EcSP2b                  ; No -> Jump EcSP2b
+    lea        64(a2),a2               ; A2 = Slot offset 64 from Screen Copper Mark 2nd data slot
+EcSP2b:
+    move.l     (a2)+,d3                ; d3 = Screen Copper Mark for color palette
+    beq.s      EcSP3b                  ; D3 = NULL (=0) ? Jump EcSP3b
+    move.l     d3,a3                   ; A3 = D3 = Pointer for 1st color palette index.
+    move.w     d1,2(a3,d0.w)           ; Update 1st RGB12 color register in copper list
+    move.w     d6,2+68(a3,d0.w)        ; Update 2nd RGB12 color register in copper list ( ( 16 colors +  BplCon3 ) * ( 2 bytes reg + 2 bytes datas ) ) = 68 )
+    bra.s      EcSP2b
+EcSP3b:
+    addq.l     #2,a0
+    addq.w     #4,d0
+    dbra       d4,EcSP1b
+; ************************************************************* 2020.08.25 Update to handle RGB24 Copper list palette update - END
+; ************************************* 2020.05.15 Update for AGAP mode *
+    cmp.w      #32,d5                  ; Do we have more than 32 colors to update ?
+    ble.s      uclAGAEnd               ; No AGA update at all
+    sub.w      #32,d5                  ; D5 = Color count - ECS color updated. So colors 032-0255 -> 000-223 as datas contains only 224 colors for AGA ( colors 000-031 are setup in screen themselves)
+    sub.w      #1,d5                   ; 2020.09.04 D5 = Max 223 instead of 224 / Fix the palette color flickering
+; ************************************* 2020.05.15 Update for AGAP mode *
+    And.l      #$FFF,d5
+; ********************** 2020.08.14 Update to Handle Update of up to 256 RGB24 colors in the copper list - START
+; ********************** 2019.11.17 Update to also update the AGA color palette registers from 32-255 - START
+    Move.l     T_AgaColor1(a5),a0      ; A0 = Pointer to the beginning of the current physical copper list.
+    add.l      #6,a0                   ; 2020.08.13 Add #2 to point to content of 1st color register ( 0.l CopWait, 4.l SetColorGroup, 8.w 1st color Register, 10.w 1st color data)
+    Move.l     T_AgaColor2(a5),a2      ; A2 = Pointer to the beginning of the current logic copper list
+    add.l      #6,a2                   ; 2020.08.13 Add #2 to point to content of 1st color register ( 0.l CopWait, 4.l SetColorGroup, 8.w 1st color Register, 10.w 1st color data)
+    lea        T_globAgaPal(a5),a3     ; A3 = Storage for AGA colors from 32 to 255 ( 224 registers )
+    move.l     T_CurScreen(a5),a4      ; A4 = Current Screen Structure pointer
+    Lea        EcScreenAGAPal(a4),a4
+    Move.l     d5,d0                   ; D0 = Start at index 223 (-1 = end of copy)
+    Clr.l      d1                      ; D1 = Register to check all 32 colors blocks
+    bsr        uclAGA1                 ; Call method to update Copper List
+    add.l      #2,a1                   ; Separator between 2 set of RGB12 color components.
+; ************************************************************* 2020.08.13 Store Low bits in copper list
+    Move.l     T_AgaColor1L(a5),a0     ; A0 = Pointer to the beginning of the current physical copper list.
+    add.l      #6,a0                   ; 2020.08.13 Add #2 to point to content of 1st color register
+    Move.l     T_AgaColor2L(a5),a2     ; A2 = Pointer to the beginning of the current logic copper list
+    add.l      #6,a2                   ; 2020.08.13 Add #2 to point to content of 1st color register
+    lea        T_globAgaPalL(a5),a3    ; A3 = Storage for AGA colors from 32 to 255 ( 224 registers )
+    move.l     T_CurScreen(a5),a4      ; A4 = Current Screen Structure pointer
+    Lea        EcScreenAGAPalL(a4),a4
+    move.l     d5,d0                   ; D0 = Start at index 223 (-1 = end of copy)
+    Clr.l      d1                      ; D1 = Register to check all 32 colors blocks
+    bsr        uclAGA1                 ; Call method to update copper list
+; ********************** 2019.11.17 End of Update to also update the AGA color palette registers from 32-255 - END
+ uclAGAEnd:
+    movem.l    (sp)+,a1-a4/d0-d6       ; 2020.08.25 Updated to handle D6 for 2nd RGB color values
+    movem.l    (sp)+,a0
+    moveq    #0,d0
+    rts
+
+; * Small method that inject all colors (all colors High bits OR all colors Low Bits at one time-call)
+uclAGA1:
+    Move.w     (a1)+,d2                ; Continue copy of the A1 palette
+    Move.w     d2,(a3)+                ; Save the A1 Palette in global Aga Palette             -> T_globAgaPal(L) 
+    move.w     d2,(a4)+                ; Save the A1 Palette in the current screen AGA Palette -> EcScreenAGAPal(L)
+    Move.w     d2,(a0)                 ; Update Physic Copper                                  -> T_AgaColor1(L)
+    Move.w     d2,(a2)                 ; Update Logic Copper                                   -> T_AgaColor2(L)
+    Add.l      #4,a0                   ; A1 jump to next color register                        -> T_AgaColor1(L) + 4 = Next Color Register
+    Add.l      #4,a2                   ; A2 jump to next color register                        -> T_AgaColor2(L) + 4 = Next Color Register
+    sub.w      #1,d0                   ; D0 decrease copy counter
+    cmp.w      #0,d0
+    blt.s      uclAGAEndCPY
+    add.w      #1,d1
+    cmp.w      #32,d1
+    blt.s      uclAGA1
+    clr.l      d1
+    add.l      #4,a0                   ; A0 was on a color group switcher -> Jump to next color register
+    add.l      #4,a2                   ; A2 was on a color group switcher -> Jump to next color register
+    bra.s      uclAGA1
+uclAGAEndCPY:
     rts

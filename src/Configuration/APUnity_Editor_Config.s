@@ -718,8 +718,8 @@ Ed1	EdT	1,<Link cursor movement: please click on the window to link...>
 	EdT	186,<Low memory: clearing program display.>
 	EdT	187,<This was the last window. Quit AMOS Professional Unity?>
 ; **************** 20210218 Update the content of the "About Amos Professional" box - Start
-	EdT	188,<Unity support : ECS/OCS, AGA and SAGA chipsets>  ; * Line 4
-	EdT	189,<Actual detected chipset : *CHIP*   >             ; * Line 5
+	EdT	188,<    Actual detected chipset : *CHIP*     >  ; * Line 5
+	EdT	189,<    Unity Build Version : *BUILD*        >  ; * Line 4
 ; **************** 20210218 Update the content of the "About Amos Professional" box - End
 	EdT	190,<>
 	EdT	191,<>

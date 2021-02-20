@@ -9,12 +9,14 @@
 ; ~~~~~~~~~~~~~~~~~~~~~~
         Include "src/AMOS_Includes.s"
 
+        Include "src/APULib_UnitySupport/UnitySupport_Equ.s"
+
 ;         Versions
 ; ~~~~~~~~~~~~~~~~~~~~~~
 Version        MACRO
-        dc.b    "2.00"
+        dc.b    "2.01"
         ENDM
-Ver_Number    equ    $0200
+Ver_Number    equ    $0201
 
 ;---------------------------------------------------------------------
 ;   +++  +++  ++   ++ ++++  ++++ ++    ++    ++   ++   ++  +++   +++
@@ -4084,11 +4086,31 @@ LB_FIcons
     bne    LB_DErr
 .Rien    dbra    d6,.LSLoop
 ; Charge la palette
-.LSSkip    move.l    a2,d2
-    moveq    #32*2,d3
-    Rbsr    L_D_Read
-    bne    LB_DErr
-    bra    LB_Ok
+.LSSkip:
+; ************************************* 2020.05.15 Update to handle "AGAP" mode when available in a SPRITE file
+    movem.l    a2,-(sp)                ; Save A2 (Buffer)
+    move.l     a2,d2                   ; D2 = Buffer to read color map
+    moveq      #32*2,d3                ; Read the 32 minimal colors 
+    Rbsr       L_D_Read
+    movem.l    (sp)+,a2                ; Load A2
+    cmp.l      #"AGAP",(a2)            ; Is palette in "AGAP" mode ?
+    bne.s      LB_ReadSpr4             ; No -> Remain 30 colors to read
+    clr.l      d3
+    move.w     4(a2),d3                ; D3 = Colour Count to read
+;    sub.w      #29,d3                  ; The 29 ECS Colors already read + "AGAP" + ColourCount.w
+;    lsl.w      #1,d3                   ; D3 = Colour Count * 2
+    lsl.w      #2,d3                   ; Each color uses 4 bytes so lsl.< #2 * 4.
+    add.w      #8,d3                   ; Add "AGAP" + Colour count (.w) + RGBL/H Separator (.w) = 8
+    sub.w      #64,d3                  ; Remove the 32 colors already read ( 32 * 2 )
+
+    move.l     a2,d2                   ; Start of color bank
+    add.l      #64,d2                  ; 64 vytes already read.
+    Rbsr       L_D_Read
+    bne        LB_DErr
+LB_ReadSpr4:
+    move.l     a2,d2
+    bra        LB_Ok
+; ************************************* 2020.05.15 Update to handle "AGAP" mode when available in a SPRITE file
 ; Charge plusieurs banques
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~
 LB_Multiples
@@ -4267,23 +4289,23 @@ GetH    move.l    Buffer(a5),d2
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InLoadIff2
 ; - - - - - - - - - - - - -
-    Rbsr    L_IffInit
-    move.l    d3,IffParam(a5)
-* Ouvre le fichier
-    move.l    (a3)+,a2
-    Rbsr    L_NomDisc
-    move.l    #1005,d2
-    Rbsr    L_D_Open
-    Rbeq    L_DiskError
-* Lis un chunk image
-    Rbsr    L_SaveRegs
-    move.l    Handle(a5),d5
-    moveq    #1,d7
-    Rbsr    L_IffForm
-    Rbsr    L_LoadRegs
-* Ferme le fichier
-    Rbsr    L_D_Close
-* Ca y est!
+    Rbsr       L_IffInit
+    move.l     d3,IffParam(a5)         ; IffParam(a5) = Screen to use to load Iff.
+* Open the file
+    move.l     (a3)+,a2                ; A2 = Iff File to load
+    Rbsr       L_NomDisc
+    move.l     #1005,d2                ; File I/O read only mode
+    Rbsr       L_D_Open                ; Dos.library/Open
+    Rbeq       L_DiskError             ; -> Error when trying to open the file.
+* Read 1 image chunk
+    Rbsr       L_SaveRegs              ; Save AMOS System registers
+    move.l     Handle(a5),d5           ; D5 = File I/O Handle (Dos.library)
+    moveq      #1,d7                   ; D7 = 1 Form to load/display
+    Rbsr       L_IffForm               ; Call L_IffForm
+    Rbsr       L_LoadRegs              ; Load Amos System registers
+* Close the file
+    Rbsr       L_D_Close               ; Dos.library/Close
+* Finished
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7031,17 +7053,19 @@ FsApp3:    cmp.w    d4,d6
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.AdBob
 ; - - - - - - - - - - - - -
-    moveq    #0,d1
-    Rbsr    L_Bnk.GetBobs
-    beq.s    .Rien
-    move.w    (a1),d1
-    cmp.w    d1,d0
-    bhi.s    .Rien
-    lsl.w    #3,d0
-    lea    -8+2(a1,d0.w),a0
-    bra.s    .Out
-.Rien    sub.l    a0,a0
-.Out    move.l    a0,d0
+    moveq      #0,d1
+    Rbsr       L_Bnk.GetBobs           ; A1 = Bob bank address
+    beq.s      .Rien                   ; = NULL -> jump .Rien (no bob bank)
+    move.w     (a1),d1                 ; D1 = Max amount of bobx (already existing ?)
+    cmp.w      d1,d0                   ; If D0 > D1
+    bhi.s      .Rien                   ; YES -> Jump .Rien (no bob adress)
+    lsl.w      #3,d0                   ; Bob ID * 8 (memory alignment)
+    lea        -8+2(a1,d0.w),a0        ; A0 = A1 - 6 + ( BobID * 8 ) = Selected bob adress
+    bra.s      .Out                    ; Jump -> .Out
+.Rien:
+    sub.l      a0,a0
+.Out:
+    move.l     a0,d0
     rts    
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7409,30 +7433,31 @@ FsApp3:    cmp.w    d4,d6
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.Change
 ; - - - - - - - - - - - - -
-    movem.l    a0-a3/d0-d7,-(sp)
-; Appelle les extensions
-; ~~~~~~~~~~~~~~~~~~~~~~
-    lea    ExtAdr(a5),a0
-    moveq    #26-1,d0
-.ELoop    move.l    12(a0),d1
-    beq.s    .ESkip
-    move.l    d1,a1
-    movem.l    a0/d0,-(sp)
-    move.l    d1,a1
-    move.l    Cur_Banks(a5),a0
-    move.l    (a0),a0
-    jsr    (a1)
-    movem.l    (sp)+,a0/d0
-.ESkip    lea    16(a0),a0
-    dbra    d0,.ELoop
-; Recherche la banque de sprites
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Rbsr    L_Bnk.GetBobs
-    SyCall    SetSpBank
-; Ok!
-; ~~~
-    movem.l    (sp)+,a0-a3/d0-d7
-    tst.w    d0
+    movem.l    a0-a3/d0-d7,-(sp)       ; Save Regs
+; ******** Call Extensions method to allow them to update banks datas
+    lea        ExtAdr(a5),a0           ; Load list of extensions
+    moveq      #26-1,d0                ; Load latest extension Slot ( 26-1 )
+.ELoop:
+    move.l     12(a0),d1               ; D1 (A0,12) = Extension Adress
+    beq.s      .ESkip                  ; D1 = NULL = No extension -> Jump .ESkip
+    move.l     d1,a1                   ; A1 = D1
+    movem.l    a0/d0,-(sp)             ; Save a0/d0
+    move.l     d1,a1                   ; Useless, already done two line before
+    move.l     Cur_Banks(a5),a0        ; A0 = pointer to Cur_Banks(a5)
+    move.l     (a0),a0                 ; A0 = Current Bank pointer
+    jsr        (a1)                    ; Call Extension method to get banks changes
+    movem.l    (sp)+,a0/d0             ; Restore a0/d0
+.ESkip:
+    lea        16(a0),a0               ; A0 = Load next extension structure/table pointer position.
+    dbra       d0,.ELoop               ; D0-1, Repeat to ELoop until DO = -1
+
+; ******** Looking for Sprites bank
+    Rbsr       L_Bnk.GetBobs           ; Get Bob/Sprites bank A0/A1
+    SyCall     SetSpBank               ; Store A1 in T_SprBank(a5)
+
+; ******** Ok!
+    movem.l    (sp)+,a0-a3/d0-d7       ; Load Regs
+    tst.w      d0                      ; No Error.
     rts
 
 
@@ -7549,9 +7574,9 @@ FsApp3:    cmp.w    d4,d6
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InCls0
 ; - - - - - - - - - - - - -
-    tst.w    ScOn(a5)
-    Rbeq    L_ScNOp
-    WiCall    ClsWi
+    tst.w     ScOn(a5)      ; Test is a screen is active or not.
+    Rbeq      L_ScNOp       ; if no active screen was foudt -> Screen Not Present error
+    WiCall    ClsWi         ; Call Clear Screen +W.s/WiCls
     rts
 ; - - - - - - - - - - - - -
     Lib_Par    InCls1
@@ -8138,25 +8163,25 @@ ShD3:    move.l    (a3)+,d2
 ; - - - - - - - - - - - - -
     Lib_Par InSetRainbow7
 ; - - - - - - - - - - - - -
-    Rbsr    L_SaveRegs
-    move.l    d3,d7
-    move.l    (a3)+,d6
-    move.l    (a3)+,d5
-    move.l    (a3)+,d4
-    move.l    (a3)+,d2
-    cmp.l    #16,d2
-    Rbcs    L_FonCall
-    cmp.l    #32700,d2
-    Rbcc    L_FonCall
-    move.l    (a3)+,d3
-    Rbmi    L_FonCall
-    move.l    (a3)+,d1
-    cmp.l    #4,d1
-    Rbcc    L_FonCall
-    EcCall    RainSet
-    Rbmi    L_OOfMem
-    Rbne    L_FonCall
-    Rbsr    L_LoadRegs
+    Rbsr       L_SaveRegs              ; Save Registers
+    move.l     d3,d7                   ; D7 = Start value
+    move.l     (a3)+,d6                ; D6 = Blue Components
+    move.l     (a3)+,d5                ; D5 = Green Components
+    move.l     (a3)+,d4                ; D4 = Red Components
+    move.l     (a3)+,d2                ; D2 = Size of table
+    cmp.l      #16,d2                  ; if D2 < 16
+    Rbcs       L_FonCall               ; Jump L_FonCall (Rainbow table size invalid)
+    cmp.l      #32700,d2               ; If D2 > 32700
+    Rbcc       L_FonCall               ; Jump L_FonCall (Rainbow table size is invalid)
+    move.l     (a3)+,d3                ; D3 = Colour Index Number to be Affected
+    Rbmi       L_FonCall               ; IF D3 < 0 -> Jump L_FonCall (Color index is invalid)
+    move.l     (a3)+,d1                ; D1 = Rainbow Identification Number
+    cmp.l      #4,d1                   ; If D1 => 4
+    Rbcc       L_FonCall               ; Jump L_FonCall (Rainbow Identification Number Is Invalid)
+    EcCall     RainSet                 ; Call AmosProAGA_library.s/RainbowsSystem.s/TRSet
+    Rbmi       L_OOfMem                ; < 0 -> Jump Out Of Memory Error
+    Rbne       L_FonCall               ; =/= 0 -> Jump Error L_FonCall
+    Rbsr       L_LoadRegs              ; Load Registers
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -8164,12 +8189,12 @@ ShD3:    move.l    (a3)+,d2
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par InRainbow
 ; - - - - - - - - - - - - -
-    move.l    d3,d4
-    move.l    (a3)+,d3
-    move.l    (a3)+,d2
-    move.l    (a3)+,d1
-    EcCall    RainDo
-    Rbne    L_EcWiErr
+    move.l     d3,d4                   ; D4 = Height in scan lines
+    move.l     (a3)+,d3                ; D3 = Vertical position on screen
+    move.l     (a3)+,d2                ; D2 = Offset value of the first color
+    move.l     (a3)+,d1                ; D1 = Identification number of the rainbow to be displayed
+    EcCall     RainDo                  ; Call AmosProAGA_Library.s/RainbowsSystem.s/TRDo
+    Rbne       L_EcWiErr               ; =/= 0 -> Jump Error L_EcWiErr
     rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     RAINBOW DEL
@@ -10890,20 +10915,20 @@ IStb3    tst.w    ScOn(a5)
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par InBob
 ; - - - - - - - - - - - - -
-    tst.w    ScOn(a5)
-    Rbeq    L_ScNOp
-    move.l    d3,d4
-    move.l    (a3)+,d3
-    move.l    (a3)+,d2
-    move.l    (a3)+,d1
+    tst.w      ScOn(a5)
+    Rbeq       L_ScNOp
+    move.l     d3,d4                   ; D4 = Image
+    move.l     (a3)+,d3                ; D3 = YPos
+    move.l     (a3)+,d2                ; D2 = XPos
+    move.l     (a3)+,d1                ; D1 = BobID
     movem.l    d6-d7,-(sp)
-    moveq    #0,d7
-    moveq    #-1,d6
-    moveq    #0,d5
-    SyCall    SetBob
+    moveq      #0,d7                   ; D7 = Minterm = 0
+    moveq      #-1,d6                  ; D6 = Planes displayed
+    moveq      #0,d5                   ; D5 = Background mode.
+    SyCall     SetBob                  ; Call +w.s/BobSet L929
     movem.l    (sp)+,d6-d7
-    Rbmi    L_OOfMem
-    Rbne    L_FonCall
+    Rbmi       L_OOfMem
+    Rbne       L_FonCall
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -11234,49 +11259,53 @@ FHc1    move.w    d3,d1
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par InGetSprite6
 ; - - - - - - - - - - - - -
-    move.l    4*4(a3),d1
-    EcCall    AdrEc
-    Rbeq    L_ScNOp
-    move.l    d0,-(sp)
-    move.l    d0,a0
-    Rbsr    L_Ritoune
-    move.l    (a3),4(a3)
-    addq.l    #4,a3
-    Rbra    L_GS
+    move.l     4*4(a3),d1              ; D1 = Screen
+    EcCall     AdrEc                   ; Get Screen Adress in D0/A0
+    Rbeq       L_ScNOp                 ; No screen -> Error No Screen Opened
+    move.l     d0,-(sp)
+    move.l     d0,a0                   ; A0 = Current Screen table adress
+    Rbsr       L_Ritoune               ; Save Regs + Load A3+ -> D2 = X, D3 = Y, D4 = Width, D5 = Height
+    move.l     (a3),4(a3)
+    addq.l     #4,a3
+    Rbra       L_GS
 ; - - - - - - - - - - - - -
     Lib_Par InGetSprite5
 ; - - - - - - - - - - - - -
-    move.l    ScOnAd(a5),a0    
-    move.l    a0,-(sp)
-    Rbeq    L_ScNOp
-    Rbsr    L_Ritoune
-    Rbra    L_GS
+    move.l     ScOnAd(a5),a0           ; A0 = Current Screen table adress
+    move.l     a0,-(sp)
+    Rbeq       L_ScNOp
+    Rbsr       L_Ritoune               ; Save Regs + Load Datas from A3+ -> D2 = X, D3 = Y, D4 = Width, D5 = Height
+    Rbra       L_GS
 ; - - - - - - - - - - - - -
     Lib_Def    GS
 ; - - - - - - - - - - - - -
-    move.l    (a3),d0
-    Rble    L_FonCall
-    Rbsr    L_Bnk.AdBob
-    beq.s    .New
-    move.l    a0,a2
-    Rbsr    L_Bnk.EffBobA0
-    bra.s    .Suite
-; Appelle l''agrandissement (soit pas banque, soit trop grand)
-.New    moveq    #1,d0            Recopier l''ancienne!
-    move.l    (a3),d1            Taille nouvelle banque
-    Rbsr    L_Bnk.ResBob
-    Rbne    L_OOfMem
-    Rjsr    L_Bnk.Change        Changement de banque
-    move.l    (a3),d0            Adresse du nouveau bob
-    Rbsr    L_Bnk.AdBob
-    Rbeq    L_FonCall
-    move.l    a0,a2
-.Suite    addq.l    #4,a3
-; Appelle la trappe
-    move.l    (sp)+,a1        Ecran en A1
-    SyCall    SprGet
-    Rbne    L_OOfMem
-    Rbsr    L_LoadRegs
+    move.l     (a3),d0                 ; D0 = Bob/Sprite ID (n)
+    Rble       L_FonCall
+    Rbsr       L_Bnk.AdBob             ; Call Bnk.GetBobs -> Bnk.GetAdr (A1)
+    beq.s      .New                    ; If Bob Adress = 0/NULL -> Jump .New to create new Sprite/Bobx bank
+; **************** Bob already exists, delete it before creating it again :
+    move.l     a0,a2                   ; A2 = A0 = Current Screen table adress
+    Rbsr       L_Bnk.EffBobA0          ; Delete Bob + Ask in A0. Clear A2 & A2+4 pointer (Bob Pointer & Mask Pointer)
+    bra.s      .Suite
+; **************** Call the bank increase system (adding a new member to a bank) :
+.New:
+    moveq      #1,d0                   ; D0 = #1 = Append new bob inside existing bank.
+    move.l     (a3),d1                 ; Bank New Size
+    Rbsr       L_Bnk.ResBob            ; Reserve a new Bob Out : A0 = Bank adress, A1/A3 = Old Bank
+    Rbne       L_OOfMem                ; A0 = NULL -> Jump Error Out Of Memory.
+    Rjsr       L_Bnk.Change            ; Call method to tell to all extensions that Banks were updated.
+    move.l     (a3),d0                 ; D0 = New Bob/sprite adress
+    Rbsr       L_Bnk.AdBob             ; In : DO = BobID, Return : A0/D0 = chosen Bob Adresses D1 = Max Bob Amount
+    Rbeq       L_FonCall               ; Error -> Non bob adress
+    move.l     a0,a2                   ; A2 = New Bob Adress
+
+.Suite:
+    addq.l     #4,a3 
+; Call the trap
+    move.l     (sp)+,a1                ; A1 = Chosen screen
+    SyCall     SprGet                  ; +w.s/GetBob L634 : Method to get a bob/sprite from screen.
+    Rbne       L_OOfMem                ; No Bob/Sprite get ? -> Jump OOFMem (Out Of Memory error)
+    Rbsr       L_LoadRegs              ; Load Regs
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -11683,7 +11712,6 @@ ErDisk:    dc.w 203,204,205,210,213,214,216,218
     Lib_Def    GoError
 ; - - - - - - - - - - - - -
     Rjmp    L_Error
-
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Source: ecrans.s / FENETRES
@@ -26907,7 +26935,7 @@ DDebut    DC.B    $40,$24,0,0,0,0,0,0
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;        Titre
-C_Title        dc.b     "AMOSPro 2.0 Main Library V "
+C_Title        dc.b     "AMOSProUnity 2.0 Main Library V "
         Version
         dc.b    0,"$VER: "
         Version
