@@ -12,7 +12,7 @@ Issues :
 - Amos Lock CRASH
 
 ; ************************************************************************
-; 2021.02.19
+; 2021.02.19-20
 - Added AGA Chipset detection in the AmosProfessionalUnityAGA.library to validate full activation of AGA features.
 -----
 - Reinserted missing AGA data in the AmosProUnity_library_equ.s definition file.
@@ -25,6 +25,8 @@ Issues :
 - Updated methods with AGA support (AmosProUnity.lib.s) : Bnk.Load, Bnk.AdBob, Bnk.Change, L_InSetRainbow7, L_InRainbow, L_InGetSprite6, L_InGetSprite5, L_GS
 - Inserted prepareHam8Logic method to ExtractedFromAmosPro_lib.s
 - Reintegration of AmosProfessionalX files : AmosProLibrary_Start.s, Windows.s, Screens.s, Autoback.s, CopperListSystem.s
+- Update AGA 'Colour INDEX,RGB' to handle RGB12,RGB15 and RGB24 formats as input like AmosProfessionalUnityECS.library version
+- Update AGA '=Colour( INDEX )' to always return RGB24 color value like AmosProfessionalUnityECS.library version
 
 
 - ExtractedFromAmosPro_lib.s/IffBODY : New Error Message not updated

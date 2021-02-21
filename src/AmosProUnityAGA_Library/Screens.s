@@ -1364,21 +1364,21 @@ EcAdres:
 ;   D1 = Color register ( 0-255 )
 ;   D2 = Color value ( R4G4B4 )
 EcSCol:
-    move.l     d2,d4                   ; D4 = RGB12 Low Bits
-EcSCol24Bits:
-    and.l      #$FFF,d2                ; Be sure that only R8G8B8 values are stored
-    and.l      #$FFF,d4                ; Be sure that only R8G8B8 values are stored
-     ; ********************************* 2019.11.13 Update Colour ID, R4G4B4 to handle 256 colors in the Screen structure palette
-    and.l      #255,d1                 ; Remove 32 colours limit (original = #31) for AGA support with 256 colours limit
-    cmp.w      #31,d1                  ; Check if requested color is in range 00-31 (ECS) or 32-255 (AGA Only)
+; **************** 2020.12.05 Load the New method that handle various color data format ( RGB12, RGB15 and RGB24 )
+    getRGB12Datas  d2,d2,d4               ; Whatever input format, output will be : RGB12L(->d2), RGB12H(->d4)
+; **************** 2020.12.05 Load the New method that handle various color data format ( RGB12, RGB15 and RGB24 )
+    and.l      #255,d1                    ; Remove 32 colours limit (original = #31) for AGA support with 256 colours limit
+    lsl.w      #1,d1                      ; d1 = d1 * 2 (to be able to save RGB12H & RGB12L in the EcPal & EcPalL data storage area)
+    move.l     T_EcCourant(a5),a0         ; Load Current Screen into a0
+; **************** 2020.12.02 Check if color is sent using 12bits or 24bits. 24bits required to have $01000000 set - START
+    move.w     d2,EcPal(a0,d1.w)          ; Save High bits of the RGB24 color value
+    move.l     a0,a1                      ; a1 = a0 = Screen pointer
+    adda.l     #EcPalL,a1                 ; a1 = pointer to the low bits colors datas
+    move.w     d4,(a1,d1.w)               ; Save low bits of the RGB24 color value
+; **************** 2020.12.02 Check if color is sent using 12bits or 24bits. 24bits required to have $01000000 set - END
+; ********************************* 2019.11.13 Update Colour ID, R4G4B4 to handle 256 colors in the Screen structure palette
+    cmp.w      #63,d1                  ; Check if requested color is in range 00-31 (ECS) or 32-255 (AGA Only) ( D1 = Color Index * 2 )
     bgt        AGAPaletteColour        ; if color = 32-255 -> AGAPaletteColour
-;    *************************** Setup color 00-31 (Original AmosPRO setup)
-    move.l     T_EcCourant(a5),a0
-    lsl.w      #1,d1                   ; Colour definition is 16 bits, so d1*2 = Color Word index
-    lea        EcPal(a0),a1
-    add.l      d1,a1
-    move.w     d2,(a1)                 ; Update screen color in table/structure palette
-    move.w     d4,EcPalL-EcPal(a1)     ; 2020.08.14 Update low bits registers with the same value than the high bits as Set Colour is RGB12 only
 ; Update the copper by poking directly in it.
     lsl.w      #1,d1
     move.w     EcNumber(a0),d0
@@ -1409,9 +1409,10 @@ EcSColB:
 
 ;    *************************** 2019.11.16 Set AGA color 32-255
 ;   D1 = Color register ( 32-255 )
-;   D2 = Color value ( R4G4B4 ) High Bits
+;   D2 = Color value ( R4G4B4 H ) High Bits
+;   D4 = Color value ( R4G4B4 L ) Low Bits
 AGAPaletteColour:
-    move.w     d2,d4
+    lsr.w      #1,d1                  ; ( d1 = Color Index instead of Color Index * 2)
     AmpLCall   A_SColAga24Bits
 ne5:
     rts
@@ -1419,11 +1420,18 @@ ne5:
 ******* GET COLOUR D1
 EcGCol:
     move.l     T_EcCourant(a5),a0
-    and.w      #255,d1                 ; 2019.11.13 Remove 32 colours limit (original = #31) for AGA support with 256 colours limit
-    cmp.w      #31,d1                  ; Check if requested color is in range 00-31 (ECS) or 32-255 (AGA Only)
-    bgt.s      getAGAPaletteColour     ; if color = 32-255 -> AGAPaletteColour
-    lsl.w      #1,d1                   ; Colour definition is 16 bits, so d1*2 = Color Word index
-    move.w     EcPal(a0,d1.w),d1
+    and.l      #255,d1
+    lsl.w      #1,d1
+; **************** 2020.12.02 Always return a RGB24 color value - START
+    move.l     a0,a1
+; ******** Get Low Bits for the RGB24 color value returned
+    adda.l     #EcPalL,a1
+    move.w     (a1,d1.w),d3            ; d3 = .....RGB Low Bits
+; ******** Get High bits for the RGB24 color value returned
+    move.w     EcPal(a0,d1.w),d1       ; d1 = .....RGB High Bits
+; ******** Call the new Conversion method.
+     PushToRGB24 d1,d3,d1              ; PushToRGB24 Rgb12High.w, Rgb12Low.w to Rgb24Output.l
+; **************** 2020.12.02 Always return a RGB24 color value - END
     moveq      #0,d0
     rts
 
