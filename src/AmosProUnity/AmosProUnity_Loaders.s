@@ -1160,18 +1160,19 @@ Lst.New
     move.l    #Clear|Public,d1
 ; Cree un élément en tete de liste A0 / longueur D0 / Memoire D1
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Lst.Cree
-    movem.l    a0/d0,-(sp)
-    addq.l    #8,d0
-    SyCall    MemReserve
-    move.l    a0,a1
-    movem.l    (sp)+,a0/d1
-    beq.s    .Out
-    move.l    (a0),(a1)
-    move.l    a1,(a0)
-    move.l    d1,4(a1)
-    move.l    a1,d0
-.Out    rts        
+Lst.Cree:
+    movem.l       a0/d0,-(sp)             ; Save A0 & D0 to SP
+    addq.l       #8,d0                   ; Add 8 Bytes to list block size (to store NEXT.l SIZE.l )
+    SyCall       MemReserve              ; Call +AmosProAGA_library.s/WMemReserve (Return A0 = Memblock)
+    move.l       a0,a1                   ; A1 = New Memory block
+    movem.l       (sp)+,a0/d1             ; A0 = Old List, D1 = Old List Length
+    beq.s       .Out                    ; A1 = 0 / NULL -> No new list -> Jump .Out (Error)
+    move.l       (a0),(a1)               ; (A1.NEXT.l) = (A0.NEXT.l) Push the 1st element "next" to new list
+    move.l       a1,(a0)                 ; (A0.NEXT.l) = A1          Push the new list as "next" of the 1st element
+    move.l       d1,4(a1)                ; (A1.SIZE.l) = D1 (Original requested memblock size, without the .8 bytes NEXT.L LONG.L )
+    move.l       a1,d0                   ; D0 = New Element of the list
+.Out:
+    rts       
 
 ; Efface une liste entiere A0
 ; ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1547,7 +1548,7 @@ CommandX:
 
 ; * Before loading any AmosProfessionalUnityXXX.library, we try to detect which chipset the program run.
 ; ***************************************************************************************************************** DETECT AGA CHIPSET HERE
-detectChipset:
+detectChipsetToLoad.library:
     movem.l    a0/d1-d3,-(sp)              ; 2020.08.10 Save registers before doing AGA Checking : Fix the AMOS Switcher AMOS/WB
     moveq     #30,d3             ; Loop amoun()
     lea     $dff07c,a0         ; lea the register to check content
@@ -1562,11 +1563,11 @@ dcLoop:
     or.b     #$F0,d1         ; D1 & $F0
     cmp.b     #$F8,d1         ; if D1 =$F8 -> AGA
     bne.s     cEcs             ; Else -> ECS
-    move.w     #1,T_isAga(a5)
+;    move.w     #1,T_isAga(a5)
     movem.l    (sp)+,a0/d1-d3
     bra       openAmosProfessionalAGALib
 cEcs:
-    move.w     #0,T_isAga(a5)
+;    move.w     #0,T_isAga(a5)
     movem.l    (sp)+,a0/d1-d3              ; 2020.08.10 Restore registers after AGA Checking completed : Fix the AMOS Switcher AMOS/WB
 
 ; ********************************************* Open ECS Version of the Library

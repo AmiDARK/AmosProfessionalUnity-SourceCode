@@ -293,7 +293,8 @@ TrOMm:
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
-TRSyntaxError
+TrSynt:
+TRSyntaxError:
     move.l    a3,sp
     movem.l    (sp)+,d1-d7/a1-a3
     bsr    TRDeleteRainbows
@@ -404,6 +405,7 @@ TRDeleteRainbowsLoop
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
+RnDel:
 DeleteD1Rainbow:
     bsr        getRainbowD1Adress      ; A0 = Rainbow Structure pointer
     bne        RainbowError            ; D0 =/= 0 -> Jump RainbowError

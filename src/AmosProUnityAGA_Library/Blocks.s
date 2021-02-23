@@ -316,7 +316,7 @@ FnCBl2:    moveq    #1,d0
 ; ****  *  **** ****
 ;-----------------------------------------------------------------
 
-******* Description d'un bloc
+******* Description d''un bloc
     RsReset
 BlPrev:    rs.l     1
 BlNext:    rs.l     1
@@ -357,7 +357,7 @@ MakeBloc:
     add.w    d2,d6
     cmp.w    EcTx(a0),d6
     bhi    BlE3
-* Reserve l'espace pour les datas
+* Reserve l''espace pour les datas
     bsr    FindBloc
     bne.s    MkBl1
     moveq    #BlLong,d0
@@ -371,7 +371,7 @@ MkBl1:    move.w    d1,BlNb(a1)
     move.w    #$FFFF,BlAPlan(a1)
     move.w    d2,BlX(a1)
     move.w    d3,BlY(a1)
-* Prend l'image
+* Prend l''image
     exg    a0,a1
     lea    BlDesc(a0),a2
     bsr    GetBob
@@ -478,7 +478,7 @@ DrawBloc:
     bne.s    DrBl0
 BlNDef    moveq    #2,d0
     bra    BlOut
-* Parametres de l'ecran courant
+* Parametres de l''ecran courant
 DrBl0:    move.l    T_EcCourant(a5),a0
     move.w    EcClipX0(a0),d0
     and.w    #$FFF0,d0
@@ -513,11 +513,11 @@ DrBl4:    move.l    a0,BbEc(a4)
     lea    BlDesc(a1),a2
     bsr    BobCalc
     bne.s    DBlOut
-* Appelle la routine d'affichage
+* Appelle la routine d''affichage
     lea    Circuits,a6
     bsr    OwnBlit
     move.w    BbASize(a4),d2
-    move.w    BbTPlan(a4),d4
+    move.l    BbTPlan(a4),d4                 ; 2019.12.06
     ext.l    d4
     move.l    BbAData(a4),a0
     move.l    BbEc(a4),a3

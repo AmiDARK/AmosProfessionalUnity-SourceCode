@@ -1,24 +1,21 @@
 ***********************************************************
 *    DEMARRAGE A FROID DES FENETRES
 ***********************************************************
-WiInit:
-    lea    WiIn(pc),a0
+WiInit:    lea    WiIn(pc),a0
     move.l    a0,T_WiVect(a5)
     rts
 
 ***********************************************************
 *    ARRET FINAL DES FENETRES
 ***********************************************************
-WiEnd:
-    rts
+WiEnd:    rts
 
 ***********************************************************
 *    Writing FENETRE, loin de la destination!!!
 *    D1= 0/ Normal - 1/ Or - 2/ Xor - 3/ And - 4/ RIEN
 *    D2= NORMAL - PAPER only - PEN only 
 ***********************************************************
-Writing:
-    move.w    d1,d2
+Writing:move.w    d1,d2
     and.w    #$07,d1
     cmp.w    #5,d1
     bcc.s    Wrt0
@@ -26,8 +23,7 @@ Writing:
     lsl.w    #1,d1
     beq.s    Wrt1
     bset    #7,WiFlags(a5)
-Wrt1:
-    lea    WrtTab(pc),a1
+Wrt1:    lea    WrtTab(pc),a1
     move.w    0(a1,d1.w),d0
     lea    WMod1(pc),a0
     move.w    d0,(a0)
@@ -35,8 +31,7 @@ Wrt1:
     move.w    d0,(a0)
     lea    WMod3(pc),a0
     move.w    d0,(a0)
-Wrt0:
-    move.w    d2,d1
+Wrt0:    move.w    d2,d1
     lsr.w    #3,d1
     and.w    #$03,d1
     cmp.w    #3,d1
@@ -44,24 +39,20 @@ Wrt0:
     lsl.w    #1,d1
     beq.s    Wrt2
     bset    #7,WiFlags(a5)
-Wrt2:
-    lea    GetTab(pc),a1
+Wrt2:    lea    GetTab(pc),a1
     lea    WGet1(pc),a0
     move.w    0(a1,d1.w),(a0)
     lea    WGet2(pc),a0
     move.w    0(a1,d1.w),(a0)
-Wrt3:
-    bsr    Sys_ClearCache
+Wrt3:    bsr    Sys_ClearCache
     moveq    #0,d0
     rts
-WrtTab:
-    move.b    d0,(a4)
+WrtTab:    move.b    d0,(a4)
     or.b    d0,(a4)
     eor.b    d0,(a4)
     and.b    d0,(a4)
     nop
-GetTab:
-    or.b    d1,d0
+GetTab:    or.b    d1,d0
     nop
     move.w    d1,d0
 
@@ -97,7 +88,7 @@ WiMd0:    move.l    d1,d0
     beq.s    WiMdX
     move.l    d0,WiDBuf(a5)
     move.l    d1,WiTBuf(a5)
-* Copie le contenu de l''ecran!
+* Copie le contenu de l'ecran!
 WiMd1:    move.l    WiDBuf(a5),a3
     move.w    WiDyR(a5),d0
     move.w    EcTLigne(a4),d1
@@ -126,8 +117,7 @@ WiMdX:    movem.l    (sp)+,d0-d7/a0-a5
     rts
 
 ******* Entree EFFACEMENT pour WIND SIZE!
-WiEff2:
-    movem.l    d0-d7/a0-a3,-(sp)
+WiEff2:    movem.l    d0-d7/a0-a3,-(sp)
     tst.w    EcWiDec(a4)
     beq    WiEfX
     tst.l    WiDBuf(a5)
@@ -138,13 +128,11 @@ WiEff2:
     bls.s    WiEf2a
     move.w    WiTxR(a5),d5
 * Limite en Y
-WiEf2a:
-    cmp.w    WiTyP(a5),d7
+WiEf2a:    cmp.w    WiTyP(a5),d7
     bls.s    WiEf2b
     move.w    WiTyP(a5),d7
 * Limite en X
-WiEf2b:
-    move.w    WiDxR(a5),d0
+WiEf2b:    move.w    WiDxR(a5),d0
     move.w    d0,d2
     add.w    d5,d2
     move.w    WiDyR(a5),d1
@@ -170,8 +158,7 @@ WiEf2c:    move.w    d3,-(sp)
 ******* Efface la fenetre (A5) avec CLIP des fenetres DEVANT!
 *    Avec D5= 1/0 Avec / Sans bordure
 *    Entre Y=D6 et Y=D7 seulement!
-WiEff:
-    movem.l    d0-d7/a0-a3,-(sp)
+WiEff:    movem.l    d0-d7/a0-a3,-(sp)
     tst.w    EcWiDec(a4)
     beq    WiEfX
     tst.l    WiDBuf(a5)
@@ -209,7 +196,7 @@ WiEf1:    move.w    d5,d4
     move.w    2(sp),d5
     bsr    WiClip
     bne    WiEf4
-* Adresse dans l''ecran
+* Adresse dans l'ecran
     move.w    d7,d3
     mulu    EcTLigne(a4),d3
     add.l    d4,d3
@@ -226,7 +213,7 @@ WiEf1:    move.w    d5,d4
     subq.w    #1,d2
     move.w    d5,d1
     sub.w    d4,d1
-    lea        EcLogic(a4),a2
+    lea    EcLogic(a4),a2
     cmp.w    #8,d1
     bcc.s    WiER
 ** Recopie LENTE!
@@ -271,8 +258,7 @@ WiEf4:    addq.w    #1,d7
     bcs    WiEf0
     addq.l    #6,sp
 ** Ca y est!
-WiEfX:
-    movem.l    (sp)+,d0-d7/a0-a3
+WiEfX:    movem.l    (sp)+,d0-d7/a0-a3
     rts
 
 ******* Effacement du buffer de decor (a5)
@@ -335,8 +321,7 @@ WiClpR:    cmp.w    4+2(sp),d4
 ***********************************************************
 
 ******* AffCur:    affiche le curseur si en route
-AffCur:
-    btst    #1,WiSys(a5)
+AffCur:    btst    #1,WiSys(a5)
     beq.s    AfCFin
 
     movem.l    d0-d7/a0-a3,-(sp)
@@ -373,13 +358,9 @@ AfC4:    dbra    d4,AfC1
     movem.l    (sp)+,d0-d7/a0-a3
 AfCFin:    rts
 
-; ********************************************************************************************* Clear cursor.
 ******* EffCur:    efface le curseur si en route
-; a4 = current screen
-; a5 = current screen windows
-EffCur:
-    btst    #1,WiSys(a5)
-    beq.s    EfCFin             ; If screen have no windows -> End of clear
+EffCur:    btst    #1,WiSys(a5)
+    beq.s    EfCFin
 
     movem.l    d3-d7/a0-a2,-(sp)
     lea    EcCurS(a4),a0
@@ -391,8 +372,7 @@ EffCur:
     lea    EcCurrent(a4),a2
 
 ; Efface NORMAL
-EfC1:
-    move.l    (a2)+,a1
+EfC1:    move.l    (a2)+,a1
     add.l    d4,a1
     moveq    #7,d3
 EfC2:    move.b    (a0)+,(a1)
@@ -401,42 +381,6 @@ EfC2:    move.b    (a0)+,(a1)
     dbra    d6,EfC1
     movem.l    (sp)+,d3-d7/a0-a2
 EfCFin:    rts
-
-***********************************************************
-*    Calcul de PEN/PAPER
-***********************************************************
-AdColor:
-    move.w    WiNPlan(a5),d1
-    move.w    WiPaper(a5),d2
-    move.w    WiPen(a5),d3
-    move.w    d2,d4
-    move.w    d3,d5
-    lea    TAdCol(pc),a0
-    lea    WiColor(a5),a1
-    lea    WiColFl(a5),a2
-ACol:
-    moveq    #16,d0
-    btst    d1,WiSys+1(a5)
-    bne.s    ACol1
-    clr.w    d0
-    lsr.w    #1,d2
-    roxl.w    #1,d0
-    lsr.w    #1,d3
-    roxl.w    #1,d0
-    lsl.w    #2,d0
-ACol1:
-    move.l    0(a0,d0.w),d0
-    add.l    a0,d0
-    move.l    d0,(a1)+
-    lsr.w    #1,d4
-    subx.w    d0,d0
-    move.w    d0,(a2)+
-    lsr.w    #1,d5
-    subx.w    d0,d0
-    move.w    d0,(a2)+
-    dbra    d1,ACol
-    rts
-
 
 ***********************************************************
 *    WINDOPEN
@@ -449,8 +393,7 @@ ACol1:
 *    D7= 0 / # de bordure
 *    A1= # du jeu de caracteres
 ***********************************************************
-WOpen:
-    movem.l    d1-d7/a1-a6,-(sp)
+WOpen:    movem.l    d1-d7/a1-a6,-(sp)
     move.l    T_EcCourant(a5),a4
 
 ; Demande de la place memoire
@@ -459,8 +402,7 @@ WOpen:
     bne.s    Wo0
     moveq    #1,d0
     bra    WOut
-Wo0:
-    move.l    a5,a3
+Wo0:    move.l    a5,a3
     move.l    d0,a5
     lea    Circuits,a6
 
@@ -485,15 +427,14 @@ Wo0:
     beq.s    Wo2
     addq.w    #1,d2
 * Va tout calculer!
-Wo2:
-    bsr    WiAdr
+Wo2    bsr    WiAdr
     bne    WErr
     
 * Init parametres
     clr.w    WiSys(a5)
     clr.w    WiEsc(a5)
     moveq    #0,d1            ;Writing 0
-    bsr        Writing
+    bsr    Writing
     move.l    EcWindow(a4),d0
     beq.s    Wo3a
 * Une fenetre ouverte: reprend les parametres
@@ -506,8 +447,7 @@ Wo2:
     move.w    WiTab(a0),WiTab(a5)
     bra.s    Wo4
 * Aucune fenetre ouverte: parametre par defaut
-Wo3a:
-    move.w    #1,WiPaper(a5)        ;Paper=1 / Pen=2
+Wo3a:    move.w    #1,WiPaper(a5)        ;Paper=1 / Pen=2
     move.w    #2,WiPen(a5)
     move.w    #3,WiCuCol(a5)
     move.w    #4,WiTab(a5)
@@ -520,12 +460,11 @@ Wo3a:
     move.w    #1,WiCuCol(a5)
     clr.w    WiBorPap(a5)
     move.w    #1,WiBorPen(a5)
-Wo4:
-    bsr    AdColor
+Wo4:    bsr    AdColor
     moveq    #1,d1            ;Scrollings
     bsr    Scroll
 
-* Stocke (s''il faut!) la fenetre courante
+* Stocke (s'il faut!) la fenetre courante
     move.l    EcWindow(a4),d0
     beq.s    Wo5
     move.l    a5,-(sp)
@@ -542,7 +481,7 @@ Wo5:
     beq.s    PaBor
     bsr    DesBord
 PaBor:
-* Effacement de l''interieur
+* Effacement de l'interieur
     bsr    WiInt
     btst    #0,d6
     beq.s    .Skip
@@ -553,13 +492,12 @@ PaBor:
     lea    DefCurs(pc),a0
     lea    WiCuDraw(a5),a1
     moveq    #7,d0
-InCu:
-    move.b    (a0)+,(a1)+
+InCu:    move.b    (a0)+,(a1)+
     dbra    d0,InCu
     bset    #1,WiSys(a5)
     bsr    AffCur
 
-* Premiere fenetre de l''ecran / Fenetre courante
+* Premiere fenetre de l'ecran / Fenetre courante
     move.l    EcWindow(a4),d0
     move.l    a5,EcWindow(a4)
     clr.l    WiPrev(a5)
@@ -632,7 +570,7 @@ WAdE4:    moveq    #13,d0
 WQWind:    movem.l    d1-d7/a1-a6,-(sp)
     move.l    T_EcCourant(a5),a4
     move.l    EcWindow(a4),a5
-; Trouve l''adresse de la fenetre
+; Trouve l'adresse de la fenetre
     bsr    WindFind
     bne    WErr1
 ; Deja activee?
@@ -660,10 +598,10 @@ QWi1:
     move.w    WiFyR(a5),d7
     bsr    WiEff            * Redessine
     bsr    WiEffBuf        * Plus besoin de buffer
-* Plus d''escape!
+* Plus d'escape!
     bsr    AffCur
 QWiF    clr.w    WiEsc(a5)
-* Pas d''erreur
+* Pas d'erreur
 WOk:    movem.l    (sp)+,d1-d7/a1-a6
 *    clr.w    T_WiRep(a5)
     moveq    #0,d0
@@ -870,8 +808,7 @@ sWti1:    move.b    (a0)+,(a1)+
 sWti2:    rts
 
 ******* WINDOW ADRESSE
-WAdr:
-    move.l    T_EcCourant(a5),a0
+WAdr:    move.l    T_EcCourant(a5),a0
     move.l    EcWindow(a0),a0
     moveq    #0,d1
     move.w    WiNumber(a0),d1    
@@ -879,29 +816,25 @@ WAdr:
     rts
 
 ******* SET CURS a1
-WiSCur:
-    movem.l    d1-d7/a1-a6,-(sp)
+WiSCur:    movem.l    d1-d7/a1-a6,-(sp)
     move.l    T_EcCourant(a5),a4
     move.l    EcWindow(a4),a5
     bsr    EffCur
     lea    WiCuDraw(a5),a2
     moveq    #7,d0
-WiScu:
-    move.b    (a1)+,(a2)+
+WiScu:    move.b    (a1)+,(a2)+
     dbra    d0,WiScu
     bsr    AffCur
     bra    WOk
 
 ******* Effacement de la fenetre courante
-WDel:
-    move.l    T_EcCourant(a5),a0
+WDel:    move.l    T_EcCourant(a5),a0
     move.l    EcWindow(a0),a0
     tst.w    WiNumber(a0)
     bne.s    WiD1
     moveq    #18,d0
     rts
-WiD1:
-    movem.l    d1-d7/a1-a6,-(sp)
+WiD1:    movem.l    d1-d7/a1-a6,-(sp)
     move.l    T_EcCourant(a5),a4
     move.l    EcWindow(a4),d0
     move.l    d0,a5
@@ -938,34 +871,29 @@ WiD3:    move.l    (sp)+,a5
     bra    WOk
 
 ******* Effacement de toutes les fenetres
-WiDelA:
-    bsr    WiD1
+WiDelA:    bsr    WiD1
     tst.l    d0
     beq.s    WiDelA
     moveq    #0,d0
     rts        
 
-******* CLS effacement de toutes les fenetres SAUF zero! !!!!!
-WiCls:
-    movem.l    d1-d7/a0-a6,-(sp)
+******* CLS effacement de toutes les fenetres SAUF zero!
+WiCls:    movem.l    d1-d7/a0-a6,-(sp)
     move.l    T_EcCourant(a5),a4
     move.l    EcWindow(a4),d5
     move.l    d5,a5
-    bsr    EffCur             ; Call Clear Cursor with a4 = current screen, a5 = current screen windows
-
+    bsr    EffCur
 WiCls1:    move.l    d5,a5
     move.l    WiNext(a5),d5
     tst.w    WiNumber(a5)
     bne.s    WiCls2
     move.l    a5,d7
     bra.s    WiCls3
-WiCls2:
-    bsr    WiEffBuf
+WiCls2:    bsr    WiEffBuf
     move.l    #WiLong,d0
     move.l    a5,a1
     bsr    FreeMm
-WiCls3:
-    tst.l    d5
+WiCls3:    tst.l    d5
     bne.s    WiCls1
     move.l    d7,a5
     move.l    a5,EcWindow(a4)
@@ -994,8 +922,8 @@ WiF3:    rts
 ***********************************************************
 *    Dessine la bordure D1
 ***********************************************************
-DesBord:
-    movem.l    d1-d7/a1-a6,-(sp)
+DesBord:movem.l    d1-d7/a1-a6,-(sp)
+
     tst.w    WiBord(a5)
     beq    WErr10
     move.w    WiBord(a5),d1
@@ -1027,13 +955,12 @@ DesBord:
     bsr    Loca
     bsr    DVert
 
-; Pas d''erreur
+; Pas d'erreur
     bsr    WiInt
     bra    WOk
 
 ******* Re dessine le bord, remet le curseur!!!
-ReBord:
-    move.w    WiX(a5),-(sp)    
+ReBord    move.w    WiX(a5),-(sp)    
     move.w    WiY(a5),-(sp)
     move.l    WiAdCur(a5),-(sp)
     bsr    DesBord
@@ -1273,9 +1200,8 @@ CClw:    tst.w    WiBord(a5)
 ***********************************************************
 *    CLW
 ***********************************************************
-Clw:
-    move.l    WiAdhgI(a5),d0
-    lea        EcCurrent(a4),a0
+Clw:    move.l    WiAdhgI(a5),d0
+    lea    EcCurrent(a4),a0
     move.w    WiTyCar(a5),d2
     mulu    WiTyI(a5),d2
     move.w    WiTxI(a5),d3
@@ -1285,18 +1211,16 @@ Clw:
 ***********************************************************
 *    CL LIGNE CURSEUR
 ***********************************************************
-ClLine:
-    move.w    WiY(a5),d0
+ClLine:    move.w    WiY(a5),d0
     mulu    WiTLigne(a5),d0
     add.l    WiAdhgI(a5),d0
-    lea        EcCurrent(a4),a0
+    lea    EcCurrent(a4),a0
     move.w    WiTyCar(a5),d2
     move.w    WiTxI(a5),d3
 
 ; Fin de CLW
-ClFin:
-    subq.w    #1,d2
-    lea        WiColFl(a5),a1
+ClFin:    subq.w    #1,d2
+    lea    WiColFl(a5),a1
     move.w    EcTLigne(a4),d1
     ext.l    d1
     lsr.w    #1,d3
@@ -1309,21 +1233,18 @@ ClFin:
     clr.w    BltCon1(a6)
     clr.w    BltModD(a6)
     move.w    #$8040,DmaCon(a6)
-Clw1:
-    move.w    d4,d5
+Clw1:    move.w    d4,d5
     move.l    a0,a2
     move.l    a1,a3
-Clw2:
-    btst    d5,WiSys+1(a5)
+Clw2:    btst    d5,WiSys+1(a5)
     bne.s    .skip
-    bsr        BlitWait
+    bsr    BlitWait
     move.l    (a2),d7
     add.l    d0,d7
     move.l    d7,BltAdD(a6)
     move.w    (a3),BltDatC(a6)
     move.w    d3,BltSize(a6)
-.skip
-    addq.l    #4,a2
+.skip    addq.l    #4,a2
     addq.l    #4,a3
     dbra    d5,Clw2
     add.l    d1,d0
@@ -1343,7 +1264,7 @@ ScGLine:move.w    WiY(a5),d0
     move.w    WiTyCar(a5),d2
     bra    ScGFin
 ***********************************************************
-*    SCROLLING VERS LA GAUCHE DE TOUT L''ECRAN
+*    SCROLLING VERS LA GAUCHE DE TOUT L'ECRAN
 ***********************************************************
 ScGWi:    move.l    WiAdhgI(a5),d0
     lea    EcCurrent(a4),a0
@@ -1405,7 +1326,7 @@ ScDLine:move.w    WiY(a5),d0
     move.w    WiTyCar(a5),d2
     bra    ScDFin
 ***********************************************************
-*    SCROLLING VERS LA GAUCHE DE TOUT L''ECRAN
+*    SCROLLING VERS LA GAUCHE DE TOUT L'ECRAN
 ***********************************************************
 ScDWi:    move.l    WiAdhgI(a5),d0
     lea    EcCurrent(a4),a0
@@ -1674,14 +1595,12 @@ InvF:    moveq    #0,d0
 *    Set PAPER
 *    D1= paper
 ***********************************************************
-Paper:
-    cmp.w    EcNbCol(a4),d1
+Paper:    cmp.w    EcNbCol(a4),d1
     bcc    PErr7
     bclr    #2,WiSys(a5)
     beq.s    Pap1
     move.w    WiPaper(a5),WiPen(a5)
-Pap1:
-    move.w    d1,WiPaper(a5)
+Pap1:    move.w    d1,WiPaper(a5)
     bsr    AdColor
     moveq    #0,d0
     rts
@@ -1690,14 +1609,12 @@ Pap1:
 *    Set PEN
 *    D1= pen
 ***********************************************************
-Pen:
-    cmp.w    EcNbCol(a4),d1
+Pen:    cmp.w    EcNbCol(a4),d1
     bcc    PErr7
     bclr    #2,WiSys(a5)
     beq.s    Pen1
     move.w    WiPen(a5),WiPaper(a5)
-Pen1:
-    move.w    d1,WiPen(a5)
+Pen1:    move.w    d1,WiPen(a5)
     bsr    AdColor
     moveq    #0,d0
     rts    
@@ -2066,8 +1983,7 @@ EncFin:    clr.w    WiGraph(a5)
 ***********************************************************
 *    HOME
 ***********************************************************
-Home:
-    move.w    WiTx(a5),WiX(a5)
+Home:    move.w    WiTx(a5),WiX(a5)
     clr.w    WiY(a5)
     bsr    AdCurs
     moveq    #0,d0

@@ -12,26 +12,20 @@ Issues :
 - Amos Lock CRASH
 
 ; ************************************************************************
-; 2021.02.19-20
-- Added AGA Chipset detection in the AmosProfessionalUnityAGA.library to validate full activation of AGA features.
------
-- Reinserted missing AGA data in the AmosProUnity_library_equ.s definition file.
-- Inserted the Build version display inside the ABOUT popup at startup
-- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : Bnk.SaveA0, AMP_BnkEffBobA0, AMP_BnkReserveIC2 (Bnk.Ric2), AMP_InScreenOpen (L_InScreenOpen)
-- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : AMP_InScreenDisplay (L_InScreenDisplay), AMP_InGetPalette2 (L_InGetPalette2), AMP_GSPal (L_GSPal)
-- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : AMP_PalRout (L_PalRout), AMP_InPen (L_InPen), AMP_WnPp (L_WnPp), AMP_UnPack_Screen (L_UnPack_Screen)
-- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : AMP_UnPack_Bitmap (L_UnPack_Bitmap)
-- Updated methods with AGA Support (ExtractedFromAmosPro_libs.s) : AMP_IffFormLoad, AMP_IffForm, IffFormPlay, IffScreen, IffPal, SaveCMAP, 
-- Updated methods with AGA support (AmosProUnity.lib.s) : Bnk.Load, Bnk.AdBob, Bnk.Change, L_InSetRainbow7, L_InRainbow, L_InGetSprite6, L_InGetSprite5, L_GS
-- Inserted prepareHam8Logic method to ExtractedFromAmosPro_lib.s
-- Reintegration of AmosProfessionalX files : AmosProLibrary_Start.s, Windows.s, Screens.s, Autoback.s, CopperListSystem.s
-- Update AGA 'Colour INDEX,RGB' to handle RGB12,RGB15 and RGB24 formats as input like AmosProfessionalUnityECS.library version
-- Update AGA '=Colour( INDEX )' to always return RGB24 color value like AmosProfessionalUnityECS.library version
-
-
-- ExtractedFromAmosPro_lib.s/IffBODY : New Error Message not updated
-
-- ExtractedFromAmosPro_lib.s : Restore EcSPalAGA_CurrentScreen or SPalAGA_CurrentScreen calls (x2) that are actually commented at line 713 & 1445/6, 
+; 2021.02.22-23
+- Erased all works using AGA because many crashs were available.
+- Restarted AGA .library from ECS one
+- Inserted a special vector call to allow the use of "Rjmp L_Error" from everywhere in Amos Professional Unity. Required for extraction.
+- Inserted in AGA Extracted : IffPal, InScreenOpen, IffBODY, prepareHam8Logic, IffScreen, SaveCMAP, (AMP_)GSPal, (AMP_)PalRout, (AMP_)InGetPalette2
+- Inserted in AGA Extracted : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig, (AMP_)UnPack_Screen, (AMP_)UnPack_Bitmap, (AMP_)IffFormLoad, (AMP_)IffForm, (AMP_)IffFormPlay
+- Inserted in AGA Extracted : (AMP_)Bnk.EffBobA0
+- Updated in AmosProUnity.lib : Bnk.Load, Bnk.GetAdr, Bnk.GetBobs, Bnk.GetIcons, Bnk.AdBob, Bnk.Change, InGetIconPalette1, InBob, InGetSprite6, InGetSprite5
+- Updated in AmosProUnity.(I)lib : InFade(?)
+- Updated in AmosProfessionalUnityAGA.library : GetBob, TPatch, BobSet, BobLim, BbEcOff, BobCalc, BobAff, BM*** methods, TAMOSWb, DrawBloc
+- Updated AmodProfessionalUnityAGA.library files : BraList_Screens.s, AmosProLibrary_Start.s, Autoback.s, CopperListSystem.s, FadingSystem.s, MemoryHandler.s
+- Updated AmodProfessionalUnityAGA.library files : RainbowsSystem.s, Screens.s, Texts.s
+- Restoring previous Amos LoadView (AmosProfessionalUnityAGA.library) prevent WB closed when quitting Amos Professional Unity.
+- Everything works excepted Bobs/Icons that must be fixed
 
 ; ************************************************************************
 ; 2021.02.18

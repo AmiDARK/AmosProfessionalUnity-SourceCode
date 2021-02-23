@@ -199,14 +199,13 @@ ScCpyW        equ 73
 MaxRaw        equ 74
 NTSC        equ 75
 PourSli        equ 76
-SCol24Bits     equ 77                  ; 2020.08.31 Added to makes EcSCol being able to set full RGB24->RGB24
-CopperRelease  equ 78                  ; 2020.10.11 Added to allow patching of Amos Pro Copper List by a .lib initialization setup.
-CopperCreate   equ 79                  ; 2020.10.11 Added to allow patching of Amos Pro Copper List by a .lib initialization setup.
-BlitterWait    equ 80                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
-ScreenActive   equ 81                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
-IsScreenInterL equ 82                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
-ScreenDatDel   equ 83                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
-GetScreen      equ 84                  ; 2020.10.11 Added to be callable from Amos Pro .lib plugins
+SPalAGA:        equ 77
+SHam8BPLS       equ 78
+SCol24Bits     equ 79                  ; 2020.08.31 Added to makes EcSCol being able to set full RGB24->RGB24
+SColAga24Bits  equ 80                  ; 2020.08.31 Added to makes AgaPaletteColour being able to set full RGB24->RGB24
+UpdateAGAColorsInCopper equ 81         ; 2020.09.16 Added to makes new Fade AGA method to update the Copper list with changes in the global color palette
+ForceFullAGAPalette_ScreenA0 Equ 82    ; 2020.09.16 Added for optimising color updating.
+
 
 EcCall:        MACRO
         move.l    T_EcVect(a5),a0

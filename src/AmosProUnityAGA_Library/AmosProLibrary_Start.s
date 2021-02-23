@@ -6,6 +6,7 @@
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 IceStart
     move.l    a6,-(sp)
+
     clr.w    T_WVersion(a5)        Par defaut
     cmp.l    #"V2.0",d0        Le magic
     bne.s    .Nomagic
@@ -17,7 +18,7 @@ IceStart
     lea    SyIn(pc),a0
     move.l    a0,T_SyVect(a5)
     bsr    WMemInit
-
+   
 ; Recherche et stoppe les programmes AMOS lancés... (si AMOSPro V2.0)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     cmp.w    #$0200,T_WVersion(a5)
@@ -43,13 +44,12 @@ IceStart
     move.l    a1,10(a0)
     move.l    a5,$58(a0)        Adresse des datas...
 ; Fini!
-.No20
-    move.l    (sp)+,a6
+.No20    move.l    (sp)+,a6
     move.l    #"W2.0",d0        Retourne des magic
     move.w    #$0200,d1
     rts
 
-; ********************************************************** Normal Cold Start : Default AMOS Engine Starting
+; Normal cold start: start default system
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 StartAll:
     movem.l    a0-a6/d1-d7,-(sp)
@@ -84,24 +84,23 @@ StartAll:
     ; copper list to correct chipset (ECS/AGA)
     bsr     detectChipset
 
-; Save DMA flags
+
+ ; Save DMA flags
 ; ~~~~~~~~~~~~~~~~~~~~~~
     move.b    d0,T_AMOSHere(a5)
     move.w    Circuits+DmaConR,T_OldDma(a5)
-    bset    #7,T_OldDma(a5)
+    bset      #7,T_OldDma(a5)
 
 ; Amiga-A
 ; ~~~~~~~
     tst.l    d1
     bne.s    .Skip
     move.l    #$00406141,d1
-.Skip:
-    move.b    d1,T_AmigA_Ascii1(a5)
+.Skip    move.b    d1,T_AmigA_Ascii1(a5)
     lsr.l    #8,d1
     move.b    d1,T_AmigA_Ascii2(a5)
     lsr.w    #8,d1
     move.b    d1,T_AmigA_Shifts(a5)
-
 ; Mouse.Abk (si v2.0)
 ; ~~~~~~~~~~~~~~~~~~~
     cmp.w    #2,T_WVersion(a5)
@@ -112,8 +111,7 @@ StartAll:
     lsl.l    #2,d0
     move.l    d0,a1
     addq.l    #4,a1
-.MSkip:
-    cmp.l    #"AmSp",(a1)+
+.MSkip    cmp.l    #"AmSp",(a1)+
     bne    GFatal
     move.w    (a1)+,d1
     cmp.w    #4,d1
@@ -121,8 +119,7 @@ StartAll:
     move.l    a1,T_MouBank(a5)
 ; Pointe la palette pour l''ouverture des ecrans
     subq.w    #1,d1
-.MLoop:
-    move.w    (a1)+,d0
+.MLoop    move.w    (a1)+,d0
     mulu    (a1)+,d0
     mulu    (a1)+,d0
     lsl.l    #1,d0
@@ -136,7 +133,7 @@ StartAll:
     dbra    d0,.PCopy
 .No20_b
 
-; Open 8x8 pixels system font
+; Ouverture de la fonte systeme 8x8
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     lea    TopazName(pc),a1    Topaz force si <2.0
     cmp.w    #$0200,T_WVersion(a5)
@@ -160,7 +157,7 @@ StartAll:
     move.l    a1,(a0)
     move.w    #8,4(a0)
     move.w    #$0041,6(a0)
-    jsr    _LVOOpenFont (a6)
+    jsr    _LVOOpenFont(a6)
     move.l    d0,T_DefaultFont(a5)
     beq    GFatal            ???
 .fOk    addq.l    #8,sp
@@ -175,17 +172,17 @@ StartAll:
     beq.s    .PaAA
     bset    #WFlag_AA,T_WFlags(a5)
     bset    #WFlag_LoadView,T_WFlags(a5)
-.PaAA:
-    move.l    $4.w,a0                Kickstart >= V39?
+.PaAA    move.l    $4.w,a0                Kickstart >= V39?
     cmp.w    #39,$14(a0)            Si oui, on fait un LoadView(0)
     bcs.s    .Pa39
     bset    #WFlag_LoadView,T_WFlags(a5)
-.Pa39:
+.Pa39
     IFNE    Debug=2                Si debug
     bclr    #WFlag_LoadView,T_WFlags(a5)    AMIGA-A normal...
     ENDC
 
-; Find its own task
+
+; Ma propre tache
 ; ~~~~~~~~~~~~~~~
     sub.l    a1,a1
     move.l    $4.w,a6
@@ -193,7 +190,7 @@ StartAll:
     move.l    d0,T_MyTask(a5)
     move.l    d0,a0
 
-; Open the layer.library
+; Ouverture du layer.library
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~
     moveq    #0,d0
     lea    LayName(pc),a1
@@ -202,16 +199,14 @@ StartAll:
     move.l    d0,T_LayBase(a5)
     beq    GFatal
 
-; Branch to input.device
+; Branche l''input.device
 ; ~~~~~~~~~~~~~~~~~~~~~~
     bsr    ClInit
-
 ; Open Console Device        
 ; ~~~~~~~~~~~~~~~~~~~
     lea    ConIo(pc),a1
     bsr    OpConsole
-
-; Branch input_handler
+; Branche le input_handler
 ; ~~~~~~~~~~~~~~~~~~~~~~~~
     lea    T_IoDevice(a5),a1
     bsr    OpInput
@@ -226,88 +221,117 @@ StartAll:
     jsr    _LVODoIo(a6)
     move.w    #-1,T_DevHere(a5)
 
-; Set default screens parameters
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    move.l    (sp),a0    
-    move.w    #129,T_DefWX(a5)
-    move.w    #129-16,T_DefWX2(a5)
-    move.w    10(a0),T_DefWY(a5)
-    move.w    10(a0),T_DefWY2(a5)
-    subq.w    #8,T_DefWY2(a5)
+; ***************************************
+; Default screens parameters 
+; ***************************************
+    move.l     (sp),a0    
+    move.w     #129,T_DefWX(a5)
+    move.w     #129-16,T_DefWX2(a5)
+    move.w     10(a0),T_DefWY(a5)
+    move.w     10(a0),T_DefWY2(a5)
+    subq.w     #8,T_DefWY2(a5)
 
-    lea     Circuits,a6
-    move.l    (sp),a0
-    move.l    16(a0),d0
-    bsr    HsInit            Hard sprites
-    move.l    (sp),a0
-    move.w    8(a0),d0
-    bsr    BbInit            Bobs
-    bsr    RbInit            Retourneur de bobs
-    move.l    (sp),a0
-    move.l    12(a0),d0
-    bsr    CpInit            ; Create the copper list memory area
-    bsr    EcInit            Ecrans
+    lea        Circuits,a6
+    move.l     (sp),a0
+    move.l     16(a0),d0
+    bsr        HsInit                  ; Init Hard Sprites
+    move.l     (sp),a0
+    move.w     8(a0),d0
+    bsr        BbInit                  ; Blitter Objects (Bobs) Init
+    bsr        RbInit                  ; Blitter Objects (Bobs) Reverser (French : Retourneur)
+    move.l     (sp),a0
+    move.l     12(a0),d0
+    bsr        CpInit                  ; Setup Copper
+    bsr        EcInit                  ; Setup Screens
     bsr        ampLib_Init             ; 2020.11.22 Setup AmosProLib_ExtractedMethods branchment list
 ;    bsr        colorSupport_Init       ; 2021.02.12 Removed // 2020.12.05 Setup for Advanced Color Support for Colors Datas Format Conversions
-    bsr    SyInit            Systeme
-    bsr    VBLInit            Interruptions VBL
-    bsr    WiInit            Windows
+    bsr        SyInit                  ; System Setup
+    bsr        VBLInit                 ; VBL Interrupts Setup 
+    bsr        WiInit                  ; Windows Setup
 
-;    Si AA, change le vecteur LOADVIEW
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    btst    #WFlag_LoadView,T_WFlags(a5)    ; Si LoadView en route
-    beq.s    .NoLoadView
-    lea    AMOS_LoadView(pc),a0
-    lea    T_AMOSHere(a5),a1        Adresse du test
-    move.l    a1,2(a0)            >>> dans le source...
-    move.l    a0,d0                Nouvelle fonction
-    move.w    #-222,a0            LOADVIEW
-    move.l    T_GfxBase(a5),a1        Librairie
-    move.l    $4.w,a6
-    jsr    -420(a6)            Set function
-    lea    Old_LoadView(pc),a0        Ancien vecteur
-    move.l    d0,(a0)
-    bsr    Sys_ClearCache            Nettoie les caches!
+; ***************************************
+; If AA, modify the LOADVIEW Vector
+; ***************************************
+    btst       #WFlag_LoadView,T_WFlags(a5)    Si LoadView en route
+    beq.s      .NoLoadView
+    lea        AMOS_LoadView(pc),a0
+    lea        T_AMOSHere(a5),a1        Adresse du test
+    move.l     a1,2(a0)            >>> dans le source...
+    move.l     a0,d0                Nouvelle fonction
+    move.w     #-222,a0            LOADVIEW
+    move.l     T_GfxBase(a5),a1        Librairie
+    move.l     $4.w,a6
+    jsr        -420(a6)            Set function
+    lea        Old_LoadView(pc),a0        Ancien vecteur
+    move.l     d0,(a0)
+    bsr        Sys_ClearCache            Nettoie les caches!
 .NoLoadView    
 
-;     Branche le requester
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~
-    cmp.w    #$0200,T_WVersion(a5)
-    bcs.s    .No20_c
-    move.l    4(sp),a0            Palette par defaut
+; ***************************************
+; Requester Branchment
+; ***************************************
+    cmp.w      #$0200,T_WVersion(a5)
+    bcs.s      .No20_c
+    move.l     4(sp),a0            Palette par defaut
     bsr        WRequest_Start
-;     Fabrique la fonte par defaut
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    bsr    Wi_MakeFonte
-    bne    GFatal
+; ***************************************
+; Build the default font
+; ***************************************
+    bsr        Wi_MakeFonte
+    bne        GFatal
+.No20_c:
 
-;     Envoie le signal a l''AMOS Switcher
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    move.l    T_MyTask(a5),a0
-    move.l    a5,$58(a0)
-    moveq    #Switcher_Signal,d3
-    bsr        Send_Switcher
-.No20_c
+; ***************************************
+; Everything setup correctly ? Send AMOS to front ?
+; ***************************************
+    tst.b      T_AMOSHere(a5)
+    beq.s      .Pafr
+    clr.b      T_AMOSHere(a5)
+    moveq      #1,d1
+    bsr        TAMOSWb
+.Pafr:
 
-;     Tout fini: AMOS to front ?
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    tst.b    T_AMOSHere(a5)
-    beq.s    .Pafr
-    clr.b    T_AMOSHere(a5)
-    moveq    #1,d1
-    bsr    TAMOSWb
-.Pafr
+; ***************************************
+; No error.
+; ***************************************
+    moveq      #0,d0
+    bra.s      GFini
 
+; ***************************************
+; Errors happened during setup. Clear everything and go back to Cli/WB
+; ***************************************
+GFatal:
+    bsr.s      EndAll
+    moveq      #-1,d0
 
-; Pas d''erreur
-; ~~~~~~~~~~~~
-    moveq    #0,d0
-    bra.s    GFini
-
-;     Error : Erase everything and quit
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-GFatal    bsr.s    EndAll
-    moveq    #-1,d0
-GFini    move.l    T_GPile(a5),a7
+; ***************************************
+; Setup End
+; ***************************************
+GFini:
+    move.l     T_GPile(a5),a7
     movem.l    (sp)+,a0-a6/d1-d7
+    rts
+
+; ***************************************************************************************************************** DETECT AGA CHIPSET HERE
+detectChipset:
+    movem.l    a0/d1-d3,-(sp)              ; 2020.08.10 Save registers before doing AGA Checking : Fix the AMOS Switcher AMOS/WB
+    moveq     #30,d3             ; Loop amount()
+    lea     $dff07c,a0         ; lea the register to check content
+    move.w     (a0),d1         ; D1 = read register
+    and.w     #$FF,d1         ; D1 = filtered
+dcLoop:
+    move.w     (a0),d2         ; D2 = Read Register
+    and.w     #$FF,d2         ; D2 = filtered
+    cmp.b     d1,d2             ; Compare D1 read & D2 Read
+    bne.s     cEcs             ; Not equal -> Bus Garbage -> ECS
+    dbra     d3,dcLoop         ; Loop until d3 = -1
+    or.b     #$F0,d1         ; D1 & $F0
+    cmp.b     #$F8,d1         ; if D1 =$F8 -> AGA
+    bne.s     cEcs             ; Else -> ECS
+    move.w     #1,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3
+    rts
+cEcs:
+    move.w     #0,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3              ; 2020.08.10 Restore registers after AGA Checking completed : Fix the AMOS Switcher AMOS/WB
     rts

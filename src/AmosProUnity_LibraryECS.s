@@ -13,6 +13,7 @@
 ; 10004 ~ Zone de données centrales.
 ; 7700 ~ AllocMems...
 
+EcMaxPlanes    equ 6
 ***************************************************************************
         IFND    EZFlag
 EZFlag        equ     0

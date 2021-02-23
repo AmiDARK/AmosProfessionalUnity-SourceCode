@@ -20,6 +20,21 @@
 ; TCopMv =                  Copper Move D1(Adress), D2(Value)
 ; TCopMl =                  Double Copper Move D1(Adress), D2.l(Value) Do two copper move with consecutive adress registers 
 
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : EcForceCop / EcCopper                       *
+; *-----------------------------------------------------------*
+; * Description : Force Copper Update                         *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+***********************************************************
+*    FABRIQUE LA COPPER LISTE A PARTIR DES ECRANS
+*
 ******* SCREENS REFRESHING/UPDATING
 EcForceCop:
     addq.w     #1,T_EcYAct(a5)         ; Enforce re-calculation for screens.
@@ -45,198 +60,195 @@ EcAct0:                                ; If ScreenID > 0 refresh its opening
     bpl.s      EcAa                    ; if positif -> Jump to EcAa
     moveq      #0,d1                   ; if negative, clear D1.
 EcAa:
-    move.w     d1,EcWY(a1)             ; Save final Y position on EcWY register of current screen structure
-    addq.w     #1,d7                   ; increase D7+1 counter
+    move.w    d1,EcWY(a1)              ; Save final Y position on EcWY register of current screen structure
+    addq.w    #1,d7                    ; increase D7+1 counter
 
 ******************** Check for changes on X Position
 EcAct1:
-    btst       #1,d0                   ; Check if X changes are requires or not
-    beq.s      EcAct2                  ; If no changes on X -> Jump to ExAct2
-    move.w     EcAWX(a1),d1            ; D1 = Requested X Position
-    and.w      #$FFF0,d1               ; Fix D1 to 4 bits alignment.
-    move.w     d1,EcWX(a1)             ; Save final X position on EcWX register of current screen structure
+    btst      #1,d0                    ; Check if X changes are requires or not
+    beq.s     EcAct2                   ; If no changes on X -> Jump to ExAct2
+    move.w    EcAWX(a1),d1             ; D1 = Requested X Position
+    and.w     #$FFF0,d1                ; Fix D1 to 4 bits alignment.
+    move.w    d1,EcWX(a1)              ; Save final X position on EcWX register of current screen structure
 EcAct2:
     clr.w     EcAW(a1)                 ; Once changes are done, we reset the current screen EcAW flags
 
 ******************** Check on changes concerning screen Height display
 EcA2:
-    move.b     EcAWT(a1),d0            ; D0 = Current View sizes update settings (flags)
-    beq.s      EcA4                    ; if no changes -> Jump to EcA4
-    btst       #2,d0                   ; Check if Height Changes are required or not
-    beq.s      EcAct3                  ; if no Height changes -> Jump to EcAct3 ( Check for Width changes )
-    move.w     EcAWTY(a1),d1           ; D1 = Requested Height
-    beq.s      EcAct3                  ; If = 0 -> Jump to EcAct3 ( Check for Width changes )
-    cmp.w      EcTY(a1),d1             ; Compare current Height with new one
-    bcs.s      EcAc                    ; 
+    move.b    EcAWT(a1),d0             ; D0 = Current View sizes update settings (flags)
+    beq.s     EcA4                     ; if no changes -> Jump to EcA4
+    btst      #2,d0                    ; Check if Height Changes are required or not
+    beq.s     EcAct3                   ; if no Height changes -> Jump to EcAct3 ( Check for Width changes )
+    move.w    EcAWTY(a1),d1            ; D1 = Requested Height
+    beq.s     EcAct3                   ; If = 0 -> Jump to EcAct3 ( Check for Width changes )
+    cmp.w     EcTY(a1),d1              ; Compare current Height with new one
+    bcs.s     EcAc                     ; 
 EcAg:
-    move.w     EcTY(a1),d1             ; D1 = Current screen display Height
+    move.w    EcTY(a1),d1              ; D1 = Current screen display Height
 EcAc:
-    btst       #2,EcCon0+1(a1)         ; Check for Interlace mode                  // 2019.11.05 Check in .b mode to be sure default is not .w
-    beq.s      EcA2a                   ; If Not Interlaced -> Jump to EcA2a
-    lsr.w      #1,d1                   ; if Interlaced : Height = Height / 2 
+    btst      #2,EcCon0+1(a1)          ; Check for Interlace mode                  // 2019.11.05 Check in .b mode to be sure default is not .w
+    beq.s     EcA2a                    ; If Not Interlaced -> Jump to EcA2a
+    lsr.w     #1,d1                    ; if Interlaced : Height = Height / 2 
 EcA2a:
-    move.w     d1,EcWTy(a1)            ; Save final Height D1 to EcWTy
-    addq.w     #1,d7                   ; increase D7+1 counter
+    move.w    d1,EcWTy(a1)             ; Save final Height D1 to EcWTy
+    addq.w    #1,d7                    ; increase D7+1 counter
 
 ******************** Check on changes concerning screen Width display
 EcAct3:
-    btst       #1,d0                   ; Check if Width changes are required or not
-    beq.s      EcAct4                  ; if no changes -> Jump to EcAct4
-    move.w     EcAWTX(a1),d1           ; D1 = Requested Width
-    and.w      #$FFF0,d1               ; Fix D1 on 4 bits alignment.
-    beq.s      EcAct4                  ; if D1 = 0 -> Jump to EcAct4
-    move.w     EcTx(a1),d2             ; D2 = Current Screen display width
-    tst.w      EcCon0(a1)              ; Check current screen BplCon0 save value
-    bpl.s      EcAe                    ; if current Screen EcCon0 > 0 (not hires but lowres)  -> Jump to EcAe
-    lsr.w      #1,d2                   ; if Hires D2 = D2 / 2
+    btst      #1,d0                    ; Check if Width changes are required or not
+    beq.s     EcAct4                   ; if no changes -> Jump to EcAct4
+    move.w    EcAWTX(a1),d1            ; D1 = Requested Width
+    and.w     #$FFF0,d1                ; Fix D1 on 4 bits alignment.
+    beq.s     EcAct4                   ; if D1 = 0 -> Jump to EcAct4
+    move.w    EcTx(a1),d2              ; D2 = Current Screen display width
+    tst.w     EcCon0(a1)               ; Check current screen BplCon0 save value
+    bpl.s     EcAe                     ; if current Screen EcCon0 > 0 (not hires but lowres)  -> Jump to EcAe
+    lsr.w     #1,d2                    ; if Hires D2 = D2 / 2
 EcAe:
-    cmp.w      d2,d1                   ; Compare calculated Width with requested one
-    bcs.s      EcAf                    ; if d2 > d1 jump EcAf
-    move.w     d2,d1                   ; D1 = D2
+    cmp.w    d2,d1                     ; Compare calculated Width with requested one
+    bcs.s    EcAf                      ; if d2 > d1 jump EcAf
+    move.w   d2,d1                     ; D1 = D2
 EcAf:
-    move.w     d1,EcWTx(a1)            ; Save final Width D1 to EcWTx
+    move.w   d1,EcWTx(a1)              ; Save final Width D1 to EcWTx
 
 EcAct4:
-    clr.w      EcAWT(a1)               ; Once changes are done, we reset the current screen EcAWT flags
+    clr.w    EcAWT(a1)                 ; Once changes are done, we reset the current screen EcAWT flags
 
 ******************** Check on changes concerning screen OY. ????
 EcA4:
-    move.b     EcAV(a1),d0
-    beq.s      EcA6
-    btst       #2,d0
-    beq.s      EcAct5
-    move.w     EcAVY(a1),EcVY(a1)
+    move.b   EcAV(a1),d0
+    beq.s    EcA6
+    btst     #2,d0
+    beq.s    EcAct5
+    move.w   EcAVY(a1),EcVY(a1)
 
 ******************** Check on changes concerning screen OX. ????
 EcAct5:
-    btst       #1,d0
-    beq.s      EcAct6
-    move.w     EcAVX(a1),EcVX(a1)
+    btst     #1,d0
+    beq.s    EcAct6
+    move.w   EcAVX(a1),EcVX(a1)
 EcAct6:
-    clr.w      EcAV(a1)                ; Once changes are done, we reset the current screen EcAV flags
+    clr.w    EcAV(a1)                  ; Once changes are done, we reset the current screen EcAV flags
 
 EcA6:
-    move.l     (a0)+,d0                ; Get next Screen pointer
-    beq.s      EcA6                    ; If no more screen are requested -> Jump to EcA6
-    bpl        EcAct0                  ; if some screens still un handled, loop to EcAct0 to handle next screen of the list
+    move.l    (a0)+,d0                 ; Get next Screen pointer
+    beq.s     EcA6                     ; If no more screen are requested -> Jump to EcA6
+    bpl       EcAct0                   ; if some screens still un handled, loop to EcAct0 to handle next screen of the list
 
 
 ******************** Are there some news Y/TY/Priorities to calculate ?
 EcActX:
-    move.l     T_EcCop(a5),a1          ; A1 = Copper list address.
+    move.l    T_EcCop(a5),a1           ; A1 = Copper list address.
 
-    tst.w      d7                      ; Check for changes in Y / TY / Priorities
-    beq        PaDecoup                ; if no changes are required -> Jump to PaDecoup (no screens cutting, no calculation)
-    clr.w      T_EcYAct(a5)            ; Clear the T_EcYAct register
+    tst.w     d7                       ; Check for changes in Y / TY / Priorities
+    beq       PaDecoup                 ; if no changes are required -> Jump to PaDecoup (no screens cutting, no calculation)
+    clr.w     T_EcYAct(a5)             ; Clear the T_EcYAct register
 
 ******************** This part will cut screens in parts
-    lea        T_EcBuf(a5),a3          ; A3 = Screen buffers list
-    moveq      #0,d2                   ; D2 = Current display raster Y Position
+    lea       T_EcBuf(a5),a3           ; A3 = Screen buffers list
+    moveq     #0,d2                    ; D2 = Current display raster Y Position
 MkD0:
-    lea        T_EcPri(a5),a2          ; A2 = Screen priority list pointer
-    move.w     #10000,d3               ; D3 = Bottom Y Limit
-    moveq      #-1,d5
-    moveq      #0,d1
+    lea       T_EcPri(a5),a2           ; A2 = Screen priority list pointer
+    move.w    #10000,d3                ; D3 = Bottom Y Limit
+    moveq     #-1,d5
+    moveq     #0,d1
 
 MkD1:
-    addq.w     #4,d1                   ; D1+4
-    move.l     (a2)+,d0                ; Get next Screen Structure pointer from the screen priority list (A2)
-    bmi.s      MkD3                    ; if Screen Pointer < 0 ( Negative ) -> Jump to MkD3 (list fully explored)
-    beq.s      MkD1                    ; if Screen Pointer = 0 -> Jump to MkD1 ( no more screen to cut)
-    move.l     d0,a0                   ; A0 = current Screen Structure Pointer
-    tst.b      EcFlags(a0)             ; Test current screen EcFlags
-    bmi.s      MkD1                    ; if EcFlags(a0) <0 (Bit15=%1) then -> Loop to MkD1 to check next screen
-    move.w     EcWY(a0),d0             ; D0 = current screen Window Y position
-    subq.w     #1,d0                   ; D0-1
-    cmp.w      d2,d0                   ; Compare current screen Y Window position to current raster Y Position
-    bls.s      MkD2                    ; if D2 <= D0 -> Jump to MkD2
-    cmp.w      d3,d0                   ; Compare Maximum Raster Y Position (#10000 defined upper)
-    bcc.s      MkD2                    ; if d3 > d0 ( no C register c for carrying overtaking, restraint )
-    move.w     d0,d3                   ; Update D3 Limits = D0 
-    move.w     d3,d4                   ; Copy D3 -> D4
-    add.w      EcWTy(a0),d4            ; D4 + Current Screen Window TY
-    addq.w     #1,d4                   ; D4+1
-    move.w     d1,d5                   ; D5 = D1
-    bra.s      MkD1                    ; Jump to MkD1
+    addq.w    #4,d1                    ; D1+4
+    move.l    (a2)+,d0                 ; Get next Screen Structure pointer from the screen priority list (A2)
+    bmi.s     MkD3                     ; if Screen Pointer < 0 ( Negative ) -> Jump to MkD3 (list fully explored)
+    beq.s     MkD1                     ; if Screen Pointer = 0 -> Jump to MkD1 ( no more screen to cut)
+    move.l    d0,a0                    ; A0 = current Screen Structure Pointer
+    tst.b     EcFlags(a0)              ; Test current screen EcFlags
+    bmi.s     MkD1                     ; if EcFlags(a0) <0 (Bit15=%1) then -> Loop to MkD1 to check next screen
+    move.w    EcWY(a0),d0              ; D0 = current screen Window Y position
+    subq.w    #1,d0                    ; D0-1
+    cmp.w     d2,d0                    ; Compare current screen Y Window position to current raster Y Position
+    bls.s     MkD2                     ; if D2 <= D0 -> Jump to MkD2
+    cmp.w     d3,d0                    ; Compare Maximum Raster Y Position (#10000 defined upper)
+    bcc.s     MkD2                     ; if d3 > d0 ( no C register c for carrying overtaking, restraint )
+    move.w    d0,d3                    ; Update D3 Limits = D0 
+    move.w    d3,d4                    ; Copy D3 -> D4
+    add.w     EcWTy(a0),d4             ; D4 + Current Screen Window TY
+    addq.w    #1,d4                    ; D4+1
+    move.w    d1,d5                    ; D5 = D1
+    bra.s     MkD1                     ; Jump to MkD1
 MkD2:
-    add.w      EcWTy(a0),d0
-    addq.w     #1,d0
-    cmp.w      d2,d0
-    bls.s      MkD1
-    cmp.w      d3,d0
-    bcc.s      MkD1
-    move.w     d0,d3
-    move.w     d1,d5
-    bset       #15,d5
-    bra.s      MkD1
+    add.w     EcWTy(a0),d0
+    addq.w    #1,d0
+    cmp.w     d2,d0
+    bls.s     MkD1
+    cmp.w     d3,d0
+    bcc.s     MkD1
+    move.w    d0,d3
+    move.w    d1,d5
+    bset      #15,d5
+    bra.s     MkD1
 
 MkD3:
-    cmp.w      #-1,d5            ;Fini?
-    beq.s      MkD5
-    cmp.w      #EcYStrt-1,d2        ;Passe le haut de l''ecran?
-    bcc.s      MkD3a
-    cmp.w      #EcYStrt-1,d3
-    bcs.s      MkD3a    
-    move.w     #EcYStrt-1,(a3)+    ;Marque le haut de l''ecran
-    clr.w      (a3)+
-    move.w     #$8000,(a3)+
+    cmp.w     #-1,d5            ;Fini?
+    beq.s     MkD5
+    cmp.w     #EcYStrt-1,d2        ;Passe le haut de l''ecran?
+    bcc.s     MkD3a
+    cmp.w     #EcYStrt-1,d3
+    bcs.s     MkD3a    
+    move.w    #EcYStrt-1,(a3)+    ;Marque le haut de l''ecran
+    clr.w     (a3)+
+    move.w    #$8000,(a3)+
     
 MkD3a:    
 MkD3b:
-    move.w     d3,(a3)+
-    move.w     d4,(a3)+
-    move.w     d5,(a3)+
+    move.w    d3,(a3)+
+    move.w    d4,(a3)+
+    move.w    d5,(a3)+
 ; Re-Explore la liste en cas d''egalite SI DEBUT DE FENETRE
-    and.w      #$7fff,d5
-    lea        T_EcPri(a5),a2
-    moveq      #0,d1
+    and.w     #$7fff,d5
+    lea       T_EcPri(a5),a2
+    moveq     #0,d1
 
 MkD4:
-    addq.w     #4,d1
-    move.l     (a2)+,d0
-    bmi.s      MkD4a
-    beq.s      MkD4
-    move.l     d0,a0
-    tst.b      EcFlags(a0)
-    bmi.s      MkD4
-    move.w     EcWY(a0),d0
-    subq.w     #1,d0
-    cmp.w      d0,d3
-    bne.s      MkD4
-    cmp.w      d5,d1
-    beq.s      MkD4
-    move.w     d3,(a3)+
-    move.w     d3,d4
-    addq.w     #1,d4
-    add.w      EcWTy(a0),d4
-    move.w     d4,(a3)+
-    move.w     d1,(a3)+
-    bra.s      MkD4
+    addq.w    #4,d1
+    move.l    (a2)+,d0
+    bmi.s     MkD4a
+    beq.s     MkD4
+    move.l    d0,a0
+    tst.b     EcFlags(a0)
+    bmi.s     MkD4
+    move.w    EcWY(a0),d0
+    subq.w    #1,d0
+    cmp.w     d0,d3
+    bne.s     MkD4
+    cmp.w     d5,d1
+    beq.s     MkD4
+    move.w    d3,(a3)+
+    move.w    d3,d4
+    addq.w    #1,d4
+    add.w     EcWTy(a0),d4
+    move.w    d4,(a3)+
+    move.w    d1,(a3)+
+    bra.s     MkD4
 ; Remonte la limite
-MkD4a:
-    move.w     d3,d2
-    bra        MkD0
+MkD4a:        move.w    d3,d2
+    bra       MkD0
 ; Fin de la liste
-MkD5:
-    move.w     #-1,(a3)+
+MkD5:         move.w    #-1,(a3)+
 
 PaDecoup:
-
 ;-----> Analyse de la table / creation de la liste
-    clr.w      T_InterInter(a5)
-    lea        T_EcPri(a5),a2
-    lea        T_EcBuf(a5),a3
+    clr.w    T_InterInter(a5)
+    lea      T_EcPri(a5),a2
+    lea      T_EcBuf(a5),a3
 MkA1:
-    move.w    (a3),d0
-    bmi    MkAFin
-    move.w    2(a3),d1
-    move.w    4(a3),d2
-    bmi    MkA4
+    move.w   (a3),d0
+    bmi      MkAFin
+    move.w   2(a3),d1
+    move.w   4(a3),d2
+    bmi      MkA4
 ; Debut d''une fenetre: doit-on l''afficher?
-    lea    T_EcBuf(a5),a0
+    lea      T_EcBuf(a5),a0
 MkA2:
     cmp.l    a3,a0
-    bcc    MkA8
+    bcc      MkA8
     tst.w    4(a0)
     bmi.s    MkA3
     cmp.w    (a0),d0
@@ -244,30 +256,30 @@ MkA2:
     cmp.w    2(a0),d0
     bcc.s    MkA3
     cmp.w    4(a0),d2
-    bcc    MkA10
+    bcc      MkA10
 MkA3:
-    lea    6(a0),a0
+    lea      6(a0),a0
     bra.s    MkA2
 
 ; Fin d''une fenetre: doit-on en reafficher une autre?    
 MkA4:
     and.w    #$7FFF,d2
     cmp.w    #$100,d2        ;Si fin de l''ecran --> marque!
-    beq    MkA9a
+    beq      MkA9a
 
     clr.w    d3    
 MkA4a:
-    addq.w    #6,d3            ;Cherche UN DEBUT devant
+    addq.w   #6,d3            ;Cherche UN DEBUT devant
     cmp.w    0(a3,d3.w),d0
     bne.s    MkA4b
     tst.w    4(a3,d3.w)
     bmi.s    MkA4a
-    lea    0(a3,d3.w),a3        ;Va faire le debut!
-    bra    MkA1
+    lea      0(a3,d3.w),a3        ;Va faire le debut!
+    bra      MkA1
 
 MkA4b:
-    lea    T_EcBuf(a5),a0        ;Cherche la fenetre a reafficher
-    move.w    #1000,d3
+    lea      T_EcBuf(a5),a0        ;Cherche la fenetre a reafficher
+    move.w   #1000,d3
 MkA5:
     cmp.l    a3,a0
     bcc.s    MkA7
@@ -279,60 +291,60 @@ MkA5:
     bcc.s    MkA6
     cmp.w    4(a0),d3
     bcs.s    MkA6
-    move.w    4(a0),d3
+    move.w   4(a0),d3
 MkA6:
-    lea    6(a0),a0
+    lea      6(a0),a0
     bra.s    MkA5
 MkA7:
     cmp.w    #1000,d3
     beq.s    MkA9
     cmp.w    d2,d3
     bls.s    MkA10
-    move.w    d3,d2        
+    move.w   d3,d2        
 ; Peut creer la fenetre
 MkA8:
-    move.l    -4(a2,d2.w),a0
-    move.w    (a3),d0
+    move.l   -4(a2,d2.w),a0
+    move.w   (a3),d0
     cmp.w    #EcYStrt-1,d0        * Sort en haut?
     bcs.s    MkA10
-    move.w    T_EcYMax(a5),d1        * Sort en bas?
-    subq.w    #2,d1
+    move.w   T_EcYMax(a5),d1        * Sort en bas?
+    subq.w   #2,d1
     cmp.w    d1,d0
     bcc.s    MkA10
-    move.w    d0,(a1)+
-    move.l    a0,(a1)+
-    btst    #2,EcCon0+1(a0)
+    move.w   d0,(a1)+
+    move.l   a0,(a1)+
+    btst     #2,EcCon0+1(a0)
     beq.s    MkA10
-    move.w    #%100,T_InterInter(a5)
+    move.w   #%100,T_InterInter(a5)
     bra.s    MkA10
 ; Fin normale de la fenetre
 MkA9:
     tst.w    d2
     beq.s    MkA10
-    move.w    (a3),d0
+    move.w   (a3),d0
 MkA9a:
     cmp.w    #EcYStrt-1,d0
     bcs.s    MkA10
-    move.w    T_EcYMax(a5),d1
-    subq.w    #1,d1
+    move.w   T_EcYMax(a5),d1
+    subq.w   #1,d1
     cmp.w    d1,d0
     bcc.s    MkA11
     neg.w    d0
-    move.w    d0,(a1)+
+    move.w   d0,(a1)+
 ; Passe a une autre
 MkA10:
-    lea    6(a3),a3
-    bra    MkA1
+    lea     6(a3),a3
+    bra     MkA1
 ; C''est la fin
 MkA11:
-    neg.w    d1
-    move.w    d1,(a1)+
+    neg.w   d1
+    move.w  d1,(a1)+
 * Marque la fin des ecrans
 MkAFin:
-    clr.w    (a1)
+    clr.w   (a1)
 
 *******    Populate the Copper list With/Without Rainbows
-CLPopulate:                            ; // 2019.11.05 Useless Reference added for faster search on copper update
+CLPopulate:                                ; // 2019.11.05 Useless Reference added for faster search on copper update
 ; No screen swap
     clr.w    T_Cop255(a5)
     clr.w    T_InterBit(a5)
@@ -375,61 +387,77 @@ CLPopulate:                            ; // 2019.11.05 Useless Reference added f
 ;                                                                                            2176 End Of CopMark Memory Block
 
     ; *********************** Is AMOS Copper enabled/disabled ?
-    tst.w      T_CopON(a5)             ; Check if AMOS Auto copperlist is enabled or disable
-    beq        PasCop                  ; if AMOS copper is disabled, no new copper calculation.
+    tst.w     T_CopON(a5)              ; Check if AMOS Auto copperlist is enabled or disable
+    beq       PasCop                   ; if AMOS copper is disabled, no new copper calculation.
 
     ; **************** The Logic copper already contains sprites datas & 2020.01.01 AGA Palette addon is on AGA chipset
-    move.l     T_CopLogic(a5),a1       ; send LOGIC copper addres into -> A1 (Work is always donc on logic version, not physic one.)
-    ; ******************************* 2020.01.01 Add detection for AGA support
-    move.l     T_EcStartEdit(a5),d0    ; 2020.10.13 Read shift to add to define the start position for populate of the copper list
-    add.l      d0,a1                   ; 2020.10.13 Push A1 to the position where you can start to edit.
+    move.l    T_CopLogic(a5),a1        ; send LOGIC copper addres into -> A1 (Work is always donc on logic version, not physic one.)
+    ; ******************************* 2020.01.01 Add detection for AGA support.
+    add.l     #68,a1                   ; 2020.01.01 Restored default Sprites adding : Move further in the copper list to not modify the Sprites ((64+4)=68)
+    cmp.w     #0,T_isAga(a5)           ; 2020.01.01 is Chipset = ECS ?
+    beq.s     CpNxt                    ; YES -> Jump CpNxt
+    add.l     #928,a1                  ; 2020.01.01 Move further in the copper list to not modify the Aga Colors palette (4(CopLineWait)+(((1(BplCon3)+32(Registers))*4(Reg+Value))*7(PalettesCount))=928 
+    add.l     #924,a1                  ; 2020.09.01 For the 2nd RGB12 components of the 032-255 color palette
+    add.l     #4,a1                    ; 2020.09.01 For the BplCon3 reset
 CpNxt:
     ; ******************************* 2020.01.01 End of : Add detection for AGA support.
 * Rainbow?
-    tst.w      T_RainBow(a5)
-    bne.s      CopBow                  ; If a RAINBOW is created/active, then jump to Rainbow update
+    tst.w     T_RainBow(a5)
+    bne.s     CopBow                   ; If a RAINBOW is created/active, then jump to Rainbow update
     ; **************** Normal COPPER creation
 MCop0:
-    move.l     T_EcCop(a5),a2          ; Send screen list adress into ->A2
+    move.l    T_EcCop(a5),a2           ; Send screen list adress into ->A2
 MCop1:
-    move.w     (a2)+,d0                ; Send screen count ? into ->D0
-    beq.s      MCopX                   ; if =0 -> No screen -> Jump to MCopX
-    bmi.s      MCop2                   ; If ScreenID < 0 -> We must add the line that closes the screen (Y End)
+    move.w    (a2)+,d0                 ; Send screen count ? into ->D0
+    beq.s     MCopX                    ; if =0 -> No screen -> Jump to MCopX
+    bmi.s     MCop2                    ; If ScreenID < 0 -> We must add the line that closes the screen (Y End)
     ; **************** A Screen is defined, we must insert it in the CopperList
-    move.l     (a2)+,a0                ; A0 = Current Screen structure adress
-    bsr        EcCopHo                 ; (Jump with come back) -> Insert the current screen definition line in the AMOS Copper List.
-    bra.s      MCop1                   ; Once the current screen was added in the copper list -> Loop to NCop1
+    move.l    (a2)+,a0                 ; A0 = Current Screen structure adress
+    bsr       EcCopHo                  ; (Jump with come back) -> Insert the current screen definition line in the AMOS Copper List.
+    bra.s     MCop1                    ; Once the current screen was added in the copper list -> Loop to NCop1
     ; **************** Now we must insert the closure of a screen
 MCop2:
-    neg.w      d0                      ; D0 = 0-ScreenID so we neg it to get the true screen ID.
-    bsr        EcCopBa                 ; (Jump with come back) -> Method that wait the last line of the current screen and closes it
-    bra.s      MCop1                   ; Once screen was closed, we loop to NCop1 to check if another screen is defined
+    neg.w     d0                       ; D0 = 0-ScreenID so we neg it to get the true screen ID.
+    bsr       EcCopBa                  ; (Jump with come back) -> Method that wait the last line of the current screen and closes it
+    bra.s     MCop1                    ; Once screen was closed, we loop to NCop1 to check if another screen is defined
     ; **************** We have now reached the end of the Copper list.
 MCopX:
-    subq.l     #2,a2
-    cmp.l      T_EcCop(a5),a2
-    bne.s      .Skip
-    move.w     T_EcYMax(a5),d0
-    subq.w     #1,d0
-    bsr        EcCopBa    
+    subq.l    #2,a2
+    cmp.l     T_EcCop(a5),a2
+    bne.s     .Skip
+    move.w    T_EcYMax(a5),d0
+    subq.w    #1,d0
+    bsr       EcCopBa    
 .Skip
-    move.l     #$FFFFFFFE,(a1)+        ; Insert the last line of the Copper List.
+    move.l    #$FFFFFFFE,(a1)+         ; Insert the last line of the Copper List.
 *******    Swappe les listes
 MCopSw:
-    move.l     T_CopLogic(a5),a0
-    move.l     T_CopPhysic(a5),a1
-    move.l     a1,T_CopLogic(a5)
-    move.l     a0,T_CopPhysic(a5)
+    move.l    T_CopLogic(a5),a0
+    move.l    T_CopPhysic(a5),a1
+    move.l    a1,T_CopLogic(a5)
+    move.l    a0,T_CopPhysic(a5)
 * Poke dans le copper, si AMOS est la!
-    tst.b      T_AMOSHere(a5)
-    beq.s      PasCop
-    move.l     a0,Circuits+Cop1Lc
-    move.w     T_InterInter(a5),T_InterBit(a5)
+    tst.b     T_AMOSHere(a5)
+    beq.s     PasCop
+    move.l    a0,Circuits+Cop1Lc
+    move.w    T_InterInter(a5),T_InterBit(a5)
 * Fini!
 PasCop:
-    movem.l    (sp)+,d1-d7/a1-a6
-    moveq      #0,d0
+    movem.l   (sp)+,d1-d7/a1-a6
+    moveq     #0,d0
     rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : CopBow                                      *
+; *-----------------------------------------------------------*
+; * Description : Refresh Rainbows inside the main copper list*
+; *                                                           *
+; * Parameters : a1 = Copper List to update                   *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
 
 ******* Actualise les RAINBOWS
 CopBow:
@@ -463,207 +491,236 @@ RainA2:
     bcc.s      RainA3                  ; if C Retain clear, then Jump RainA3
     moveq      #28,d1                  ; d1 = 28
 RainA3:
-    move.w    RnTy(a0),d0              ; d0 = RnTy(a0)             ; RnTy = Rainbow Y Size (T=Taille/Size)
-    add.w    #EcYBase,d1               ; D1 = D1 + EcYBase
-    move.w    d1,RnDY(a0)              ; RnDY(a0) = d1
-    add.w    d0,d1                     ; d1 = d1 + D0 (RnTy(a0))
-    move.w    d1,RnFY(a0)              ; RbFY(a0) = d1
+    move.w     RnTy(a0),d0             ; d0 = RnTy(a0)             ; RnTy = Rainbow Y Size (T=Taille/Size)
+    add.w      #EcYBase,d1             ; D1 = D1 + EcYBase
+    move.w     d1,RnDY(a0)             ; RnDY(a0) = d1
+    add.w      d0,d1                   ; d1 = d1 + D0 (RnTy(a0))
+    move.w     d1,RnFY(a0)             ; RbFY(a0) = d1
 * Position de la base
 RainA4:
-    bclr    #1,d7
-    beq.s    RainA5
-    move.w    RnX(a0),d0
-    lsl.w    #1,d0
-    cmp.w    RnLong(a0),d0
-    bcc.s    RainA5
-    lsr.w    #1,d0
-    move.w    d0,RnBase(a0)
-* Rainbow suivant
+    bclr       #1,d7
+    beq.s      RainA5
+    move.w     RnX(a0),d0
+    lsl.w      #1,d0
+    cmp.w      RnLong(a0),d0
+    bcc.s      RainA5
+    lsr.w      #1,d0
+    move.w     d0,RnBase(a0)
+; **************** Next Rainbow
 RainA5:
     lea        RainLong(a0),a0         ; A0 = A0 + RainLong
     dbra       d6,RainA1               ; D6 = D6 - 1 ; If D6 > -1 Jump RainA1
-* Securite!
-    move.w    d5,T_RainBow(a5)
-    tst.w    d4
-    beq    MCop0
+
+; **************** Security Checking
+    move.w     d5,T_RainBow(a5)
+    tst.w      d4
+    beq        MCop0
 
 ******* Fabrique la liste
-    move.l    T_EcCop(a5),a2
-    move.w    #EcYBase,d0
-    moveq    #-1,d3
-    moveq    #-1,d4
-    moveq    #0,d7
+    move.l     T_EcCop(a5),a2          ; Send screen list adress into ->a2
+    move.w     #EcYBase,d0             ; d0 = Screen Y Base
+    moveq      #-1,d3                  ; d3 = -1
+    moveq      #-1,d4                  ; d4 = -1
+    moveq      #0,d7                   ; d7 = 0
 Rain1:
-    move.w    (a2)+,d1
-    beq    Rain3
-    bmi.s    Rain2
-* Debut d''un ecran
-    bsr    Rain
-    move.l    (a2)+,a0
-    movem.l    d0/d3-d7,-(sp)
-    bsr    EcCopHo
-    movem.l    (sp)+,d0/d3-d7
-    clr.w    d3
-    tst.w    d4
-    bmi.s    Rain1e
-    cmp.w    #PalMax*4,d4
-    bcs.s    Rain1d
-    lea    64(a4),a4
+    move.w     (a2)+,d1                ; Send screen count ? into ->D1
+    beq        Rain3                   ; if = 0 -> No screen -> Jump to Rain3
+    bmi.s      Rain2                   ; if < 0 -> Rain2 (2nd part of screen display)
+; If ScreenID > 0 -> Start of a screen
+    bsr        Rain                    ; Call Rain (insert rainbow until next screen Y line)
+    move.l     (a2)+,a0                ; a0 = Current Screen pointer
+    movem.l    d0/d3-d7,-(sp)          ; Save d0,d3-d7
+    bsr        EcCopHo                 ; Call EcCopHo (Insert beginning of the screen)
+    movem.l    (sp)+,d0/d3-d7          ; Load d0,d3-d7
+    clr.w      d3                      ; d3 = 0
+    tst.w      d4                      ; d4 = 0 ?
+    bmi.s      Rain1e                  ; <0 -> Jump Rain&E
+    cmp.w      #PalMax*4,d4            ; d4 > ( 16 * 4 ) (in 2nd palette slot 16-31) ?
+    bcs.s      Rain1d                  ; No -> Jump Rain1d
+    lea        64(a4),a4               ; Yes -> a4 = 2nd color palette pointer
 Rain1d:
-    move.l    (a4),a0    
-    move.w    2(a0,d4.w),d3
-    bclr    #31,d3
+    move.l     (a4),a0                 ; a0 = Color palette pointer (1st or 2nd one)
+    move.w     2(a0,d4.w),d3
+    bclr       #31,d3
 Rain1e:
-    cmp.w    d7,d0
-    bcc.s    Rain1a
-    move.w    (a3)+,2(a0,d4.w)
-    cmp.l    a6,a3
-    bcs.s    Rain1a
-    move.l    d6,a3
+    cmp.w      d7,d0
+    bcc.s      Rain1a
+    move.w     (a3)+,2(a0,d4.w)
+    cmp.l      a6,a3
+    bcs.s      Rain1a
+    move.l     d6,a3
 Rain1a:
-    addq.w    #1,d0
-    move.w    (a2),d1
-    bpl.s    Rain1b
-    neg.w    d1
+    addq.w     #1,d0
+    move.w     (a2),d1
+    bpl.s      Rain1b
+    neg.w      d1
 Rain1b:
-    cmp.w    d0,d1
-    beq.s    Rain1
-    cmp.w    d7,d0
-    bcc.s    Rain2a
-    move.w    d5,(a1)+
-    move.w    (a3)+,(a1)+
-    bra.s    Rain1c
-* Fin d''un ecran
+    cmp.w      d0,d1
+    beq.s      Rain1
+    cmp.w      d7,d0
+    bcc.s      Rain2a
+    move.w     d5,(a1)+                ; Copper Move Color#D5
+    move.w     (a3)+,(a1)+             ; Color#D5 = (a3)+
+    add.l      #4,a3
+    bra.s      Rain1c
+
+
+; **************** Rainbow from Y Position to the end Y line of the current screen
 Rain2:
-    neg.w    d1
-    bsr    Rain
-    bsr    EcCopBa
-    tst.w    d4
-    bne.s    Rain1b
-    move.w    T_EcFond(a5),d3
-    cmp.w    d7,d0
-    bcc.s    Rain2a
-    move.l    a1,a0            * Recherche la couleur
+    neg.w      d1                      ; d1 (negative) = 0-d1 (positive) = current Screen
+    bsr        Rain                    ; Call Rain
+    bsr        EcCopBa                 ; Call EcCopBa (bottom of screen (closure))
+    tst.w      d4                      ; d4 = 0 ?
+    bne.s      Rain1b                  ; d4 <> 0 -> Rainbows remaining -> Jump Rain1b
+    move.w     T_EcFond(a5),d3
+    cmp.w      d7,d0
+    bcc.s      Rain2a
+    move.l     a1,a0                   ; Search for the color
 Rain1z:
-    cmp.w    #$0180,-(a0)
-    bne.s    Rain1z
-    move.w    (a3)+,2(a0)
+    cmp.w      #$0180,-(a0)
+    bne.s      Rain1z
+    move.w     (a3)+,2(a0)
 Rain1c:
-    cmp.l    a6,a3
-    bcs.s    Rain2a
-    move.l    d6,a3
+    cmp.l      a6,a3
+    bcs.s      Rain2a
+    move.l     d6,a3
 Rain2a:
-    addq.w    #1,d0
-    bra    Rain1
-* Fin des ecrans
+    addq.w     #1,d0
+    bra        Rain1
+
+; **************** End of screens (no more rainbows if no screens are available)
 Rain3:
-    subq.l    #2,a2
-    cmp.l    T_EcCop(a5),a2
-    bne.s    .Skip
-    move.w    T_EcYMax(a5),d0
-    subq.w    #1,d0
-    bsr    Rain
-    bsr    EcCopBa    
-.Skip    move.l    #$FFFFFFFE,(a1)+
-    bra    MCopSw
+    subq.l     #2,a2                   ; a2 = a2 -2
+    cmp.l      T_EcCop(a5),a2          ; is a2 = inital T_EcCop(a5) ?
+    bne.s      .Skip                   ; No -> Jump .Skip
+    move.w     T_EcYMax(a5),d0         ; d0 = Screen Y Max ( T_EcYMax(a5) )
+    subq.w     #1,d0                   ; d0 = Screen Y Max - 1
+    bsr        Rain                    ; Call Rain (push rain up to last screen line)
+    bsr        EcCopBa                 ; Call EcCopBa (Insert screen bottom closure)
+.Skip:
+    move.l     #$FFFFFFFE,(a1)+        ; Finish/Close copper list
+    bra        MCopSw                  ; Jump MCopSw ( Swap copper list and finish copper update job)
+
+
 ******* Fabrique le rainbow ---> Y=D1
-RainD1    move.w    d0,d2
-    sub.w    #EcYBase,d2
-    cmp.w    #256,d2            * Attente -> ligne -> D0
-    bcs.s    RainD2
-    tst.w    T_Cop255(a5)
-    bne.s    RainD2
-    move.w    #$FFE1,(a1)+
-    move.w    #$FFFE,(a1)+
-    addq.w    #1,T_Cop255(a5)
-RainD2    lsl.w    #8,d2    
-    or.w    #$03,d2
-    move.w    d2,(a1)+
-    move.w    #$FFFE,(a1)+
-    move.w    d5,(a1)+        * Change la couleur
-    move.w    (a3)+,(a1)+
-    cmp.l    a6,a3
-    bcs.s    RainD3
-    move.l    d6,a3
-RainD3    addq.w    #1,d0
+RainD1:
+    move.w     d0,d2
+    sub.w      #EcYBase,d2
+    cmp.w      #256,d2            * Attente -> ligne -> D0
+    bcs.s      RainD2
+    tst.w      T_Cop255(a5)
+    bne.s      RainD2
+    move.w     #$FFE1,(a1)+
+    move.w     #$FFFE,(a1)+
+    addq.w     #1,T_Cop255(a5)
+RainD2:
+    lsl.w      #8,d2    
+    or.w       #$03,d2
+    move.w     d2,(a1)+
+    move.w     #$FFFE,(a1)+
+    move.w     d5,(a1)+        * Change la couleur
+    move.w     (a3)+,(a1)+             ; RAINBOW COLOR : This line insert color between rainbows               <------------ HERE FOR RAINBOW COLORS
+    cmp.l      a6,a3
+    bcs.s      RainD3
+    move.l     d6,a3
+RainD3:
+    addq.w     #1,d0
 * Entree!
-Rain    cmp.w    d7,d0
-    bcc.s    RainNx
-RainD0    cmp.w    d1,d0
-    bcs.s    RainD1
-RainDX    move.w    d1,d0    
+
+
+
+Rain:
+    cmp.w      d7,d0                   ; If d0 < d7 ?
+    bcc.s      RainNX                  ; 
+RainD0:
+    cmp.w      d1,d0
+    bcs.s      RainD1
+RainDX:
+    move.w     d1,d0    
     rts
 ******* Trouve le rainbow comprenant D0
-RainNX:    tst.l    d3
-    bmi.s    RainN0
-    tst.w    d3            * Si RIEN au dessus
-    bpl.s    Rain0a
-    move.w    #Color00,(a1)+        * Couleur 0 d''office!
-    move.w    T_EcFond(a5),(a1)+
-    bset    #31,d3
-    bra.s    RainN0
-Rain0a    move.w    d5,(a1)+
-    move.w    d3,(a1)+
-    bset    #31,d3
-RainN0    lea    T_RainTable(a5),a0    * Cherche le 1er
-    moveq    #NbRain-1,d2
-RainN1    cmp.w    (a0),d0
-    bcs.s    RainN2
-    cmp.w    RnFY(a0),d0
-    bcs.s    RainN5
-RainN2    lea    RainLong(a0),a0
-    dbra    d2,RainN1    
-    lea    T_RainTable(a5),a0    * Trouve le 1er plus bas
-    moveq    #0,d7
-    moveq    #NbRain-1,d2
-    move.w    d1,d6
-RainN3    cmp.w    RnFY(a0),d0
-    bcc.s    RainN4
-    cmp.w    (a0),d1
-    bcs.s    RainN4
-    cmp.w    (a0),d6
-    bcs.s    RainN4
-    move.w    (a0),d6
-    move.l    a0,d7
-RainN4    lea    RainLong(a0),a0
-    dbra    d2,RainN3
-    tst.l    d7
-    beq    RainDX
-    move.l    d7,a0
-    move.w    (a0),d0
-* Debut d''un RainBow
-RainN5    move.w    d0,d5
-    sub.w    (a0),d5
-    add.w    RnBase(a0),d5
-    lsl.w    #1,d5
-    move.l    RnBuf(a0),d6
-    move.l    d6,a3
-    move.l    a3,a6
-    add.w    RnLong(a0),a6
-    add.w    d5,a3
-    cmp.l    a6,a3
-    bcs.s    RainD7
-RainN6    sub.w    RnLong(a0),a3
-    cmp.l    a6,a3
-    bcc.s    RainN6
-RainD7    move.w    RnFY(a0),d7
-* Nouvelle couleur
-    move.w    d4,d2    
-    move.w    RnColor(a0),d4
-    move.w    d4,d5
-    lsl.w    #2,d4
-    lsl.w    #1,d5
-    add.w    #Color00,d5
-* Reprend la couleur!
-    tst.w    d3
-    bmi.s    RainD9
-    cmp.w    d4,d2
-    beq.s    RainD9
-    move.l    (a4),a0
-    move.w    2(a0,d4.w),d3
-RainD9    bclr    #31,d3
-    bra    RainD0
+RainNX:
+    tst.l      d3
+    bmi.s      RainN0
+    tst.w      d3            * Si RIEN au dessus
+    bpl.s      Rain0a
+    move.w     #Color00,(a1)+          ; Modify Color 00
+    move.w     T_EcFond(a5),(a1)+      ; Using Screen Background color
+    bset       #31,d3
+    bra.s      RainN0
 
+; **********************************************************************************************
+Rain0a:
+    move.w     d5,(a1)+
+    move.w     d3,(a1)+                ; RAINBOW COLOR : This line insert color between rainbows               <------------ HERE FOR RAINBOW COLORS
+    bset       #31,d3
+RainN0:
+    lea        T_RainTable(a5),a0    * Cherche le 1er
+    moveq      #NbRain-1,d2
+RainN1:
+    cmp.w      (a0),d0
+    bcs.s      RainN2
+    cmp.w      RnFY(a0),d0
+    bcs.s      RainN5
+RainN2:
+    lea        RainLong(a0),a0
+    dbra       d2,RainN1    
+    lea        T_RainTable(a5),a0    * Trouve le 1er plus bas
+    moveq      #0,d7
+    moveq      #NbRain-1,d2
+    move.w     d1,d6
+RainN3:
+    cmp.w      RnFY(a0),d0
+    bcc.s      RainN4
+    cmp.w      (a0),d1
+    bcs.s      RainN4
+    cmp.w      (a0),d6
+    bcs.s      RainN4
+    move.w     (a0),d6
+    move.l     a0,d7
+RainN4:
+    lea        RainLong(a0),a0
+    dbra       d2,RainN3
+    tst.l      d7
+    beq        RainDX
+    move.l     d7,a0
+    move.w     (a0),d0
+* Debut d''un RainBow
+RainN5:
+    move.w     d0,d5
+    sub.w      (a0),d5
+    add.w      RnBase(a0),d5
+    lsl.w      #1,d5
+    move.l     RnBuf(a0),d6
+    move.l     d6,a3
+    move.l     a3,a6
+    add.w      RnLong(a0),a6
+    add.w      d5,a3
+    cmp.l      a6,a3
+    bcs.s      RainD7
+RainN6:
+    sub.w      RnLong(a0),a3
+    cmp.l      a6,a3
+    bcc.s      RainN6
+RainD7:
+    move.w     RnFY(a0),d7
+* Nouvelle couleur
+    move.w     d4,d2    
+    move.w     RnColor(a0),d4          ; d4 = Rainbow color register used
+    move.w     d4,d5                   ; d5 = d4 = Rainbow color register used
+    lsl.w      #2,d4                   ; d4 = Color Register * 4 (.l alignment)
+    lsl.w      #1,d5                   ; d5 = Color Register * 2 ($DFF180 .w alignment)
+    add.w      #Color00,d5             ; d5 = DFF1xx color register ( 000-031)
+* Reprend la couleur!
+    tst.w      d3
+    bmi.s      RainD9
+    cmp.w      d4,d2
+    beq.s      RainD9
+    move.l     (a4),a0
+    move.w     2(a0,d4.w),d3
+RainD9:
+    bclr       #31,d3
+    bra        RainD0
 
 ;
 ; *****************************************************************************************************************************
@@ -733,7 +790,7 @@ PluDual:
 * Ecran normal!
     add.w      EcVY(a0),d1             ; D1 = How many lines to scroll
     mulu       EcTLigne(a0),d1 ;       ; D1 = Bytes shift for Y scrolling ( how many lines * 1 line byte size)
-    move.w     EcVX(a0),d2             ; D2 = X Scrolling (from left-right)
+    move.w     EcVx(a0),d2             ; D2 = X Scrolling (from left-right)
     ; ************************ 2019.11.19 Update for Fetch mode 1 scrolling?
     tst.w      EcFMode(a0)             ; 2019.11.19 Add -8 if FMode is active
     beq        .noFetchChanges4BPL
@@ -999,13 +1056,13 @@ MkC10:
 * Fini!
     rts
 
-    IFEQ       EZFlag
-
 ; *********************************************** Creation liste copper pour ecrans DUAL PLAYFIED ***********************************************
 ; This method is reached from method EcCopHo (L=6291) that create copper list for a screen and check for dual playfield mode with the screen
 *    D0=    Y Screen position
 *   A0 = 1st screen structure pointer. Screen already inserted in the CopperList from the method that call CreeDual
 *   D2 = 2nd screen structure pointer. Screen that must be handled there.
+******* Creation liste copper pour ecrans DUAL PLAYFIED!
+    IFEQ       EZFlag
 CreeDual:
 * Adresse du deuxieme ecran
     move.l     a2,-(sp)
@@ -1040,7 +1097,7 @@ CrDu1:
     move.w    d1,-(sp)
     add.w     EcVY(a0),d1              ; Screen shift
     mulu      EcTLigne(a0),d1
-    move.w    EcVX(a0),d2
+    move.w    EcVx(a0),d2
     move.w    d2,d5                    ; 2019.11.08 From AMOS Factory Dual Playfield Fix
     lsr.w     #4,d2
     lsl.w     #1,d2
@@ -1096,7 +1153,7 @@ MrkDC2:
     move.w     (sp)+,d1
     add.w      EcVY(a2),d1             ; Screen shift
     mulu       EcTLigne(a2),d1
-    move.w     EcVX(a2),d2
+    move.w     EcVx(a2),d2
     move.w     d2,d5                   ; 2019.11.08 From AMOS Factory Dual Playfield Fix
     lsr.w      #4,d2
     lsl.w      #1,d2
@@ -1204,8 +1261,7 @@ MkdC2b:
 ;    and.w    #$FFF0,d6
 ; 
 ; ************************************** 2019.11.08 End of AMOS Factory Dual Playfield fix
-Mkd2e:
-    move.w    EcWXr(a0),d1
+Mkd2e:    move.w    EcWXr(a0),d1
     move.w    EcWTxr(a0),d2
     btst    #7,EcCon0(a0)
     bne.s    MkdCH
@@ -1233,7 +1289,7 @@ Mkd2e:
 ; ************************************** 2019.11.08 From AMOS Factory Dual Playfield fix
 .next:
     and.w     #$F,d7
-    beq       MkdC3
+    beq     MkdC3
 ; ************************************** 2019.11.08 End Of AMOS Factory Dual Playfield fix
     neg.w    d7
     add.w    #16,d7
@@ -1283,8 +1339,18 @@ MkdC3:    lsl.w    #4,d7
     bra    FiniCop
     ENDC
 
-; ************************************************************************** Insert a screen closure (Y End of screen)
-******* Cree la ligne COPPER de fin de fenetre
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description : Insert the closure of a screen              *
+; *                                                           *
+; * Parameters : d0 = Last screen line                        *
+; *              a1 = pointer to copper list current position *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
 EcCopBa:
 ;    move.w     #BplCon3,(a1)+          ; 2019.11.05 Update BplCon3 when closing screen
 ;    move.w     #0,(a1)+                ; Reset everything concerning BplCon3.
@@ -1296,6 +1362,20 @@ EcCopBa:
     move.w     #Color00,(a1)+
     move.w     T_EcFond(a5),(a1)+
     rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : WaitD2                                      *
+; *-----------------------------------------------------------*
+; * Description : Insert a line in the copper list to wait un-*
+; *               -til line d2                                *
+; *                                                           *
+; * Parameters : d2 = Y Line to wait for                      *
+; *              a1 = pointer to copper list current position *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
 ******* Attente copper jusqu''a la ligne D2
 WaitD2:
     cmp.w      #256,d2
@@ -1311,6 +1391,7 @@ WCop:
     move.w     d2,(a1)+
     move.w     #$FFFE,(a1)+
     rts
+
 *********************************************************** This method is the initial method that create copper list memory
 *    INITIALISATION GENERALE LISTE COPPERS
 *    D0= longueur des listes (physic et logic)
@@ -1350,16 +1431,9 @@ CpI1:
     beq.s      CpIx
     bsr        insertAGAColorsInCopper ; 2019.11.13 Insert the AGA color palette at the end of the screen definition.
 CpIx:
-; **************** 2020.10.13 Now, we calculate the size used by Sprites and AGA Color palette so if we add new things, it will be automatically handled - Start
-    move.l     T_CopLogic(a5),d1       ; D1 = Start of Logic Copper
-    move.l     a0,d0                   ; D0 = Current Logic Copper position
-    sub.l      d1,d0                   ; D0 = SHift from Start to current position. Define where to start to populate copper lists.
-    move.l     d0,T_EcStartEdit(a5)    ; Save shift to add to define the start position for populate of the copper list
-; **************** 2020.10.13 Now, we calculate the size used by Sprites and AGA Color palette so if we add new things, it will be automatically handled - End
 ; ************************************************************* 2019.11.13 Insert the AGA color palette at the end of the screen definition - END
     moveq    #0,d0
     rts
-
 ; ************************* 2020.08.14 Update to handle RGB24 bits colors 032-255 in the Copper List - Start
 ; ************************* 2019.11.16 Update : This method insert colors 32 to 255 in the CopperList [D4-D7]
 insertAGAColorsInCopper:
@@ -1429,63 +1503,59 @@ CpE1:
     bsr    FreeMm
 CpE2:    rts
 
+
 ***********************************************************
 *    GESTION DIRECTE COPPER
 ***********************************************************
     IFEQ    EZFlag
 ******* COPPER ON/OFF
-TCopOn:
-    tst.w      d1
-    bne.s      ICpo1
+TCopOn    tst.w    d1
+    bne.s    ICpo1
 * Copper OFF -> Hide!
-    tst.w      T_CopON(a5)
-    beq.s      ICpoX
-    clr.w      T_CopON(a5)
-    bsr        EcForceCop            * RAZ des pointeurs
-    clr.l      T_HsChange(a5)            * Plus de HS!
-    move.w     #-1,T_MouShow(a5)        * Plus de souris
-    move.l     T_CopLogic(a5),T_CopPos(a5)    * Init!
-    bsr        WVbl
-    bra        TCopSw
+    tst.w    T_CopON(a5)
+    beq.s    ICpoX
+    clr.w    T_CopON(a5)
+    bsr    EcForceCop            * RAZ des pointeurs
+    clr.l    T_HsChange(a5)            * Plus de HS!
+    move.w    #-1,T_MouShow(a5)        * Plus de souris
+    move.l    T_CopLogic(a5),T_CopPos(a5)    * Init!
+    bsr    WVbl
+    bra    TCopSw
 * Copper ON -> Recalcule!
-ICpo1:
-    tst.w      T_CopON(a5)
-    bne.s      ICpoX
-    bsr        WVbl
-    move.l     T_CopLogic(a5),a0        * Remet les listes sprites
-    move.l     a0,a1
-    bsr        HsCop
-    bsr        TCpSw
-    bsr        WVbl
-    move.l     T_CopLogic(a5),a0
-    move.l     a0,a1
-    bsr        HsCop
-    bsr        TCpSw
-    bsr        WVbl
-    move.w     #-1,T_CopON(a5)        * Remet!
-    bsr        HsAff
-    clr.w      T_MouShow(a5)
-    bsr        EcForceCop        * Recalcule les listes
-    bsr        WVbl
-ICpoX:
-    moveq      #0,d0
+ICpo1    tst.w    T_CopON(a5)
+    bne.s    ICpoX
+    bsr    WVbl
+    move.l    T_CopLogic(a5),a0        * Remet les listes sprites
+    move.l    a0,a1
+    bsr    HsCop
+    bsr    TCpSw
+    bsr    WVbl
+    move.l    T_CopLogic(a5),a0
+    move.l    a0,a1
+    bsr    HsCop
+    bsr    TCpSw
+    bsr    WVbl
+    move.w    #-1,T_CopON(a5)        * Remet!
+    bsr    HsAff
+    clr.w    T_MouShow(a5)
+    bsr    EcForceCop        * Recalcule les listes
+    bsr    WVbl
+ICpoX    moveq    #0,d0
     rts
 
+    
 ******* COPSWAP
-TCopSw:
-    tst.w      T_CopON(a5)
-    bne        CopEr1
-    move.l     T_CopPos(a5),a0
-    move.l     #$FFFFFFFE,(a0)
-TCpSw:
-    move.l     T_CopLogic(a5),a0
-    move.l     T_CopPhysic(a5),a1
-    move.l     a1,T_CopLogic(a5)
-    move.l     a0,T_CopPhysic(a5)
-    move.l     a0,Circuits+Cop1Lc
+TCopSw    tst.w    T_CopON(a5)
+    bne    CopEr1
+    move.l    T_CopPos(a5),a0
+    move.l    #$FFFFFFFE,(a0)
+TCpSw    move.l    T_CopLogic(a5),a0
+    move.l    T_CopPhysic(a5),a1
+    move.l    a1,T_CopLogic(a5)
+    move.l    a0,T_CopPhysic(a5)
+    move.l    a0,Circuits+Cop1Lc
 ******* COPRESET
-TCopRes:
-    tst.w    T_CopON(a5)
+TCopRes    tst.w    T_CopON(a5)
     bne    CopEr1
     move.l    T_CopLogic(a5),T_CopPos(a5)
     clr.w    T_Cop255(a5)
@@ -1497,8 +1567,7 @@ TCopRes:
 *    D2=    Y
 *    D3=    Masque X
 *    D4=    Masque Y
-TCopWt:
-    tst.w    T_CopON(a5)
+TCopWt    tst.w    T_CopON(a5)
     bne    CopEr1
     cmp.w    #313,d1
     bcc    CopEr3
@@ -1512,8 +1581,7 @@ TCopWt:
     move.w    #$FFE1,(a1)+
     move.w    #$FFFE,(a1)+
     addq.w    #1,T_Cop255(a5)
-CopW1:
-    lsl.w    #8,d2            * Position en X/Y
+CopW1    lsl.w    #8,d2            * Position en X/Y
     lsr.w    #1,d1
     and.w    #$00FE,d1
     or.w    #$01,d1
@@ -1524,21 +1592,17 @@ CopW1:
     and.w    #$00FE,d3
     or.w    d4,d3
     move.w    d3,(a1)+
-CopFin:
-    move.l    a1,T_CopPos(a5)
+CopFin    move.l    a1,T_CopPos(a5)
     sub.l    T_CopLogic(a5),a1
     cmp.l    T_CopLong(a5),a1
     bcc    CopEr2
     moveq    #0,d0
     rts
-CopEr1:
-    moveq    #1,d0            * Copper not desactivated
+CopEr1    moveq    #1,d0            * Copper not desactivated
     rts
-CopEr2:
-    moveq    #2,d0            * Copper list too long
+CopEr2    moveq    #2,d0            * Copper list too long
     rts
-CopEr3:
-    moveq    #3,d0            * Copper param out of range
+CopEr3    moveq    #3,d0            * Copper param out of range
     rts
 
 ******* CMOVE ad,value
@@ -1554,15 +1618,13 @@ TCopMv    tst.w    T_CopON(a5)
     move.w    d2,(a1)+
     bra    CopFin
 ******* CMOVEL ad,value
-TCopMl
-    swap    d2
+TCopMl    swap    d2
     bsr    TCopMv
     swap    d2
     addq.w    #2,d1
     bra    TCopMv
 ******* CBASE
-TCopBs:
-    move.l    T_CopLogic(a5),d1
+TCopBs    move.l    T_CopLogic(a5),d1
     moveq    #0,d0
     rts
     ENDC

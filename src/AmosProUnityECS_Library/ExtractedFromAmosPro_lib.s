@@ -60,6 +60,7 @@ amosprolib_functions:
     bra        AMP_InRain              ;  38 A_InRain
     bra        AMP_FnRain              ;  39 A_FnRain
     bra        AMP_PalRout             ;  40 A_PalRout
+    
 
 ;   bra        .........
     dc.l       0
@@ -1453,7 +1454,7 @@ Sco8:
     clr.w      (a3)+
     move.l     SccEcO(a5),a0
     move.l     SccEcD(a5),a1
-    moveq      #5,d7
+    moveq      #EcMaxPlanes-1,d7                      ; 2021.02.22 Updated to be dependant on EcMaxPlances
 .BM:
     move.l     (a0)+,(a2)+
     move.l     (a1)+,(a3)+
@@ -2697,7 +2698,10 @@ OOfMem:
     moveq      #24,d0
 ;    bra       GoError
 GoError:
-    Rjmp       L_Error
+; ******** 2021.02.22 Special vector to be able to call L_Error from everywhere in Amos Professional Unity
+    Move.l     T_ErrorVectCall(a5),a2
+    Jmp        (a2)
+; ******** 2021.02.22 Special vector to be able to call L_Error from everywhere in Amos Professional Unity
 
 
 

@@ -1,29 +1,41 @@
 
-FastMm    movem.l    a0/d1,-(sp)
-    move.l    #CLEAR|PUBLIC,d1
-    bsr    WMemReserve
-    move.l    a0,d0
+; ********************************************* Allocate FAST MEM with CLEAR
+; Input : D0 = Memory Size (Bytes)
+; Output : D0 = Memory Pointer
+FastMm: 
+    movem.l    a0/d1,-(sp)
+    move.l     #CLEAR|PUBLIC,d1
+    bra.s      memAllocate
+; ********************************************* Allocate FAST MEM
+; Input : D0 = Memory Size (Bytes)
+; Output : D0 = Memory Pointer
+FastMm2:
+    movem.l    a0/d1,-(sp)
+    move.l     #PUBLIC,d1
+    bra.s      memAllocate
+; ********************************************* Allocate CHIP MEM with CLEAR
+; Input : D0 = Memory Size (Bytes)
+; Output : D0 = Memory Pointer
+ChipMm:
+    movem.l    a0/d1,-(sp)
+    move.l     #CLEAR|PUBLIC|CHIP,d1
+    bra.s      memAllocate
+; ********************************************* Allocate CHIP MEM
+; Input : D0 = Memory Size (Bytes)
+; Output : D0 = Memory Pointer
+ChipMm2:
+    movem.l    a0/d1,-(sp)
+    move.l     #PUBLIC|CHIP,d1
+; ********************************************* Internal Called by FastMm, FastMm2, ChipMm or ChipMm2
+memAllocate:
+    bsr        WMemReserve
+    move.l     a0,d0
     movem.l    (sp)+,a0/d1
     rts
-FastMm2    movem.l    a0/d1,-(sp)
-    move.l    #PUBLIC,d1
-    bsr    WMemReserve
-    move.l    a0,d0
-    movem.l    (sp)+,a0/d1
+; ********************************************* Release memory
+FreeMm:
+    bra        WMemFree
     rts
-ChipMm    movem.l    a0/d1,-(sp)
-    move.l    #CLEAR|PUBLIC|CHIP,d1
-    bsr    WMemReserve
-    move.l    a0,d0
-    movem.l    (sp)+,a0/d1
-    rts
-ChipMm2    movem.l    a0/d1,-(sp)
-    move.l    #PUBLIC|CHIP,d1
-    bsr    WMemReserve
-    move.l    a0,d0
-    movem.l    (sp)+,a0/d1
-    rts
-FreeMm    bra    WMemFree
 
 ; ___________________________________________________________________
 ;

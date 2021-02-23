@@ -12,7 +12,13 @@ Init
 ; - - - - - - - - - - - - -
     move.w    #$00FF,d0        Librairie numero 0
     move.w    #Ver_Number,d1
+; ******** 2021.02.22 Added a vector to call L_Error from Everywhere in Amos Professional
+    lea       JumpToErrors(pc),a0
+    move.l    a0,T_ErrorVectCall(a5) 
     rts
+JumpToErrors:
+    Rjmp      L_Error
+; ******** 2021.02.22 Added a vector to call L_Error from Everywhere in Amos Professional
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     ROUTINES A NETTOYER
@@ -5418,12 +5424,14 @@ Plt2:    addq.l    #2,a0
     cmp.w    #_TkVir,d0
     beq.s    IFaPal
 * FADE n
-    move.l    Buffer(a5),a0
-    move.l    a0,a1
-    moveq    #31,d0
-IFad0    clr.w    (a0)+    
+    move.l  Buffer(a5),a0
+    move.l  a0,a1
+    moveq   #31,d0                     ; 2020.09.15 Updated from #31 to #255 to handle 256 colors cause crashes in the Fade method.
+IFad0:
+    clr.w   (a0)+   
     dbra    d0,IFad0
-    bra.s    IFadT
+    move.l  #-1,(a0)+                  ; 2020.09.15 Added at the end of the list.
+    bra.s   IFadT
 * FADE TO
 IFaTo    bsr    Fn_New_Expentier
     tst.l    d3

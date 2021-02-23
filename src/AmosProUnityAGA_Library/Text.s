@@ -96,7 +96,7 @@ WPrint3    movem.l    a4-a6/d2-d7,-(sp)
     beq.s    .Ok
     cmp.b    #32,d1
     bcs.s    .Cont
-; Un code normal, l'imprimer?
+; Un code normal, l''imprimer?
     subq.w    #1,d2
     bge.s    .Skip
     cmp.w    d3,d5
@@ -172,7 +172,8 @@ WPrint2    movem.l    a4-a6,-(sp)
 *    PRINT LINE, finie par ZERO
 *    A1= adresse chaine
 ***********************************************************
-WPrint:    movem.l    a4-a6,-(sp)
+WPrint:
+    movem.l    a4-a6,-(sp)
     lea    Circuits,a6
     move.l    T_EcCourant(a5),a4
     move.l    EcWindow(a4),a5
@@ -192,10 +193,12 @@ WPrt    lea    RPrt(pc),a0
     tst.l    d0
     rts
 ******* Routine print normale
-RPrt:    bsr    EffCur
-Prt:    move.b    (a1)+,d1
+RPrt:
+    bsr    EffCur
+Prt:
+    move.b    (a1)+,d1
     beq    AffCur
-    bsr    COut
+    bsr    COut                        ; COut = 'C'haracter 'Out'put
     tst.w    d0
     beq.s    Prt
     bra    AffCur
@@ -276,8 +279,9 @@ CPrt:    bsr    EffCur
     bsr    LocaX
     bra    Prt
 
-*******    Calcul de l'adresse curseur
-AdCurs:    move.w    WiY(a5),d0
+*******    Calcul de l''adresse curseur
+AdCurs:
+    move.w    WiY(a5),d0
     mulu    WiTLigne(a5),d0
     move.w    WiTx(a5),d1
     sub.w    WiX(a5),d1
@@ -288,7 +292,8 @@ AdCurs:    move.w    WiY(a5),d0
     rts
 
 *******    Mode INTERIEUR
-WiInt:    move.w    WiTxI(a5),WiTx(a5)
+WiInt:
+    move.w    WiTxI(a5),WiTx(a5)
     move.w    WiTyI(a5),WiTy(a5)
     move.l    WiAdhgI(a5),WiAdhg(a5)
     rts
@@ -318,22 +323,23 @@ Copt2:    addq.l    #1,a0
 BltFini:bra    BlitWait
 
 ***********************************************************
-*        AFFICHAGE D'UN CARACTERE
-*          DANS L'ECRAN LOGIQUE
+*        AFFICHAGE D''UN CARACTERE
+*          DANS L''ECRAN LOGIQUE
 *    - D1= caractere
 *    - A6= chips
 *    - A5= window
 ***********************************************************
-COut:    movem.l    d1-d7/a0-a3,-(sp)
+COut:
+    movem.l    d1-d7/a0-a3,-(sp)
     and.w    #255,d1
     
 ******* Mode escape?
-    tst.w    WiEsc(a5)
-    bne    Esc
+    tst.w    WiEsc(a5)                 ; If an escape character ( <32 ) was entered in previous calls,
+    bne    Esc                         ; We directly jump to get the Control Characters (2 consecutives characters)
 
 *******    Code de controle?
-    cmp.w    #32,d1
-    bcs    Cont
+    cmp.w    #32,d1                    ; Controls words are < 32.
+    bcs    Cont                        ; if d1 < 32 Then Branch to Cont
 PaCont
 *******    Affiche!
     lsl.w    #3,d1            ;Pointe le caractere
@@ -344,9 +350,9 @@ PaCont
     lea    EcCurrent(a4),a1
     move.l    WiAdCur(a5),d3        ;Adresse du caractere
     move.w    EcTLigne(a4),d4
-    ext.l    d4            ;Taille d'une ligne
+    ext.l    d4            ;Taille d''une ligne
 
-    move.w    WiFlags(a5),d7        ;Flags d'ecriture
+    move.w    WiFlags(a5),d7        ;Flags d''ecriture
     bne    YaFlag
 
 *-----* Pas de flag: rapide
@@ -371,7 +377,7 @@ CNul:    addq.l    #4,a1
 ; Poke le caractere NORMAL
 CNorm:    move.l    (a1)+,a3
     add.l    d3,a3
-    REPT    7            ;Poke l'octet
+    REPT    7            ;Poke l''octet
     move.b    (a2)+,(a3)
     add.l    d4,a3
     ENDR
@@ -495,7 +501,8 @@ YaS6a:    dbra    d2,YaS5
     bra    COutFin
 
 ******* Codes de CONTROLE
-Cont:    tst.w    WiGraph(a5)
+Cont:
+    tst.w    WiGraph(a5)
     bne    PaCont
     lsl.w    #2,d1
     lea    CCont(pc),a0
@@ -505,16 +512,19 @@ Cont:    tst.w    WiGraph(a5)
 ******* ESCAPE en marche
 
 ;-----> Mise en marche ESC
-EscM:    move.w    #2,WiEsc(a5)
+EscM:
+    move.w    #2,WiEsc(a5)
     moveq    #0,d0
 Rien:    rts
 
 ;-----> ESC
-Esc:    subq.w    #1,WiEsc(a5)
+Esc:
+    subq.w    #1,WiEsc(a5)
     beq.s    Esc1
     move.w    d1,WiEscPar(a5)
     bra    COutOut
-Esc1:    move.w    WiEscPar(a5),d0
+Esc1:
+    move.w    WiEscPar(a5),d0
     cmp.w    #"Z",d0
     bhi.s    Esc2
     sub.w    #"A",d0
@@ -522,7 +532,11 @@ Esc1:    move.w    WiEscPar(a5),d0
     lsl.w    #2,d0
     lea    CEsc(pc),a0
     sub.w    #"0",d1
+    bpl.s    cEscZZ                    ; 2020.05.13 To fix this, if sub result < 0 then we add 256 to retrieve the original color.
+    Add.w    #255,d1                   ; 2020.05.13 +255 to be in range 0-255 for colors.
+cEscZZ:
     jsr    0(a0,d0.w)
-Esc2:    movem.l    (sp)+,d1-d7/a0-a3
+Esc2:
+    movem.l    (sp)+,d1-d7/a0-a3
     tst.l    d0
     rts

@@ -18,15 +18,18 @@
 ;
 ; EcSCol =                  Colour D1(ColorIndex), D2(RGB12)
 ; EcSCol24Bits =            Colour D1(ColorIndex), D2(RGB24)
+; AGAPaletteColour =        Set Colour D1(ColorIndex>31), D2(RGB12)
+; EcSColAga24Bits =         Set Colour D1(ColorIndex>31), D2(RGB24)
 ; EcGCol =                  D1(RGB12) = Colour( D1(ColorIndex) )
 ; getAGAPaletteColour =     D1(RGB12) = Colour( D1(ColorIndex>3) )
 ; EcSPal =                  Set Palette A1(32ColorsRGB12PalettePointer)
+; EcSPalAGAa4 =             Set Palette A1(256ColorsRGB24PalettePointer), A4(ScreenPointer)
+; EcSPalAGA =               Set Palette A1(256ColorsRGB24PalettePointer) (Apply color palette to  current screen)
+; EcSHam8BPLS =             Apply HAM8 conversion from BPLs 0-1-2-3-4-5-6-7 to be 2-3-4-5-6-7-0-1 in BitMap to makes AMOS Professional being able to draw graphics correctly
 ; EcMarch =                 Set Current Screen D1(ScreenID)
 ; EcGet =                   Get Current Screen( D1(ScreenID) )
 ; EcLibre =                 D1(ScreenID) = Next Free Screen()
-; WScCpy =                  Screen copy a0(Source),d0(X),d1(Y),d4(Width),d5(Height) to a1(Destination),d2(X),d3(Y),d6(Minterm)
-
-EcMaxPlans     equ   8
+; EcUpdateAGAColorsInCopper = Puh T_globAgaPal directly inside the Copper Lists (Logic & Physic)
 
 ******* SCREEN SWAP D1
 ScSwap:
@@ -82,12 +85,12 @@ ScSw4:
 
 * Autorise le screen swap
     tst.w    T_CopON(a5)        * Pas si COPPER OFF!
-    beq    EcOk
-    btst    #2,EcCon0+1(a4)        * Interlace?
-    bne    EcOk
+    beq      EcOk
+    btst     #2,EcCon0+1(a4)        * Interlace?
+    bne      EcOk
     clr.l    SwapL(a6)        * Empeche le suivant
-    move.l    a1,(a6)
-    bra    EcOk
+    move.l   a1,(a6)
+    bra      EcOk
 
 
 ******* SCREEN SWAP DE TOUS LES ECRANS UTILISATEUR
@@ -155,6 +158,7 @@ ne2:
     clr.l    SwapL(a6)        * Empeche le suivant!
     move.l    d7,(a6)
     bra    ScSwS1
+    
     
 ******* SCREEN CLONE N
 EcCClo:    movem.l    d1-d7/a1-a6,-(sp)
@@ -647,7 +651,7 @@ continue:                              ; 2019.11.05 End of upgrade to handle BPU
 ; Allocate memory for all required BitMaps
 ; ~~~~~~~~~~~~~~
     ; **************************** 2019.11.13 Try to allocate the whole screen at once.
-    move.w     EcNPlan(a4),d6          ; 2019.11.12 Directly moves EcNPlan instead of D6 datas
+    move.w     EcNPlan(a4),d6          ; 2019.11.12 Directly moves EcNPlan instead of D4 datas
     subq.w     #1,d6
     move.l     Ec_BitMap(a4),a1        ; a1 = Initialized BitMap Structure
     moveq      #0,d2                   ; D2 start at offset 0
@@ -668,9 +672,8 @@ EcCra:
     dbra       d6,EcCra
 
 ; ********************************************* 2020.08.11 Update to support HAM8 Mode - Start
-    Move.l     a4,T_cScreen(a5)          ; Save current screen to use it in the Bitplane Shift method
-    AmpLCall   A_agaHam8BPLS               ; Call the Bitplane shifting method for HAM8 mode
-ne1:
+    Move.l     a4,T_cScreen(a5)        ; Save current screen to use it in the Bitplane Shift method
+    AmpLCall   A_agaHam8BPLS           ; Call the Bitplane shifting method for HAM8 mode
 ; ********************************************* 2020.08.11 Update to support HAM8 Mode - End
 
 ctscr:
@@ -1365,22 +1368,25 @@ EcAdres:
 ;   D2 = Color value ( R4G4B4 )
 EcSCol:
 ; **************** 2020.12.05 Load the New method that handle various color data format ( RGB12, RGB15 and RGB24 )
-    getRGB12Datas  d2,d2,d4               ; Whatever input format, output will be : RGB12L(->d2), RGB12H(->d4)
-; **************** 2020.12.05 Load the New method that handle various color data format ( RGB12, RGB15 and RGB24 )
-    and.l      #255,d1                    ; Remove 32 colours limit (original = #31) for AGA support with 256 colours limit
-    lsl.w      #1,d1                      ; d1 = d1 * 2 (to be able to save RGB12H & RGB12L in the EcPal & EcPalL data storage area)
-    move.l     T_EcCourant(a5),a0         ; Load Current Screen into a0
+    getRGB12Datas  d2,d2,d4
+; **************** Load screen datas
+    move.l     T_EcCourant(a5),a0
+    and.w      #255,d1
+    lsl.w      #1,d1
 ; **************** 2020.12.02 Check if color is sent using 12bits or 24bits. 24bits required to have $01000000 set - START
     move.w     d2,EcPal(a0,d1.w)          ; Save High bits of the RGB24 color value
     move.l     a0,a1                      ; a1 = a0 = Screen pointer
     adda.l     #EcPalL,a1                 ; a1 = pointer to the low bits colors datas
     move.w     d4,(a1,d1.w)               ; Save low bits of the RGB24 color value
 ; **************** 2020.12.02 Check if color is sent using 12bits or 24bits. 24bits required to have $01000000 set - END
-; ********************************* 2019.11.13 Update Colour ID, R4G4B4 to handle 256 colors in the Screen structure palette
-    cmp.w      #63,d1                  ; Check if requested color is in range 00-31 (ECS) or 32-255 (AGA Only) ( D1 = Color Index * 2 )
+    lsr.w      #1,d1
+;EcSCol24Bits:
+     ; ********************************* 2019.11.13 Update Colour ID, R4G4B4 to handle 256 colors in the Screen structure palette
+    cmp.w      #32,d1                  ; Check if requested color is in range 00-31 (ECS) or 32-255 (AGA Only) ( D1 = Color Index*2)
     bgt        AGAPaletteColour        ; if color = 32-255 -> AGAPaletteColour
+;    *************************** Setup color 00-31 (Original AmosPRO setup)
 ; Update the copper by poking directly in it.
-    lsl.w      #1,d1
+    lsl.w      #2,d1
     move.w     EcNumber(a0),d0
     lsl.w      #7,d0
     lea        T_CopMark(a5),a0
@@ -1412,6 +1418,7 @@ EcSColB:
 ;   D2 = Color value ( R4G4B4 H ) High Bits
 ;   D4 = Color value ( R4G4B4 L ) Low Bits
 AGAPaletteColour:
+;EcSColAga24Bits:
     lsr.w      #1,d1                  ; ( d1 = Color Index instead of Color Index * 2)
     AmpLCall   A_SColAga24Bits
 ne5:
@@ -1420,7 +1427,7 @@ ne5:
 ******* GET COLOUR D1
 EcGCol:
     move.l     T_EcCourant(a5),a0
-    and.l      #255,d1
+    and.l      #31,d1
     lsl.w      #1,d1
 ; **************** 2020.12.02 Always return a RGB24 color value - START
     move.l     a0,a1
@@ -1480,6 +1487,7 @@ EcSP3:
     moveq      #0,d0
     rts
 
+
 ;    Active l''ecran D1 - si pas ecran CLONE!
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 EcMarch:
@@ -1498,7 +1506,6 @@ EcME
 EcCl
     moveq    #4,d0
     rts
-
 
 ***********************************************************
 *-----*    Ss programme ---> adresse d''un ecran
@@ -1527,115 +1534,114 @@ EcL:
     rts
 
 
-
 ******************************************************************
-*    Screen copy a0,d0,d1,d4,d5 to a1,d2,d3,d6
-*                
-*    a0 Origin Bit Map Struc.   a1 Destination Bit Map Struc. 
-*    d0 Origin X (16 a factor!) d2 Destination X (16 a factor!)
-*    d1 Origin Y           d3 Destination Y
-*              d4 Width  X (Must be multiple of 16!)
-*            d5 height Y
-*            d6 Minterm
+*   Screen copy a0,d0,d1,d4,d5 to a1,d2,d3,d6
+*               
+*   a0 Origin Bit Map Struc.   a1 Destination Bit Map Struc. 
+*   d0 Origin X (16 a factor!) d2 Destination X (16 a factor!)
+*   d1 Origin Y        d3 Destination Y
+*           d4 Width  X (Must be multiple of 16!)
+*           d5 height Y
+*           d6 Minterm
 *
-*    If minterm is $CC and d0,d2,d4 are on word boundaries
-*    then blit is done and result is 0 otherwise not done
-*    and result is -1.
+*   If minterm is $CC and d0,d2,d4 are on word boundaries
+*   then blit is done and result is 0 otherwise not done
+*   and result is -1.
 *
-*    Uses only A and D channels for blit, 
-*    therefore twice as fast as normal screen copy!
+*   Uses only A and D channels for blit, 
+*   therefore twice as fast as normal screen copy!
 * 
-
-WScCpy:    cmp.b    #$CC,d6
-    bne.s    NoWScCpy
-    move.w    d0,d7
-    and.w    #$f,d7
-    bne.s    NoWScCpy
-    move.w    d2,d7
-    and.w    #$f,d7
-    bne.s    NoWScCpy
-    move.w    d4,d7
-    and.w    #$f,d7
-    bne.s    NoWScCpy
-    bra.s    DoWScCpy
+WScCpy:
+    cmp.b   #$CC,d6
+    bne.s   NoWScCpy
+    move.w  d0,d7
+    and.w   #$f,d7
+    bne.s   NoWScCpy
+    move.w  d2,d7
+    and.w   #$f,d7
+    bne.s   NoWScCpy
+    move.w  d4,d7
+    and.w   #$f,d7
+    bne.s   NoWScCpy
+    bra.s   DoWScCpy
 NoWScCpy:
-    moveq.l    #-1,d7
+    moveq.l #-1,d7
     rts
 DoWScCpy:
-    moveq.l    #0,d7
-    cmp.w    d1,d3
-    blt.s    Ascending_Blit
-    bgt.s    Descending_Blit
-    cmp.w    d0,d2
-    blt.s    Ascending_Blit
+    moveq.l #0,d7
+    cmp.w   d1,d3
+    blt.s   Ascending_Blit
+    bgt.s   Descending_Blit
+    cmp.w   d0,d2
+    blt.s   Ascending_Blit
 Descending_Blit:
-    addq.l    #2,d7
+    addq.l  #2,d7
 
-    add.w    d4,d0
-    sub.w    #16,d0
-    add.w    d5,d1
-    subq.w    #1,d1
+    add.w   d4,d0
+    sub.w   #16,d0
+    add.w   d5,d1
+    subq.w  #1,d1
 
-    add.w    d4,d2
-    sub.w    #16,d2
-    add.w    d5,d3
-    subq.w    #1,d3
+    add.w   d4,d2
+    sub.w   #16,d2
+    add.w   d5,d3
+    subq.w  #1,d3
 Ascending_Blit:
-    lsl.w    #6,d5
-    lsr.w    #4,d0
-    lsl.w    #1,d0
+    lsl.w   #6,d5
+    lsr.w   #4,d0
+    lsl.w   #1,d0
 
-    lsr.w    #4,d2
-    lsl.w    #1,d2
+    lsr.w   #4,d2
+    lsl.w   #1,d2
 
-    lsr.w    #4,d4
-    lsl.w    #1,d4
-    move.w    (a0),d6
+    lsr.w   #4,d4
+    lsl.w   #1,d4
+    move.w  (a0),d6
     mulu    d6,d1
-    and.l    #$FFFF,d0
-    add.l    d1,d0
-    sub.w    d4,d6
-    move.w    (a1),d1
+    and.l   #$FFFF,d0
+    add.l   d1,d0
+    sub.w   d4,d6
+    move.w  (a1),d1
     mulu    d1,d3
-    and.l    #$FFFF,d2
-    add.l    d3,d2
-    sub.w    d4,d1
-    lsr.w    #1,d4
-    add.w    d4,d5
-    moveq.l    #0,d4
-    move.b    5(a0),d4
-    moveq.l    #0,d3
-    move.b    5(a1),d3
-    lea    8(a0),a0
-    lea    8(a1),a1
-    lea    circuits,a6
-    bsr    OwnBlit
-    move.w    #%100111110000,BltCon0(a6)
-    move.w    d7,BltCon1(a6)
-    moveq.l    #-1,d7
-    move.w    d7,BltDatB(a6)
-    move.w    d7,BltDatC(a6)
-    move.w    d7,BltMaskD(a6)
-    move.w    d7,BltMaskG(a6)
-    move.w    d6,BltModA(a6)
-    move.w    d1,BltModD(a6)
-    bra.s    Start_Blit
+    and.l   #$FFFF,d2
+    add.l   d3,d2
+    sub.w   d4,d1
+    lsr.w   #1,d4
+    add.w   d4,d5
+    moveq.l #0,d4
+    move.b  5(a0),d4
+    moveq.l #0,d3
+    move.b  5(a1),d3
+    lea 8(a0),a0
+    lea 8(a1),a1
+    lea circuits,a6
+    bsr OwnBlit
+    move.w  #%100111110000,BltCon0(a6)
+    move.w  d7,BltCon1(a6)
+    moveq.l #-1,d7
+    move.w  d7,BltDatB(a6)
+    move.w  d7,BltDatC(a6)
+    move.w  d7,BltMaskD(a6)
+    move.w  d7,BltMaskG(a6)
+    move.w  d6,BltModA(a6)
+    move.w  d1,BltModD(a6)
+    bra.s   Start_Blit
 Blit_Loop:
-    move.l    (a0)+,a2
-    add.l    d0,a2
-    move.l    (a1)+,a3
-    add.l    d2,a3
-    bsr    BlitWait    
-    move.l    a2,BltAdA(a6)
-    move.l    a3,BltAdC(a6)
-    move.l    a3,BltAdD(a6)
-    move.w    d5,BltSize(a6)
+    move.l  (a0)+,a2
+    add.l   d0,a2
+    move.l  (a1)+,a3
+    add.l   d2,a3
+    bsr BlitWait    
+    move.l  a2,BltAdA(a6)
+    move.l  a3,BltAdC(a6)
+    move.l  a3,BltAdD(a6)
+    move.w  d5,BltSize(a6)
 Start_Blit:
-    subq.w    #1,d4
-    bmi.s    Blit_out
+    subq.w  #1,d4
+    bmi.s   Blit_out
     dbra    d3,Blit_Loop
 Blit_out: 
-    bsr    BlitWait
-    bsr    DownBlit
-    moveq.l    #0,d7
-    rts    
+    bsr BlitWait
+    bsr DownBlit
+    moveq.l #0,d7
+    rts 
