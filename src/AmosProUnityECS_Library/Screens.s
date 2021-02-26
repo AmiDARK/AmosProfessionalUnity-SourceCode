@@ -322,7 +322,8 @@ EcDup2: move.w  d1,EcCon2(a0)
 *   D5= MODE
 *   D6= NB COULEURS 
 *   A1= PALETTE
-EcCree: movem.l d1-d7/a1-a6,-(sp)
+EcCree:
+    movem.l d1-d7/a1-a6,-(sp)
     
 ;   Verifie les parametres
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -356,13 +357,33 @@ EcCr0:  move.l  #EcLong,d0
     beq EcEE1
     move.l  d0,a4
 
-; Couleurs
-; ~~~~~~~~
-    move.w  d6,EcNbCol(a4)
-    moveq   #31,d0
-    lea EcPal(a4),a2
-EcCr4:  move.w  (a1)+,(a2)+
-    dbra    d0,EcCr4
+
+;; *********************** 2020.09.10 Updated to handle AGAP mode from Unpack command - Start
+;    move.w  d6,EcNbCol(a4)
+;    moveq   #31,d0
+;    lea EcPal(a4),a2
+;EcCr4:
+;  move.w  (a1)+,(a2)+
+;    dbra    d0,EcCr4
+;    ****** This small loop copy the default AMOS color palette inside current screen one to set it.
+    move.w     #-1,EcPalSeparator(a4)  ; 2020.09.16 Reuired for Fade
+    move.w     #-1,EcPalSepL(a4)       ; 2020.09.16 Reuired for Fade
+    move.l     #"AGAP",AGAPMode(a4)
+    move.w     d6,EcNbCol(a4)
+    moveq      #31,d6                  ; Force to copy only the default 32 colors from the palette in A1 (old SPack or Default color palette)
+    cmp.l      #"AGAP",(a1)            ; 2020.09.10 Check if the PAlette sent to screen creation own AGAP header or not.
+    bne.s      noAgap
+    move.w     4(a1),d6                ; Read Color Count from AGAP mode, new SPack with AGA 24Bits support
+    add.l      #6,a1                   ; Push A1 to the 1st color in the palette when AGAP(.l) + NBColor(.w) are available
+noAgap:
+    moveq      #31,d0
+    lea        EcPal(a4),a2
+EcCr4:
+    move.w     EcPalL-EcPal(a1),EcPalL-EcPal(a2)   ; 2020.08.13 Update lower bits for color palette 000-031
+    move.w     (a1)+,(a2)+             ; Update default higher bits for color palette 000-031
+    dbra       d0,EcCr4
+    ; *********************************** 2019.11.23 Copy the AGA Color palette from the default palette
+
 ; Taille de l'ecran
 ; ~~~~~~~~~~~~~~~~~
     move.w  d2,EcTx(a4)

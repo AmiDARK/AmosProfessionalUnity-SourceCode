@@ -104,10 +104,10 @@ AMP_ResTempBuffer:
     movem.l    a0-a2/d0-d1,-(sp)
     lea        .LibClr(pc),a1
     lea        Sys_ClearRoutines(a5),a2
-    bsr        WAddRoutine
+    SyCall     AddRoutine            ; 2021.02.26 Updated due to too large data for bsr WAddRoutine
     lea        .LibErr(pc),a1
     lea        Sys_ErrorRoutines(a5),a2
-    bsr        WAddRoutine
+    SyCall     AddRoutine            ; 2021.02.26 Updated due to too large data for bsr WAddRoutine
     movem.l    (sp)+,a0-a2/d0-d1
 .Exit:
     movem.l    (sp)+,d1/a1
@@ -1473,242 +1473,8 @@ ScoX:
     movem.l    (sp)+,a3/a6
     rts
 
-
-
-
-
-
-
-
-
-
-
-
-
-; _____________________________________________________________________________
-;            
-;                                Unpacker
-;______________________________________________________________________________
-;
-UAEc:          equ      0
-UDEc:          equ      4
-UITy:          equ      8
-UTy:           equ     10
-UTLine:        equ     12
-UNPlan:        equ     14
-USx            equ     16
-USy            equ     18
-UPile:         equ     20
-
-; _________________________________________________
-;
-;    Unpacker Screen
-; _________________________________________________
-;
-;    A0=    Packed picture
-;    D0=    Destination Screen
-; _________________________________
-;
-; - - - - - - - - - - - - -
-AMP_UnPack_Screen:
-    movem.l    a2-a6/d2-d7,-(sp)
-    cmp.l      #SCCode,PsCode(a0)
-    bne        .NoPac
-    move.w     d0,d1
-    moveq      #0,d2
-    moveq      #0,d3
-    moveq      #0,d4
-    moveq      #0,d5
-    move.w     PsTx(a0),d2
-    move.w     PsTy(a0),d3
-    move.w     PsNPlan(a0),d4
-    move.w     PsCon0(a0),d5
-    move.w     PsNbCol(a0),d6
-    lea        PsPal(a0),a1
-    move.l     a0,-(sp)
-    EcCall     Cree
-    move.l     a0,a1
-    move.l     (sp)+,a0
-    bne.s      .NoScreen
-* Enleve le curseur
-    movem.l    a0-a6/d0-d7,-(sp)
-    lea        .CuCp(pc),a1
-    WiCall     Print
-    movem.l    (sp)+,a0-a6/d0-d7
-* Change View/Offset
-    move.w     PsAWx(a0),EcAWX(a1)
-    move.w     PsAWy(a0),EcAWY(a1)
-    move.w     PsAWTx(a0),EcAWTX(a1)
-    move.w     PsAWTy(a0),EcAWTY(a1)
-    move.w     PsAVx(a0),EcAVX(a1)
-    move.w     PsAVy(a0),EcAVY(a1)
-    move.b     #%110,EcAW(a1)
-    move.b     #%110,EcAWT(a1)
-    move.b     #%110,EcAV(a1)
-* Unpack!
-    lea        PsLong(a0),a0
-    moveq      #0,d1
-    moveq      #0,d2
-    bsr        AMP_UnPack_Bitmap
-    move.l     a1,a0
-    bra.s      .Out
-.NoPac:
-    moveq      #0,d0
-    moveq      #0,d1
-    bra.s      .Out
-.NoScreen:
-    moveq      #0,d0
-    moveq      #1,d1
-.Out:
-    movem.l    (sp)+,d2-d7/a2-a6
-    rts
-.CuCp:
-    dc.b       27,"C0",0
-    even
-; _________________________________________________
-;
-;    Unpacker Bitmap
-; _________________________________________________
-;
-;    A0=    Packed picture
-;    A1=    Destination Screen
-;    D1=    X
-;    D2=    Y
-; _________________________________
-;
-; - - - - - - - - - - - - -
-AMP_UnPack_Bitmap:
-; - - - - - - - - - - - - -
-    movem.l    a0-a6/d1-d7,-(sp)
-* Jump over SCREEN DEFINITION
-    cmp.l      #SCCode,(a0)
-    bne.s      dec0
-    lea        PsLong(a0),a0
-* Is it a packed bitmap?
-dec0:
-    cmp.l      #BMCode,(a0)
-    bne        NoPac
-
-* Parameter preparation
-    lea        -UPile(sp),sp        * Space to work
-    lea        EcCurrent(a1),a2
-    move.l     a2,UAEc(sp)        * Bitmaps address
-    move.w     EcTLigne(a1),d7        * d7--> line size
-    move.w     EcNPlan(a1),d0        * How many bitplanes
-    cmp.w      Pknplan(a0),d0
-    bne        NoPac0
-    move.w     d0,UNPlan(sp)
-    move.w     Pktcar(a0),d6        * d6--> SY square
-
-    lsr.w      #3,d1            * > number of bytes
-    tst.l      d1            * Screen address in X
-    bpl.s      dec1
-    move.w     Pkdx(a0),d1
-dec1:
-    tst.l      d2            * In Y
-    bpl.s      dec2
-    move.w     Pkdy(a0),d2
-dec2:
-    move.w     Pktx(a0),d0
-    move.w     d0,USx(sp)        * Taille en X
-    add.w      d1,d0
-    cmp.w      d7,d0
-    bhi        NoPac0
-    move.w     Pkty(a0),d0
-    mulu       d6,d0
-    move.w     d0,USy(sp)        * Taille en Y
-    add.w      d2,d0
-    cmp.w      EcTy(a1),d0
-    bhi        NoPac0
-    mulu       d7,d2            * Screen address
-    ext.l      d1    
-    add.l      d2,d1
-    move.l     d1,UDEc(sp)
-    move.w     d6,d0            * Size of one line
-    mulu       d7,d0
-    move       d0,UTLine(sp)
-    move.w     Pktx(a0),a3        * Size in X
-    subq.w     #1,a3
-    move.w     Pkty(a0),UITy(sp)    * in Y
-    lea        PkDatas1(a0),a4            * a4--> bytes table 1
-    move.l     a0,a5
-    move.l     a0,a6
-    add.l      PkDatas2(a0),a5         * a5--> bytes table 2
-    add.l      PkPoint2(a0),a6         * a6--> pointer table
-    moveq      #7,d0            
-    moveq      #7,d1
-    move.b     (a5)+,d2
-    move.b     (a4)+,d3
-    btst       d1,(a6)
-    beq.s      prep
-    move.b     (a5)+,d2
-prep:
-    subq.w     #1,d1
-* Unpack!
-dplan:
-    move.l     UAEc(sp),a2
-    addq.l     #4,UAEc(sp)
-    move.l     (a2),a2
-    add.l      UDEc(sp),a2
-    move.w     UITy(sp),UTy(sp)    * Y Heigth counter
-dligne:
-    move.l     a2,a1
-    move.w     a3,d4
-dcarre:
-    move.l     a1,a0
-    move.w     d6,d5           * Square height
-doctet1:
-    subq.w     #1,d5
-    bmi.s      doct3
-    btst       d0,d2
-    beq.s      doct1
-    move.b     (a4)+,d3
-doct1:
-    move.b     d3,(a0)
-    add.w      d7,a0
-    dbra       d0,doctet1
-    moveq      #7,d0
-    btst       d1,(a6)
-    beq.s      doct2
-    move.b     (a5)+,d2
-doct2:
-    dbra       d1,doctet1
-    moveq      #7,d1
-    addq.l     #1,a6
-    bra.s      doctet1
-doct3:
-    addq.l     #1,a1               * Other squares?
-    dbra       d4,dcarre
-    add.w      UTLine(sp),a2              * Other square line?
-    subq.w     #1,UTy(sp)
-    bne.s      dligne
-    subq.w     #1,UNPlan(sp)
-    bne.s      dplan
-* Finished!
-    move.w     USy(sp),d0
-    swap       d0
-    move.w     USx(sp),d0
-    lsl.w      #3,d0
-    lea        UPile(sp),sp            * Restore the pile
-    movem.l    (sp)+,a0-a6/d1-d7
-    rts
-NoPac0:
-     lea       UPile(sp),sp
-NoPac:
-    moveq       #0,d0
-    movem.l    (sp)+,a0-a6/d1-d7
-    rts
-
-
-
-
-
-
-
-
-
-
-
+unpackDepthLimit equ 6
+    include "src/AmosProUnityAll_Library/ExtractedFromAmosPro_lib_Unpack.s"
 
 AMP_Bnk.SaveA0:
 ; - - - - - - - - - - - - -
@@ -2157,6 +1923,7 @@ PacP2:
 ;    REAL PACKING!!!
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AMP_Pack:
+    movem.l     d1-d7/a0-a4/a6,-(sp)   ; Required like these movem were available in the original method start/end
 * Header of the packed bitmap
     move.l     a5,-(sp)
 
@@ -2275,6 +2042,7 @@ comp2b:
     move.l     (sp)+,d0
     move.l     (sp)+,a5
     SyCall     MemFree
+    movem.l     (sp)+,d1-d7/a0-a4/a6   ; Required like these movem were available in the original method start/end
     rts
 
 ***************************************************************************
@@ -2445,13 +2213,13 @@ AMP_InSPack6:
 ; - - - - - - - - - - - - -
     bsr         AMP_PacPar
     bsr         AMP_GetSize
-    add.l       #PsLong,d0
+    add.l       #EcsPsLong,d0
     bsr         AMP_ResBank
 * Screen definition header
-    move.l      #SCCode,(a1)
+    move.l      #EcsSCCode,(a1)
     move.w      EcTx(a0),PsTx(a1)
     move.w      EcTy(a0),PsTy(a1)
-    move.w      EcNbCol(a0),PsNbCol(a1)
+    move.w      EcNbCol(a0),EcsPsNbCol(a1)
     move.w      EcNPlan(a0),PsNPlan(a1)
     move.w      EcCon0(a0),PsCon0(a1)
     move.w      EcAWX(a0),PsAWx(a1)
@@ -2463,16 +2231,14 @@ AMP_InSPack6:
     movem.l     a0/a1,-(sp)
     moveq       #31,d0
     lea         EcPal(a0),a0
-    lea         PsPal(a1),a1
+    lea         EcsPsPal(a1),a1
 SPac1:
     move.w      (a0)+,(a1)+
     dbra        d0,SPac1
     movem.l     (sp)+,a0/a1
-    lea         PsLong(a1),a1
+    lea         EcsPsLong(a1),a1
 * Finish packing!
-;    movem.l     d1-d7/a0-a4/a6,-(sp)   ; Required like these movem were available in the original method start/end
-;    bsr         AMP_Pack
-;    movem.l     (sp)+,d1-d7/a0-a4/a6   ; Required like these movem were available in the original method start/end
+    bsr         AMP_Pack
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2725,10 +2491,10 @@ AMP_OpenD1:
     move.l     a2,-(sp)
     lea        .Struc(pc),a1
     lea        Sys_ErrorRoutines(a5),a2
-    bsr        WAddRoutine
+    SyCall     AddRoutine            ; 2021.02.26 Updated due to too large data for bsr WAddRoutine
     lea        .Struc2(pc),a1
     lea        Sys_ClearRoutines(a5),a2
-    bsr        WAddRoutine
+    SyCall     AddRoutine            ; 2021.02.26 Updated due to too large data for bsr WAddRoutine
     move.l     (sp)+,a2
     move.l     Handle(a5),d0
     rts

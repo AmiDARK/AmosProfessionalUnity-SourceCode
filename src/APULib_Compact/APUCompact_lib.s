@@ -137,7 +137,7 @@ BadVer    moveq    #-1,d0            * Bad version number
 ;    SPACK Screen,Bank#,X1,Y1 TO X2,Y2
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Par    InSPack6    
-    AmpLCallR  A_InSPack6,a0
+    AmpLCallR  A_InSPack6,a2
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

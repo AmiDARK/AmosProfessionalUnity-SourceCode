@@ -1666,256 +1666,8 @@ ScoX:
     movem.l    (sp)+,a3/a6
     rts
 
-
-
-
-
-
-
-
-
-
-
-
-
-; _____________________________________________________________________________
-;            
-;                                Unpacker
-;______________________________________________________________________________
-;
-UAEc:          equ      0
-UDEc:          equ      4
-UITy:          equ      8
-UTy:           equ     10
-UTLine:        equ     12
-UNPlan:        equ     14
-USx            equ     16
-USy            equ     18
-UPile:         equ     20
-
-; _________________________________________________
-;
-;    Unpacker Screen
-; _________________________________________________
-;
-;    A0=    Packed picture
-;    D0=    Destination Screen
-; _________________________________
-;
-; - - - - - - - - - - - - -
-AMP_UnPack_Screen:
-    movem.l    a2-a6/d2-d7,-(sp)
-    cmp.l    #SCCode,PsCode(a0)
-    bne    .NoPac
-    move.w    d0,d1
-    moveq    #0,d2
-    moveq    #0,d3
-    moveq    #0,d4
-    moveq    #0,d5
-    moveq    #0,d6                     ; 2020.04.30 Minor fix.
-    move.w    PsTx(a0),d2
-    move.w    PsTy(a0),d3
-    move.w    PsNPlan(a0),d4
-    move.w    PsCon0(a0),d5
-    move.w    PsNbCol(a0),d6           ; D6 = Amount of colours in the compressed screen
-    ; Load the default colors into registers.
-    Move.l    #"AGAP",PsAGAP(a0)       ; Insert the "AGAP" header
-    lea       PsAGAP(a0),a1            ; 2020.09.10 Updated with AGAP to makes EcCree being able to detect color palette.
-    move.l    a0,-(sp)
-    EcCall    Cree
-    move.l    a0,a1
-    move.l    (sp)+,a0
-    bne.s     .NoScreen
-* Enleve le curseur
-    movem.l   a0-a6/d0-d7,-(sp)
-    lea       .CuCu(pc),a1
-    WiCall    Print
-    movem.l   (sp)+,a0-a6/d0-d7
-* Change View/Offset
-    move.w    PsAWx(a0),EcAWX(a1)
-    move.w    PsAWy(a0),EcAWY(a1)
-    move.w    PsAWTx(a0),EcAWTX(a1)
-    move.w    PsAWTy(a0),EcAWTY(a1)
-    move.w    PsAVx(a0),EcAVX(a1)
-    move.w    PsAVy(a0),EcAVY(a1)
-    move.b    #%110,EcAW(a1)
-    move.b    #%110,EcAWT(a1)
-    move.b    #%110,EcAV(a1)
-* Unpack!
-    lea       PsLong(a0),a0
-    moveq     #0,d1
-    moveq     #0,d2
-    bsr       AMP_UnPack_Bitmap
-    move.l    a1,a0
-    bra.s     .Out
-.NoPac
-    moveq     #0,d0
-    moveq     #0,d1
-    bra.s     .Out
-.NoScreen    
-    moveq     #0,d0
-    moveq     #1,d1
-.Out 
-
-   movem.l    (sp)+,d2-d7/a2-a6
-    rts
-.CuCu:
-    dc.b      27,"C0",0
-    even
-; _________________________________________________
-;
-;    Unpacker Bitmap
-; _________________________________________________
-;
-;    A0=    Packed picture
-;    A1=    Destination Screen
-;    D1=    X
-;    D2=    Y
-; _________________________________
-;
-; - - - - - - - - - - - - -
-AMP_UnPack_Bitmap:
-; - - - - - - - - - - - - -
-    movem.l    a0-a6/d1-d7,-(sp)
-* Jump over SCREEN DEFINITION
-    cmp.l      #SCCode,(a0)
-    bne.s      dec0
-    lea        PsLong(a0),a0
-* Is it a packed bitmap?
-; ******************************* 2020.09.09 Updated to handle RGB24 mode instead of previous RGB12 - Start
-; ******************************* 2020.04.30 Added support for both AGA (PsLong) and ECS (PsLong-448) packed pictures.
-dec0:
-    cmp.l    #BMCode,(a0)
-    beq.s    dec0b
-    Sub.l    #PsLong-PsPalAga,a0        // 2020.09.09 : Updated to jump just after ECS 32 colors data
-    cmp.l    #BMCode,(a0)
-    beq.s    dec0b
-    Add.l    #PsLong-PsPalAga,a0        // 2020.09.09 : Updated to go back to original value
-    bra      NoPac
-dec0b:
-; ******************************* 2020.04.30 Added support for both AGA (PsLong) and ECS (PsLong-448) packed pictures.
-; ******************************* 2020.09.09 Updated to handle RGB24 mode instead of previous RGB12 - End
-
-* Parameter preparation
-    lea        -UPile(sp),sp        * Space to work
-    lea        EcCurrent(a1),a2
-    move.l     a2,UAEc(sp)        * Bitmaps address
-    move.w     EcTLigne(a1),d7        * d7--> line size
-    move.w     EcNPlan(a1),d0        * How many bitplanes
-    cmp.w      Pknplan(a0),d0
-    bne        NoPac0
-    move.w     d0,UNPlan(sp)
-    move.w     Pktcar(a0),d6        * d6--> SY square
-
-    lsr.w      #3,d1            * > number of bytes
-    tst.l      d1            * Screen address in X
-    bpl.s      dec1
-    move.w     Pkdx(a0),d1
-dec1:
-    tst.l      d2            * In Y
-    bpl.s      dec2
-    move.w     Pkdy(a0),d2
-dec2:
-    move.w     Pktx(a0),d0
-    move.w     d0,USx(sp)        * Taille en X
-    add.w      d1,d0
-    cmp.w      d7,d0
-    bhi        NoPac0
-    move.w     Pkty(a0),d0
-    mulu       d6,d0
-    move.w     d0,USy(sp)        * Taille en Y
-    add.w      d2,d0
-    cmp.w      EcTy(a1),d0
-    bhi        NoPac0
-    mulu       d7,d2            * Screen address
-    ext.l      d1    
-    add.l      d2,d1
-    move.l     d1,UDEc(sp)
-    move.w     d6,d0            * Size of one line
-    mulu       d7,d0
-    move       d0,UTLine(sp)
-    move.w     Pktx(a0),a3        * Size in X
-    subq.w     #1,a3
-    move.w     Pkty(a0),UITy(sp)    * in Y
-    lea        PkDatas1(a0),a4            * a4--> bytes table 1
-    move.l     a0,a5
-    move.l     a0,a6
-    add.l      PkDatas2(a0),a5         * a5--> bytes table 2
-    add.l      PkPoint2(a0),a6         * a6--> pointer table
-    moveq      #7,d0            
-    moveq      #7,d1
-    move.b     (a5)+,d2
-    move.b     (a4)+,d3
-    btst       d1,(a6)
-    beq.s      prep
-    move.b     (a5)+,d2
-prep:
-    subq.w     #1,d1
-* Unpack!
-dplan:
-    move.l     UAEc(sp),a2
-    addq.l     #4,UAEc(sp)
-    move.l     (a2),a2
-    add.l      UDEc(sp),a2
-    move.w     UITy(sp),UTy(sp)    * Y Heigth counter
-dligne:
-    move.l     a2,a1
-    move.w     a3,d4
-dcarre:
-    move.l     a1,a0
-    move.w     d6,d5           * Square height
-doctet1:
-    subq.w     #1,d5
-    bmi.s      doct3
-    btst       d0,d2
-    beq.s      doct1
-    move.b     (a4)+,d3
-doct1:
-    move.b     d3,(a0)
-    add.w      d7,a0
-    dbra       d0,doctet1
-    moveq      #7,d0
-    btst       d1,(a6)
-    beq.s      doct2
-    move.b     (a5)+,d2
-doct2:
-    dbra       d1,doctet1
-    moveq      #7,d1
-    addq.l     #1,a6
-    bra.s      doctet1
-doct3:
-    addq.l     #1,a1               * Other squares?
-    dbra       d4,dcarre
-    add.w      UTLine(sp),a2              * Other square line?
-    subq.w     #1,UTy(sp)
-    bne.s      dligne
-    subq.w     #1,UNPlan(sp)
-    bne.s      dplan
-* Finished!
-    move.w     USy(sp),d0
-    swap       d0
-    move.w     USx(sp),d0
-    lsl.w      #3,d0
-    lea        UPile(sp),sp            * Restore the pile
-    movem.l    (sp)+,a0-a6/d1-d7
-    rts
-NoPac0:
-     lea       UPile(sp),sp
-NoPac:
-    moveq       #0,d0
-    movem.l    (sp)+,a0-a6/d1-d7
-    rts
-
-
-
-
-
-
-
-
-
-
-
+unpackDepthLimit equ 8
+    include "src/AmosProUnityAll_Library/ExtractedFromAmosPro_lib_Unpack.s"
 
 AMP_Bnk.SaveA0:
 ; - - - - - - - - - - - - -
@@ -1953,7 +1705,7 @@ AMP_Bnk.SaveA0:
     move.l     a2,d2
     move.l     d4,d3
     bsr        AMP_Write
-    bne        SB_Err
+    bne.s      SB_Err
     bra.s      SB_Ok
 ;    Sauve une banque d''icones
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2008,19 +1760,7 @@ SB_Sp:
 ; ~~~~~~~~~~~~~~~~
 .NoSpr:
     move.l     a2,d2
-; ************************************* 2020.05.15 Update to save dynamic amount of colours in 'AGAP' mode
-    Cmp.l      #"AGAP",(a2)
-    bne.s      SBEcsSave
-SBAgaSave:    
-    move.w     4(a2),d3                ; D3 = Amount of colours saved
-    lsl.w      #2,d3                   ; 2020.09.08 Update  D3 = Amount of bytes used by colours amount ( each color = 2 bytes RGB12H + 2 bytes RGB12L )
-    add.w      #8,d3                   ; 2020.09.08 Update : D3 + AGAP (4) + Colours Count (2) + Separator (2)
-
-    bra.s      SBSave
-SBEcsSave:
-    moveq      #32*2,d3                  ; Only 32 colors each using 2 bytes.
-SBSave:
-; ************************************* 2020.05.15 Update to save dynamic amount of colours in 'AGAP' mode End
+    moveq      #32*2,d3
     bsr        AMP_Write
     bne.s      SB_Err
 SB_Ok:
@@ -2082,9 +1822,9 @@ AMP_BnkUnRev:
     movem.l    (sp)+,d0-d7/a0-a6
     rts
 
-
 ; *************************************************************************
 AMP_BnkReserveIC2:
+AMP_Bnk.Ric2:
 ; - - - - - - - - - - - - -
     move.w     d2,d4                    ; D4 = D2 = Flags (Bnk_BitData + Bnk_BitBob + Bnk_BitIcon + ... )
     moveq      #0,d3                    ; D3 = 0
@@ -2095,25 +1835,21 @@ AMP_BnkReserveIC2:
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l     d3,d0                    ; D0 = Amount of objects in new bank
     lsl.l      #3,d0                    ; D0 = Amount of Object * 8 ( Each Element apparently takes 8 bytes )
-
-    move.l     d3,d0
-    lsl.l      #3,d0
-    add.l      #8*2+2+522+512,d0         ; 2020.09.08 Updated from 32 colors (64) to 256 colors (512+"AGAP"+colourAmount.w+$FFFF) Now using RGB24 instead of RGB12
-;    add.l      #8*2+2+522,d0           ; Updated from 32 colors (64) to 256 colors (512+"AGAP"+colourAmount.w+$FFFF)
-;    add.l      #8*2+2+1032,d0           ; 2020.08.30 Updated from 32 colors (64) to 256 colors ("AGAP"+colourAmount+256x*2(Lowbits)+2(Separator)+256*2(HighBits))
-
+    add.l      #8*2+2+1024+10,d0        ; 2020.09.08 Updated from 32 colors (64) to 256 colors ("AGAP"+colourAmount.w+$FFFF+ 256 colors * .l, and "aend") Now using RGB24 instead of RGB12
+;    add.l      #8*2+2+64,d0            ; Original value
     move.l     Cur_Banks(a5),a0        ; A0 = Current Banks List
     bsr        AMP_ListNew             ; Call +AmosProAGA_Loaders.s/Lst.New L1200 / -> A1/D0 = New Element (contains at +0.l previous element memory block pointer, chained list Cur_Banks(a5))
     beq        .Err                    ; = 0 -> Jump .Err (Error) / if no error, note that 4(a1) contains memory size + 8 // D0 - ( 8 + ( 8 * 2 ) + 2 ) / 2 = Color amount
     lea        8(a1),a2                ; A2 = Start of the new Element
+
 ; Entete de la banque
 ; ~~~~~~~~~~~~~~~~~~~
     moveq      #1,d0                   ; Element Type 1
-    lea        BkSpr(pc),a0            ; Load Adress of dc.b "sprites ", 0 -> A0
+    Rlea       L_BkSpr,0               ; Load Adress of dc.b "sprites ", 0 -> A0
     btst       #Bnk_BitIcon,d4         ; Is requested element a Sprite/Bob or Icon ?
     beq.s      .Pai                    ; Sprite/Bob -> Jump to .Pai
     moveq      #2,d0                   ; Element Type 2
-    lea        BkIco(pc),a0            ; Load Adress of dc.b "icons   ", 0 -> A0
+    Rlea       L_BkIco,0              ; Load Adress of dc.b "icons   ", 0 -> A0
 .Pai: 
     move.l     d0,(a2)+                ; Element Adr # 0.l = Type 1/2
     move.w     d4,(a2)+                ; Element Adr # 4.w = flags ( BitData, BitBob, BitIcon, ... )
@@ -2153,9 +1889,9 @@ AMP_BnkReserveIC2:
     bne.s      .PPal
     Add.l      #6,a0                   ; A0 = First color in the list
 ; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
-    bra.s      .PPal                   ; Jump to .PPal -> Copy Color Palette
+    bra.s      .PPal
 
-; .PaCopy : No copy of the previous Color Palette. Instead, use default color palette or current screen one
+; Pas de recopie de l''ancienne banque
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .PaCopy:
     lea        DefPal(a5),a0           ; A0 = Default color Palette
@@ -2163,6 +1899,7 @@ AMP_BnkReserveIC2:
     beq.s      .PPal                   ; If No Curren Screen -> Jump to .PPal (Copy default color palette to the bank)
     move.l     d7,a0                   ; A0 = Current Screen
     lea        EcPal(a0),a0            ; A0 = Current Screen Color Palette (to copy to the bank)
+
 ; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
     Move.l     #"AGAP",d0
 ; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
@@ -2272,28 +2009,28 @@ AMP_BnkEffA0:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AMP_BnkEffBobA0:
     movem.l    a0/a1/a2/d0/d1,-(sp)
-    move.l     a0,a2                   ; A2 = A0 (Copy)
+    move.l     a0,a2
 ; Efface le bob
-    move.l     (a2),d1                 ; A2 = Adresse Bob
-    beq.s      .No1                    ; No Bob ? YES -> Jump .No1
-    move.l     d1,a1                   ; A1 = Bank Adress to delete
-    move.w     (a1),d0                 ; D0 = Read.w(a1)
-    mulu       2(a1),d0                ; D0 = D0 * (A1.w,2.w)
-    lsl.l      #1,d0                   ; D0 = D0 * 2
-    mulu       4(a1),d0                ; D0 = D0 * (A1.w,4.w)
-    add.l      #10,d0                  ; D0 = D0 + 10 = Full Bob Size
-    SyCall     MemFree                 ; Clear Memory (A1,D0)
+    move.l     (a2),d1
+    beq.s      .No1
+    move.l     d1,a1
+    move.w     (a1),d0
+    mulu       2(a1),d0
+    lsl.l      #1,d0
+    mulu       4(a1),d0
+    add.l      #10,d0
+    SyCall     MemFree
 ; Efface le masque
 .No1:
-    move.l     4(a2),d1                ; D1 = Mask Adress
-    ble.s      .No2                    ; No Make ? YES -> Jump .No2
-    move.l     d1,a1                   ; A1 = Mask Adress
-    move.l     (a1),d0                 ; D0 + Mask Size
-    SyCall     MemFree                 ; Clear Memory (A1,D0)
+    move.l     4(a2),d1
+    ble.s      .No2
+    move.l     d1,a1
+    move.l     (a1),d0
+    SyCall     MemFree
 .No2:
-    clr.l      (a2)+                   ; Clear Bob Pointer
-    clr.l      (a2)+                   ; Clear Mask Pointer
-    movem.l    (sp)+,a0/a1/a2/d0/d1
+    clr.l      (a2)+
+    clr.l      (a2)+
+    movem.l (sp)+,a0/a1/a2/d0/d1
     rts
 
 
@@ -2305,20 +2042,20 @@ AMP_ListChipNew:
 ; Cree une element de liste en FAST MEM
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 AMP_ListNew:
-    move.l    #Clear|Public,d1
+    move.l       #Clear|Public,d1        ; FastMem cleared memory area requested
 ; Cree un élément en tete de liste A0 / longueur D0 / Memoire D1
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 AMP_ListCree:
-    movem.l    a0/d0,-(sp)
-    addq.l     #8,d0
-    SyCall     MemReserve
-    move.l     a0,a1
-    movem.l    (sp)+,a0/d1
-    beq.s      .Out
-    move.l     (a0),(a1)
-    move.l     a1,(a0)
-    move.l     d1,4(a1)
-    move.l     a1,d0
+    movem.l      a0/d0,-(sp)             ; Save A0 & D0 to SP
+    addq.l       #8,d0                   ; Add 8 Bytes to list block size (to store NEXT.l SIZE.l )
+    SyCall       MemReserve              ; Call +AmosProAGA_library.s/WMemReserve (Return A0 = Memblock)
+    move.l       a0,a1                   ; A1 = New Memory block
+    movem.l      (sp)+,a0/d1             ; A0 = Old List, D1 = Old List Length
+    beq.s        .Out                    ; A1 = 0 / NULL -> No new list -> Jump .Out (Error)
+    move.l       (a0),(a1)               ; (A1.NEXT.l) = (A0.NEXT.l) Push the 1st element "next" to new list
+    move.l       a1,(a0)                 ; (A0.NEXT.l) = A1          Push the new list as "next" of the 1st element
+    move.l       d1,4(a1)                ; (A1.SIZE.l) = D1 (Original requested memblock size, without the .8 bytes NEXT.L LONG.L )
+    move.l       a1,d0                   ; D0 = New Element of the list
 .Out:
     rts        
 
@@ -2348,11 +2085,6 @@ AMP_ListDel:
 .NFound:
     movem.l    (sp)+,a0/d0-d2
     rts
-
-
-
-
-
 
 
 
@@ -2415,6 +2147,7 @@ PacP2:
 ;    REAL PACKING!!!
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AMP_Pack:
+    movem.l     d1-d7/a0-a4/a6,-(sp)   ; Required like these movem were available in the original method start/end
 * Header of the packed bitmap
     move.l     a5,-(sp)
 
@@ -2533,6 +2266,7 @@ comp2b:
     move.l     (sp)+,d0
     move.l     (sp)+,a5
     SyCall     MemFree
+    movem.l     (sp)+,d1-d7/a0-a4/a6   ; Required like these movem were available in the original method start/end
     rts
 
 ***************************************************************************
@@ -2703,13 +2437,13 @@ AMP_InSPack6:
 ; - - - - - - - - - - - - -
     bsr         AMP_PacPar
     bsr         AMP_GetSize
-    add.l       #PsLong,d0
+    add.l       #AgaPsLong,d0
     bsr         AMP_ResBank
 * Screen definition header
-    move.l      #SCCode,(a1)
+    move.l      #AgaSCCode,(a1)
     move.w      EcTx(a0),PsTx(a1)
     move.w      EcTy(a0),PsTy(a1)
-    move.w      EcNbCol(a0),PsNbCol(a1)
+    move.w      EcNbCol(a0),AgaPsNbCol(a1)
     move.w      EcNPlan(a0),PsNPlan(a1)
     move.w      EcCon0(a0),PsCon0(a1)
     move.w      EcAWX(a0),PsAWx(a1)
@@ -2718,19 +2452,29 @@ AMP_InSPack6:
     move.w      EcAWTY(a0),PsAWTy(a1)
     move.w      EcAVX(a0),PsAVx(a1)
     move.w      EcAVY(a0),PsAVy(a1)
-    movem.l     a0/a1,-(sp)
-    moveq       #31,d0
-    lea         EcPal(a0),a0
-    lea         PsPal(a1),a1
+
+; ******** 2021.02.26 New optimised version to save the whole screen palette, depending on the amount of colours of it.
+;    movem.l     a0/a1,-(sp)
+    movem.l     a0/a1/a2,-(sp)
+;    moveq       #31,d0
+    move.w      AgaPsNbCol(a1),d0      ; D0 = Amount of colours to modify
+    sub.w       #1,d0               ; when D0 = -1 -> End of loop.
+    move.l      a0,a2               ; A2 = Screen pointer
+    Move.l      #"AGAP",AgaPsAGAP(a1)
+    lea         EcPal(a0),a0        ; A0 = Color palette From screen
+    lea         AgaPsPal(a1),a1     ; A1 = Packed screen color palette
 SPac1:
-    move.w      (a0)+,(a1)+
+    move.w      EcPalL-EcPal(a0),EcPalL-EcPal(a1) ; 2020.09.09 Update to save RGB12 low bits color
+    move.w      (a0)+,(a1)+                       ; Save RGB12 high bits color
     dbra        d0,SPac1
-    movem.l     (sp)+,a0/a1
-    lea         PsLong(a1),a1
+noCopy1:
+    move.w     #$FFFF,(a1)
+;    movem.l     (sp)+,a0/a1
+    movem.l    (sp)+,a0/a1/a2
+; ******** 2021.02.26 New optimised version to save the whole screen palette, depending on the amount of colours of it.
+    lea        AgaPsLong(a1),a1
 * Finish packing!
-;    movem.l     d1-d7/a0-a4/a6,-(sp)   ; Required like these movem were available in the original method start/end
-;    bsr         AMP_Pack
-;    movem.l     (sp)+,d1-d7/a0-a4/a6   ; Required like these movem were available in the original method start/end
+    bsr         AMP_Pack
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
