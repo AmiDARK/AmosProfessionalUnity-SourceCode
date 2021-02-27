@@ -77,23 +77,26 @@ TAbk3X
 ; ********************************************* 2020.08.11 Update to support HAM8 Mode - End
     rts
 * Total ---> Re screen swap!
-TAbk3B    movem.l    a3-a6,-(sp)
-    move.l    a1,a5
-    bsr    BobAct
-    bsr    BobAff
-    bsr    ScSwapS
-    bsr    WVbl
-    bclr    #BitBobs,T_Actualise(a5)
+TAbk3B:
+    movem.l    a3-a6,-(sp)
+    move.l     a1,a5
+    bsr        BobAct
+    bsr        BobAff
+    bsr        ScSwapS
+    bsr        WVbl
+    bclr       #BitBobs,T_Actualise(a5)
     movem.l    (sp)+,a3-a6
     rts
 ******* AUTOBACK 4 -> ecrans single buffer!
-TAbk4:    movem.l    a3-a6,-(sp)
-    move.l    W_Base(pc),a5
-    move.l    T_EcCourant(a5),a0
-    move.w    EcAuto(a0),d0
-    subq.w    #1,d0
-    ble.s    TAbk4X
-    bsr    BobAct
-    bsr    BobAff
-TAbk4X:    movem.l    (sp)+,a3-a6
+TAbk4:
+    movem.l    a3-a6,-(sp)
+    move.l     W_Base(pc),a5
+    move.l     T_EcCourant(a5),a0
+    move.w     EcAuto(a0),d0
+    subq.w     #1,d0
+    ble.s      TAbk4X
+    bsr        BobAct
+    bsr        BobAff
+TAbk4X:
+    movem.l    (sp)+,a3-a6
     rts

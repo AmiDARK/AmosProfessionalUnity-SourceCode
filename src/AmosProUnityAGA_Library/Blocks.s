@@ -518,7 +518,7 @@ DrBl4:    move.l    a0,BbEc(a4)
     bsr    OwnBlit
     move.w    BbASize(a4),d2
     move.l    BbTPlan(a4),d4                 ; 2019.12.06
-    ext.l    d4
+;    ext.l    d4
     move.l    BbAData(a4),a0
     move.l    BbEc(a4),a3
     lea    EcCurrent(a3),a3
