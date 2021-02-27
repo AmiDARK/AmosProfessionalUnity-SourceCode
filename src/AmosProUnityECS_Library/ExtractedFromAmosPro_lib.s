@@ -1649,7 +1649,10 @@ AMP_BnkReserveIC2:
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l     d3,d0
     lsl.l      #3,d0
-    add.l      #8*2+2+64,d0
+
+    add.l      #8*2+2+522+512,d0         ; 2021.02.28 To allow the load of AGA Palette.
+;    add.l      #8*2+2+64,d0
+
     move.l     Cur_Banks(a5),a0
     bsr        AMP_ListNew
     beq        .Err
@@ -1695,7 +1698,7 @@ AMP_BnkReserveIC2:
     move.w     (a3),d0            Copie de la palette
     lsl.w      #3,d0
     lea        2(a3,d0.w),a0
-    bra.s      .PPal
+    bra.s      .BPPal
 ; Pas de recopie de l''ancienne banque
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .PaCopy:
@@ -1704,11 +1707,18 @@ AMP_BnkReserveIC2:
     beq.s      .PPal
     move.l     d0,a0
     lea        EcPal(a0),a0
+.BPPal:
+    cmp.l      #"AGAP",(a0)
+    bne.s      .PPal
+    adda.l     #4,a0
 .PPal:
     move.w     d3,d1
     lsl.w      #3,d1
     lea        2(a2,d1.w),a1
     moveq      #32-1,d0
+    cmp.l      #"AGAP",(a1)
+    bne.s      .CPal
+    adda.l     #6,a1
 .CPal:
     move.w     (a0)+,(a1)+
     dbra       d0,.CPal

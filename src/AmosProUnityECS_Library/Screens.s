@@ -1090,7 +1090,7 @@ EcGCol:
     rts
 
 ******* SET PALETTE A1
-EcSPal  movem.l a2-a3/d2-d4,-(sp)
+EcSPal:  movem.l a2-a3/d2-d4,-(sp)
     move.l  T_EcCourant(a5),a0
     move.w  EcNumber(a0),d2
     lsl.l   #7,d2
@@ -1102,6 +1102,9 @@ EcSPal  movem.l a2-a3/d2-d4,-(sp)
     moveq   #0,d1
     moveq   #31,d4
 * Boucle de pokage
+    cmp.l   #"AGAP",(a1)
+    bne.s   EcSP1
+    add.l   #6,a1
 EcSP1   move.w  (a1)+,d1
     bmi.s   EcSP3
     and.w   #$FFF,d1

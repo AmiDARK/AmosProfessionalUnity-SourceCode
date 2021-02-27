@@ -41,25 +41,21 @@ amosprolib_functions:
     bra        AMP_ScreenCopy0         ;  19 A_ScreenCopy0
     bra        AMP_UnPack_Bitmap       ;  20 A_UnPack_Bitmap
     bra        AMP_UnPack_Screen       ;  21 A_UnPack_Screen
-
     bra        AMP_Bnk.SaveA0          ;  22 A_Bnk.SaveA0
     bra        AMP_SHunk               ;  23 A_SHunk
     bra        AMP_BnkUnRev            ;  24 A_BnkUnRev
     bra        AMP_BnkReserveIC2       ;  25 A_BnkReserveIC2
     bra        AMP_BnkEffA0            ;  26 A_BnkEffA0
     bra        AMP_BnkEffBobA0         ;  27 A_BnkEffBobA0
-
     bra        AMP_InPen               ;  28 A_InPen
     bra        AMP_WnPp                ;  29 A_WnPp
     bra        AMP_GoWn                ;  30 A_GoWn
     bra        AMP_PacPar              ;  31 A_PacPar
     bra        AMP_Pack                ;  32 A_Pack
     bra        AMP_GetSize             ;  33 A_GetSize
-
     bra        AMP_BnkReserve          ;  34 A_BnkReserve
     bra        AMP_BnkGetAdr           ;  35 A_BnkGetAdr
     bra        AMP_ResBank             ;  36 A_ResBank
-
     bra        AMP_InSPack6            ;  37 A_InSPack6
     bra        AMP_InRain              ;  38 A_InRain
     bra        AMP_FnRain              ;  39 A_FnRain

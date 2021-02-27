@@ -1462,6 +1462,9 @@ EcSPal:
     moveq      #0,d1
     moveq      #31,d4
 * Boucle de pokage
+    cmp.l      #"AGAP",(a1)          ; 2021.02.27 Update to handle AGAP mode in color palette.
+    bne.s      EcSP1                 ; 
+    adda.l     #6,a1                 ;
 EcSP1
     move.w     (a1)+,d1
     bmi.s      EcSP3
