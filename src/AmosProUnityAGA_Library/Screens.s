@@ -1419,7 +1419,7 @@ EcSColB:
 ;   D4 = Color value ( R4G4B4 L ) Low Bits
 AGAPaletteColour:
 ;EcSColAga24Bits:
-    lsr.w      #1,d1                  ; ( d1 = Color Index instead of Color Index * 2)
+;    lsr.w      #1,d1                  ; ( d1 = Color Index instead of Color Index * 2)
     AmpLCall   A_SColAga24Bits
 ne5:
     rts

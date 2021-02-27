@@ -1012,33 +1012,38 @@ CreBbE:
     rts
 
 ******* CREATION DE LA TABLE!
-ResBOB:    move.l    #BbLong,d0
-    bsr    FastMm
-    beq.s    ResBErr
-    move.l    d0,a0
-    move.w    d1,BbNb(a0)
-    move.l    T_EcCourant(a5),a2
-    move.l    a2,BbEc(a0)
-    move.w    EcTx(a2),BbLimD(a0)
-    move.w    EcTy(a2),BbLimB(a0)
-    move.w    d6,BbAPlan(a0)
-    and.w    #$00FF,d7
-    beq.s    ResBb0
-    bset    #15,d7
-ResBb0    move.w    d7,BbACon(a0)
-    move.w    #$01,BbDecor(a0)
-    btst    #BitDble,EcFlags(a2)
-    beq.s    ResBb1
-    addq.w    #1,BbDecor(a0)
-    move.w    #Decor,BbDCur2(a0)
-ResBb1:    tst.w    d5
-    bpl.s    ResBb2
-    clr.w    BbDecor(a0)
-ResBb2:    move.w    d5,BbEff(a0)
-    moveq    #0,d0
+ResBOB:
+    move.l     #BbLong,d0
+    bsr        FastMm
+    beq.s      ResBErr
+    move.l     d0,a0
+    move.w     d1,BbNb(a0)
+    move.l     T_EcCourant(a5),a2
+    move.l     a2,BbEc(a0)
+    move.w     EcTx(a2),BbLimD(a0)
+    move.w     EcTy(a2),BbLimB(a0)
+    move.w     d6,BbAPlan(a0)
+    and.w      #$00FF,d7
+    beq.s      ResBb0
+    bset       #15,d7
+ResBb0:
+    move.w     d7,BbACon(a0)
+    move.w     #$01,BbDecor(a0)
+    btst       #BitDble,EcFlags(a2)
+    beq.s      ResBb1
+    addq.w     #1,BbDecor(a0)
+    move.w     #Decor,BbDCur2(a0)
+ResBb1:
+    tst.w      d5
+    bpl.s      ResBb2
+    clr.w      BbDecor(a0)
+ResBb2:
+    move.w     d5,BbEff(a0)
+    moveq      #0,d0
     rts
 * Erreur memoire!
-ResBErr    moveq    #-1,d0
+ResBErr:
+    moveq      #-1,d0
     rts
 
 ***********************************************************

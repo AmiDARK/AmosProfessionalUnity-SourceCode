@@ -41,21 +41,25 @@ amosprolib_functions:
     bra        AMP_ScreenCopy0         ;  19 A_ScreenCopy0
     bra        AMP_UnPack_Bitmap       ;  20 A_UnPack_Bitmap
     bra        AMP_UnPack_Screen       ;  21 A_UnPack_Screen
+
     bra        AMP_Bnk.SaveA0          ;  22 A_Bnk.SaveA0
     bra        AMP_SHunk               ;  23 A_SHunk
     bra        AMP_BnkUnRev            ;  24 A_BnkUnRev
     bra        AMP_BnkReserveIC2       ;  25 A_BnkReserveIC2
     bra        AMP_BnkEffA0            ;  26 A_BnkEffA0
     bra        AMP_BnkEffBobA0         ;  27 A_BnkEffBobA0
+
     bra        AMP_InPen               ;  28 A_InPen
     bra        AMP_WnPp                ;  29 A_WnPp
     bra        AMP_GoWn                ;  30 A_GoWn
     bra        AMP_PacPar              ;  31 A_PacPar
     bra        AMP_Pack                ;  32 A_Pack
     bra        AMP_GetSize             ;  33 A_GetSize
+
     bra        AMP_BnkReserve          ;  34 A_BnkReserve
     bra        AMP_BnkGetAdr           ;  35 A_BnkGetAdr
     bra        AMP_ResBank             ;  36 A_ResBank
+
     bra        AMP_InSPack6            ;  37 A_InSPack6
     bra        AMP_InRain              ;  38 A_InRain
     bra        AMP_FnRain              ;  39 A_FnRain
@@ -1705,7 +1709,7 @@ AMP_Bnk.SaveA0:
     move.l     a2,d2
     move.l     d4,d3
     bsr        AMP_Write
-    bne.s      SB_Err
+    bne        SB_Err
     bra.s      SB_Ok
 ;    Sauve une banque d''icones
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1760,7 +1764,19 @@ SB_Sp:
 ; ~~~~~~~~~~~~~~~~
 .NoSpr:
     move.l     a2,d2
+; ************************************* 2020.05.15 Update to save dynamic amount of colours in 'AGAP' mode
+    Cmp.l      #"AGAP",(a2)
+    bne.s      SBEcsSave
+SBAgaSave:    
+    move.w     4(a2),d3                ; D3 = Amount of colours saved
+    lsl.w      #2,d3                   ; 2020.09.08 Update  D3 = Amount of bytes used by colours amount ( each color = 2 bytes RGB12H + 2 bytes RGB12L )
+    add.w      #8,d3                   ; 2020.09.08 Update : D3 + AGAP (4) + Colours Count (2) + Separator (2)
+
+    bra.s      SBSave
+SBEcsSave:
     moveq      #32*2,d3
+SBSave:
+; ************************************* 2020.05.15 Update to save dynamic amount of colours in 'AGAP' mode End
     bsr        AMP_Write
     bne.s      SB_Err
 SB_Ok:
@@ -1822,6 +1838,7 @@ AMP_BnkUnRev:
     movem.l    (sp)+,d0-d7/a0-a6
     rts
 
+
 ; *************************************************************************
 AMP_BnkReserveIC2:
 AMP_Bnk.Ric2:
@@ -1835,22 +1852,21 @@ AMP_Bnk.Ric2:
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l     d3,d0                    ; D0 = Amount of objects in new bank
     lsl.l      #3,d0                    ; D0 = Amount of Object * 8 ( Each Element apparently takes 8 bytes )
-    add.l      #8*2+2+1024+10,d0        ; 2020.09.08 Updated from 32 colors (64) to 256 colors ("AGAP"+colourAmount.w+$FFFF+ 256 colors * .l, and "aend") Now using RGB24 instead of RGB12
-;    add.l      #8*2+2+64,d0            ; Original value
+    add.l      #8*2+2+522+512,d0         ; 2020.09.08 Updated from 32 colors (64) to 256 colors (512+"AGAP"+colourAmount.w+$FFFF) Now using RGB24 instead of RGB12
+;    add.l      #8*2+2+64,d0
     move.l     Cur_Banks(a5),a0        ; A0 = Current Banks List
     bsr        AMP_ListNew             ; Call +AmosProAGA_Loaders.s/Lst.New L1200 / -> A1/D0 = New Element (contains at +0.l previous element memory block pointer, chained list Cur_Banks(a5))
     beq        .Err                    ; = 0 -> Jump .Err (Error) / if no error, note that 4(a1) contains memory size + 8 // D0 - ( 8 + ( 8 * 2 ) + 2 ) / 2 = Color amount
     lea        8(a1),a2                ; A2 = Start of the new Element
-
 ; Entete de la banque
 ; ~~~~~~~~~~~~~~~~~~~
     moveq      #1,d0                   ; Element Type 1
-    Rlea       L_BkSpr,0               ; Load Adress of dc.b "sprites ", 0 -> A0
+    lea        BkSpr(pc),a0            ; Load Adress of dc.b "sprites ", 0 -> A0
     btst       #Bnk_BitIcon,d4         ; Is requested element a Sprite/Bob or Icon ?
     beq.s      .Pai                    ; Sprite/Bob -> Jump to .Pai
     moveq      #2,d0                   ; Element Type 2
-    Rlea       L_BkIco,0              ; Load Adress of dc.b "icons   ", 0 -> A0
-.Pai: 
+    lea        BkIco(pc),a0            ; Load Adress of dc.b "icons   ", 0 -> A0
+.Pai:
     move.l     d0,(a2)+                ; Element Adr # 0.l = Type 1/2
     move.w     d4,(a2)+                ; Element Adr # 4.w = flags ( BitData, BitBob, BitIcon, ... )
     clr.w      (a2)+                   ; Element Adr # 6.w = EMPTY
@@ -1883,15 +1899,15 @@ AMP_Bnk.Ric2:
     move.w     (a3),d0                 ; D0 = Amount of Elements in the old list
     lsl.w      #3,d0                   ; D0 * 8 (To get the pointer to the memory area just after the elements list.)
     lea        2(a3,d0.w),a0           ; A0 = 2(A3,D0) = Color Palette memory start
-; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
+ ; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
     Move.l     (a0),d0
     cmp.l      #"AGAP",d0
     bne.s      .PPal
     Add.l      #6,a0                   ; A0 = First color in the list
 ; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
-    bra.s      .PPal
+    bra.s      .PPal                   ; Jump to .PPal -> Copy Color Palette
 
-; Pas de recopie de l''ancienne banque
+; .PaCopy : No copy of the previous Color Palette. Instead, use default color palette or current screen one
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .PaCopy:
     lea        DefPal(a5),a0           ; A0 = Default color Palette
@@ -1899,7 +1915,6 @@ AMP_Bnk.Ric2:
     beq.s      .PPal                   ; If No Curren Screen -> Jump to .PPal (Copy default color palette to the bank)
     move.l     d7,a0                   ; A0 = Current Screen
     lea        EcPal(a0),a0            ; A0 = Current Screen Color Palette (to copy to the bank)
-
 ; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
     Move.l     #"AGAP",d0
 ; ********** 2020.05.14 Update to handle 256 colors bob/icon/sprites
@@ -1928,8 +1943,8 @@ AMP_Bnk.Ric2:
     move.w     #$FFFF,(a1)+            ; 2020.09.08 Push -1 to say "Palette is over"
     Add.l      #512,a1                 ; 2020.09.08 Push A1 at the end of the 2nd RGB12 color palette content (Low Bits)
 
-; Delete previous Bank ?
-; ~~~~~~~~~~~~~~~~~~~~~~
+; Efface l''ancienne banque
+; ~~~~~~~~~~~~~~~~~~~~~~~~
 .EBank:
     tst.w      d2                      ; D2 = Flags (0=Clear, 1=Append, -1=NoCopy+Keep)
     bmi.s      .Paeff                  ; =-1 -> Jump to .Paeff (no delete)
@@ -1938,27 +1953,21 @@ AMP_Bnk.Ric2:
     move.l     d0,a0                   ; A0 = D0
     bsr        AMP_BnkEffA0            ; Delete Bank in A0.
 .Paeff:
-
-; No Error ?
-; ~~~~~~~~~~
-    move.l     a2,a0                   ; A0 = Start of the bank content
-    move.l     a3,a1                   ; A1 = A3 = Source Bank
-    moveq      #0,d0                   ; DO = 0 = No Error
+; Pas d''erreur
+; ~~~~~~~~~~~~
+    move.l     a2,a0
+    move.l     a3,a1
+    moveq      #0,d0
     bra.s      .Out
-
-; Out of memory error
-; ~~~~~~~~~~~~~~~~~~~
+; Out of mem!
+; ~~~~~~~~~~~
 .Err:
-    sub.l     a0,a0                    ; A0 = NULL = 0
-    moveq     #-1,d0                   ; D0 = -1 = Out Of Memory Error
-
-; Exit, sending Bob adress out
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    sub.l      a0,a0
+    moveq      #-1,d0
+; Sortie, envoie l''adresse des bobs à la trappe
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Out:
-    movem.l    (sp)+,d2-d7/a2-a3       : Load Regs
-    tst.w      d0
     rts
-
 
 BkSpr:
     dc.b       "Sprites "
@@ -2009,28 +2018,29 @@ AMP_BnkEffA0:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AMP_BnkEffBobA0:
     movem.l    a0/a1/a2/d0/d1,-(sp)
-    move.l     a0,a2
+    move.l     a0,a2                   ; A2 = A0 (Copy)
 ; Efface le bob
-    move.l     (a2),d1
-    beq.s      .No1
-    move.l     d1,a1
-    move.w     (a1),d0
-    mulu       2(a1),d0
-    lsl.l      #1,d0
-    mulu       4(a1),d0
-    add.l      #10,d0
-    SyCall     MemFree
+    move.l     (a2),d1                 ; A2 = Adresse Bob
+    beq.s      .No1                    ; No Bob ? YES -> Jump .No1
+    move.l     d1,a1                   ; A1 = Bank Adress to delete
+    move.w     (a1),d0                 ; D0 = Read.w(a1)
+    mulu       2(a1),d0                ; D0 = D0 * (A1.w,2.w)
+    lsl.l      #1,d0                   ; D0 = D0 * 2
+    mulu       4(a1),d0                ; D0 = D0 * (A1.w,4.w)
+    add.l      #10,d0                  ; D0 = D0 + 10 = Full Bob Size
+    SyCall     MemFree                 ; Clear Memory (A1,D0)
 ; Efface le masque
 .No1:
-    move.l     4(a2),d1
-    ble.s      .No2
-    move.l     d1,a1
-    move.l     (a1),d0
-    SyCall     MemFree
+    move.l     4(a2),d1                ; D1 = Mask Adress
+    ble.s      .No2                    ; No Make ? YES -> Jump .No2
+    move.l     d1,a1                   ; A1 = Mask Adress
+    move.l     (a1),d0                 ; D0 + Mask Size
+    SyCall     MemFree                 ; Clear Memory (A1,D0)
 .No2:
-    clr.l      (a2)+
-    clr.l      (a2)+
-    movem.l (sp)+,a0/a1/a2/d0/d1
+    clr.l      (a2)+                   ; Clear Bob Pointer
+    clr.l      (a2)+                   ; Clear Mask Pointer
+    movem.l    (sp)+,a0/a1/a2/d0/d1
+
     rts
 
 
@@ -2042,20 +2052,20 @@ AMP_ListChipNew:
 ; Cree une element de liste en FAST MEM
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 AMP_ListNew:
-    move.l       #Clear|Public,d1        ; FastMem cleared memory area requested
+    move.l    #Clear|Public,d1
 ; Cree un élément en tete de liste A0 / longueur D0 / Memoire D1
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 AMP_ListCree:
-    movem.l      a0/d0,-(sp)             ; Save A0 & D0 to SP
-    addq.l       #8,d0                   ; Add 8 Bytes to list block size (to store NEXT.l SIZE.l )
-    SyCall       MemReserve              ; Call +AmosProAGA_library.s/WMemReserve (Return A0 = Memblock)
-    move.l       a0,a1                   ; A1 = New Memory block
-    movem.l      (sp)+,a0/d1             ; A0 = Old List, D1 = Old List Length
-    beq.s        .Out                    ; A1 = 0 / NULL -> No new list -> Jump .Out (Error)
-    move.l       (a0),(a1)               ; (A1.NEXT.l) = (A0.NEXT.l) Push the 1st element "next" to new list
-    move.l       a1,(a0)                 ; (A0.NEXT.l) = A1          Push the new list as "next" of the 1st element
-    move.l       d1,4(a1)                ; (A1.SIZE.l) = D1 (Original requested memblock size, without the .8 bytes NEXT.L LONG.L )
-    move.l       a1,d0                   ; D0 = New Element of the list
+    movem.l    a0/d0,-(sp)
+    addq.l     #8,d0
+    SyCall     MemReserve
+    move.l     a0,a1
+    movem.l    (sp)+,a0/d1
+    beq.s      .Out
+    move.l     (a0),(a1)
+    move.l     a1,(a0)
+    move.l     d1,4(a1)
+    move.l     a1,d0
 .Out:
     rts        
 
@@ -2085,7 +2095,6 @@ AMP_ListDel:
 .NFound:
     movem.l    (sp)+,a0/d0-d2
     rts
-
 
 
 
