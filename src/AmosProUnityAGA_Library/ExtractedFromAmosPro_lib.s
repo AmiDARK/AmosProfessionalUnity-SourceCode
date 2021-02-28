@@ -19,54 +19,54 @@ ampLib_Init:
 ; *************************************************************************************
 ; Here is the list of the callable methods from AmosPro.lib :
 amosprolib_functions:
-    bra        AMP_ResTempBuffer       ;   0 A_ResTempBuffer
-    bra        AMP_Open                ;   1 A_Open
-    bra        AMP_OpenD1              ;   2 A_Read
-    bra        AMP_Read                ;   3 A_Read
-    bra        AMP_Write               ;   4 A_Write
-    bra        AMP_Seek                ;   5 A_Seek
-    bra        AMP_Close               ;   6 A_Close
-    bra        AMP_IffRead             ;   7 A_IffRead
-    bra        AMP_IffSeek             ;   8 A_IffSeek
-    bra        AMP_IffFormPlay         ;   9 A_IffFormPlay
-    bra        AMP_IffFormSize         ;  10 A_IffFormSize
-    bra        AMP_IffForm             ;  11 A_IffForm
-    bra        AMP_IffFormLoad         ;  12 A_IffFormLoad
-    bra        AMP_IffSaveScreen       ;  13 A_IffSaveScreen
-    bra        AMP_InScreenOpen        ;  14 A_InScreenOpen
-    bra        AMP_InGetPalette2       ;  15 A_InGetPalette2
-    bra        AMP_GSPal               ;  16 A_GSPal
-    bra        AMP_GetEc               ;  17 A_GetEc
-    bra        AMP_InScreenDisplay     ;  18 A_InScreenDisplay
-    bra        AMP_ScreenCopy0         ;  19 A_ScreenCopy0
-    bra        AMP_UnPack_Bitmap       ;  20 A_UnPack_Bitmap
-    bra        AMP_UnPack_Screen       ;  21 A_UnPack_Screen
-    bra        AMP_Bnk.SaveA0          ;  22 A_Bnk.SaveA0
-    bra        AMP_SHunk               ;  23 A_SHunk
-    bra        AMP_BnkUnRev            ;  24 A_BnkUnRev
-    bra        AMP_BnkReserveIC2       ;  25 A_BnkReserveIC2
-    bra        AMP_BnkEffA0            ;  26 A_BnkEffA0
-    bra        AMP_BnkEffBobA0         ;  27 A_BnkEffBobA0
-    bra        AMP_InPen               ;  28 A_InPen
-    bra        AMP_WnPp                ;  29 A_WnPp
-    bra        AMP_GoWn                ;  30 A_GoWn
-    bra        AMP_PacPar              ;  31 A_PacPar
-    bra        AMP_Pack                ;  32 A_Pack
-    bra        AMP_GetSize             ;  33 A_GetSize
-    bra        AMP_BnkReserve          ;  34 A_BnkReserve
-    bra        AMP_BnkGetAdr           ;  35 A_BnkGetAdr
-    bra        AMP_ResBank             ;  36 A_ResBank
-    bra        AMP_InSPack6            ;  37 A_InSPack6
-    bra        AMP_InRain              ;  38 A_InRain
-    bra        AMP_FnRain              ;  39 A_FnRain
-    bra        AMP_PalRout             ;  40 A_PalRout
-    bra        AMP_agaHam8BPLS         ;  41 A_agaHam8BPLS
-    bra        AMP_UpdateAGAColorsInCopper ; 42 A_UpdateAGAColorsInCopper
-    bra        AMP_getAGAPaletteColourRGB12 ; 43 A_getAGAPaletteColourRGB12
-    bra        AMP_SColAga24Bits       ;  44 A_SColAga24Bits
-    bra        AMP_SPalAGA_CurrentScreen ; 45 A_SPalAGA_CurrentScreen
-    bra        AMP_SPalAGA_ScreenA0    ;  46 A_SPalAGA_ScreenA0
-    bra        AMP_SPalAGAFull         ;  47 A_SPalAGAFull
+    bra        AMP_ResTempBuffer            ;   0 A_ResTempBuffer
+    bra        AMP_Open                     ;   1 A_Open
+    bra        AMP_OpenD1                   ;   2 A_Read
+    bra        AMP_Read                     ;   3 A_Read
+    bra        AMP_Write                    ;   4 A_Write
+    bra        AMP_Seek                     ;   5 A_Seek
+    bra        AMP_Close                    ;   6 A_Close
+    bra        AMP_IffRead                  ;   7 A_IffRead
+    bra        AMP_IffSeek                  ;   8 A_IffSeek
+    bra        AMP_IffFormPlay              ;   9 A_IffFormPlay
+    bra        AMP_IffFormSize              ;  10 A_IffFormSize
+    bra        AMP_IffForm                  ;  11 A_IffForm
+    bra        AMP_IffFormLoad              ;  12 A_IffFormLoad
+    bra        AMP_IffSaveScreen            ;  13 A_IffSaveScreen
+    bra        AMP_InScreenOpen             ;  14 A_InScreenOpen
+    bra        AMP_InGetPalette2            ;  15 A_InGetPalette2
+    bra        AMP_GSPal                    ;  16 A_GSPal
+    bra        AMP_GetEc                    ;  17 A_GetEc
+    bra        AMP_InScreenDisplay          ;  18 A_InScreenDisplay
+    bra        AMP_ScreenCopy0              ;  19 A_ScreenCopy0
+    bra        AMP_UnPack_Bitmap            ;  20 A_UnPack_Bitmap
+    bra        AMP_UnPack_Screen            ;  21 A_UnPack_Screen
+    bra        AMP_Bnk.SaveA0               ;  22 A_Bnk.SaveA0
+    bra        AMP_SHunk                    ;  23 A_SHunk
+    bra        AMP_BnkUnRev                 ;  24 A_BnkUnRev
+    bra        AMP_BnkReserveIC2            ;  25 A_BnkReserveIC2
+    bra        AMP_BnkEffA0                 ;  26 A_BnkEffA0
+    bra        AMP_BnkEffBobA0              ;  27 A_BnkEffBobA0
+    bra        AMP_InPen                    ;  28 A_InPen
+    bra        AMP_WnPp                     ;  29 A_WnPp
+    bra        AMP_GoWn                     ;  30 A_GoWn
+    bra        AMP_PacPar                   ;  31 A_PacPar
+    bra        AMP_Pack                     ;  32 A_Pack
+    bra        AMP_GetSize                  ;  33 A_GetSize
+    bra        AMP_BnkReserve               ;  34 A_BnkReserve
+    bra        AMP_BnkGetAdr                ;  35 A_BnkGetAdr
+    bra        AMP_ResBank                  ;  36 A_ResBank
+    bra        AMP_InSPack6                 ;  37 A_InSPack6
+    bra        AMP_InRain                   ;  38 A_InRain
+    bra        AMP_FnRain                   ;  39 A_FnRain
+    bra        AMP_PalRout                  ;  40 A_PalRout
+    bra        AMP_agaHam8BPLS              ;  41 A_agaHam8BPLS
+    bra        AMP_UpdateAGAColorsInCopper  ;  42 A_UpdateAGAColorsInCopper
+    bra        AMP_getAGAPaletteColourRGB12 ;  43 A_getAGAPaletteColourRGB12
+    bra        AMP_SColAga24Bits            ;  44 A_SColAga24Bits
+    bra        AMP_SPalAGA_CurrentScreen    ;  45 A_SPalAGA_CurrentScreen
+    bra        AMP_SPalAGA_ScreenA0         ;  46 A_SPalAGA_ScreenA0
+    bra        AMP_SPalAGAFull              ;  47 A_SPalAGAFull
 
 ;   bra        .........
     dc.l       0
@@ -1080,28 +1080,16 @@ SaveCMAP:
 ; ************************************* 2020.09.07 Update CMAP to save now using RGB24 instead of previous RGB12 mode - Start
     lea        EcPal(a2),a0            ; A0 = Screen Color palette ( 32 + 224 colors )
 SCm1:
-    move.w     EcPalL-EcPal(a0),d4     ; D4.w = ....RLRLGLGLBLBL
-    move.w     (a0)+,d1                ; D1.w = ....RHRHGHGHBHBH
-    lsl.w      #4,d4                   ; D4.w = RLRLGLGLBLBL....
-    lsl.w      #4,d1                   ; D1.w = RHRHGHGHBHBH....
-    moveq      #2,d2                   ; D2 = 2
-SCm2:
-    rol.w      #4,d4                   ; D4.w = GLGLBLBL....RLRL 2020.09.07 ( the loop makes this 3 times to push RRRR, then GGGG, then BBBB the last time)
-    rol.w      #4,d1                   ; D1.w = GHGHBHBH....RHRH ( the loop makes this 3 times to push RRRR, then GGGG, then BBBB the last time)
-    lsl.b      #4,d1                   ; D1.b = RHRH....
-    and.b      #$F0,d1                 ; D1.b = RHRH....
-    and.b      #$F,d4                  ; D4.b = ....RLRL
-    and.b      d4,d1                   ; D1.b = RHRHRLRL
-;
-; ************************************************************* 2020.09.07 Removed useless updated now that Save IFF use R8G8B8 datas - Start
-;    move.w     d1,d3                   ; D3.w = GGGGBBBB....RRRR
-;    and.w      #$000F,d3               ; D3 = ............RRRR
-;    lsl.w      #4,d3                   ; D3 = ........RRRR....
-;    move.b     d3,(a1)+                ; (A1)+ = D3.b ( Write RRRR )
-; ************************************************************* 2020.09.07 Removed useless updated now that Save IFF use R8G8B8 datas - End
-    move.b     d1,(a1)+                ; 2020.09.07 No more need to use alternate D3 to output datas, D1 now contains direct 8 bits data
-; ************************************* 2020.09.07 Update CMAP to save now using RGB24 instead of previous RGB12 mode - End
-    dbra       d2,SCm2                 ; D2 = D2 -1 Repeat SCm2 until D2 < 0 ( Repeat loop for RRRR, GGGG then BBB as explained upper)
+    move.w     EcPalL-EcPal(a0),d2     ; D4.w = ....R4G4B4 Low Bits
+    move.w     (a0)+,d1                ; D1.w = ....R4G4B4 High Bits
+    PushToRGB24 d1,d4,d1               ; D1(RGB12H) & D4(RGB12L) -> D1(RGB24=..R8G8B8)
+    move.l     d1,d4                   ; D4 = D1 = ..R8G8B8
+    swap       d1                      ; D1 = G8B8..R8
+    move.b     d1,(a1)+                ; Push R8
+    swap       d1                      ; D1 = ..R8G8B8
+    lsr.l      #8,d1                   ; D1 = ....R8G8
+    move.b     d1,(a1)+                ; Push G8
+    move.b     d4,(a1)+                ; Push B8    
     dbra       d0,SCm1                 ; D0 = D0 -1 Repeat the whole loop until all colors are copied.
     bra        SaveA1
 
@@ -3150,3 +3138,14 @@ uclAGA1:
     bra.s      uclAGA1
 uclAGAEndCPY:
     rts
+
+
+
+
+
+
+
+
+
+
+

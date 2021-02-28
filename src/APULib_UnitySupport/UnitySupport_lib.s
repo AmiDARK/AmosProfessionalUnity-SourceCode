@@ -178,6 +178,32 @@ C_Tk:
 
 ; Now the real tokens...
 ; **************** Color palette support
+    dc.w    L_Nul,L_isAgaDetected
+    dc.b    "is aga availabl","e"+$80,"0",-1
+    dc.w    L_Nul,L_isScreenInHam8Mode
+    dc.b    "is ham","8"+$80,"0",-1
+    dc.w    L_Nul,L_getHam8Value
+    dc.b    "ham","8"+$80,"0",-1
+    dc.w    L_Nul,L_getHam6Value
+    dc.b    "ham","6"+$80,"0",-1
+
+    dc.w    L_Nul,L_retRgb24Color
+    dc.b    "rgb2","4"+$80,"00,0,0",-1
+    dc.w    L_Nul,L_retRgbR8FromRgbColor
+    dc.b    "rgbr","8"+$80,"00",-1
+    dc.w    L_Nul,L_retRgbG8FromRgbColor
+    dc.b    "rgbg","8"+$80,"00",-1
+    dc.w    L_Nul,L_retRgbB8FromRgbColor
+    dc.b    "rgbb","8"+$80,"00",-1
+    
+    dc.w    L_Nul,L_retRgb12Color
+    dc.b    "rgb1","2"+$80,"00,0,0",-1
+    dc.w    L_Nul,L_retRgbR4FromRgbColor
+    dc.b    "rgbr","4"+$80,"00",-1
+    dc.w    L_Nul,L_retRgbG4FromRgbColor
+    dc.b    "rgbg","4"+$80,"00",-1
+    dc.w    L_Nul,L_retRgbB4FromRgbColor
+    dc.b    "rgbb","4"+$80,"00",-1
 
 
 
@@ -1145,19 +1171,42 @@ F24_inputFormats:
 .part4:
     rts
 
+;                                                                                                                      ************************
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                           *                                                 *
+;                                                                                           * AREA NAME :       Area for Miscellanous methods *
+;                                                                                           *                                                 *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
+    ; ****************************************** Return = 1 if AGA Chipset is detected, otherwise = 0
+  Lib_Par      isAgaDetected
+    Move.w     T_isAga(a5),d3
+    and.l      #$FFFF,d3
+    Ret_Int
 
+    ; ****************************************** Return =1 if current screen is opened in Ham8 mode, otherwise =0
+  Lib_Par      isScreenInHam8Mode
+    Moveq      #0,d3
+    move.l     ScOnAd(a5),d0
+    beq.s      ScNOp1
+    move.l     d0,a0    
+    move.w     Ham8Mode(a0),d3
+ScNOp1:
+    Ret_Int
 
+    ; ****************************************** Return Ham8 value for screen open (=262144)
+  Lib_Par      getHam8Value
+    Move.l     #262144,d3
+    Ret_Int
 
-
-
-
-
-
-
-
-
-
-
+    ; ****************************************** Return Ham6 value for screen open (=4096)
+  Lib_Par      getHam6Value
+    Move.l     #4096,d3
+    Ret_Int
 
 
 
@@ -1248,6 +1297,98 @@ F24_inputFormats:
 ;                                                                                              ***
 ;                                                                                           ************************
 
+    ; ****************************************** Return RGB24 color from RED8,GREEN8,BLUE8 components
+    ; Parameters :
+    ; D3    = Blue 8 bits
+    ; (a3)+ = Green 8 Bits
+    ; (a3)+ = Red 8 Bits
+    ; Return :
+    ; (Integer)RGB24
+    ;
+  Lib_Par      retRgb24Color
+    And.l      #$FF,d3       ; D3 = ......B8
+    Move.b     3(a3),d2      ; D2 = xxxxxxG8
+    Move.b     7(a3),d1      ; D1 = xxxxxxR8
+    Or.l       #modeRgb24,d3 ; D3 = .F....B8
+    And.l      #$FF,d1       ; D1 = ......R8
+    lsl.w      #8,d2         ; D2 = xxxxG8..
+    swap       d1            ; D1 = ..R8....
+    or.w       d2,d3         ; D3 = .F..G8B8
+    adda.l     #8,a3         ; Push A3 like if it was read with (a3)+
+    Or.l       d1,d3         ; D3 = .FR8G8B8
+    Ret_Int
+
+    ; ****************************************** Return 8 bits RED color data from RGB24 color
+    ; Parameters :
+    ; D3   = RGB24 color
+    ; Return :
+    ; (Integer)Red8
+    ;
+  Lib_Par      retRgbR8FromRgbColor
+    ForceToRGB24 d3,d3
+    and.l      #$FF0000,d3   ; D3 = ..R8....
+    swap       d3
+    Ret_Int
+
+    ; ****************************************** Return 8 bits GREEN color data from RGB24 color
+    ; Parameters :
+    ; D3   = RGB24 color
+    ; Return :
+    ; (Integer)Green8
+    ;
+  Lib_Par      retRgbG8FromRgbColor
+    ForceToRGB24 d3,d3
+    and.l      #$FF00,d3   ; D3 = ....G8..
+    lsr.l      #8,d3
+    Ret_Int
+
+    ; ****************************************** Return 8 bits BLUE color data from RGB24 color
+    ; Parameters :
+    ; D3   = RGB24 color
+    ; Return :
+    ; (Integer)Blue8
+    ;
+  Lib_Par      retRgbB8FromRgbColor
+    ForceToRGB24 d3,d3
+    and.l      #$FF,d3   ; D3 = ......B8
+    Ret_Int
+
+    ; ************************************
+    Lib_Par    retRgb12Color
+    Move.b     3(a3),d2  ; xxxxxxxG
+    Move.b     7(a3),d1  ; xxxxxxxR
+    And.w      #$F,d2    ; xxxx...G
+    And.w      #$F,d1    ; xxxx...R
+    And.l      #$F,d3    ; .......B
+    Lsl.l      #8,d1     ; xx...R..
+    Or.w       d1,d3     ; .....R.B
+    Lsl.w      #4,d2     ; xxx...G.
+    adda.l     #8,a3     ; Push A3 like if it was read with (a3)+
+    Or.w       d2,d3     ; .....RGB
+    Ret_Int
+
+    ; ****************************************** Return RED component from RGB12 color
+    Lib_Par  retRgbR4FromRgbColor
+    ForceToRGB24 d3,d3
+    And.l      #$FF0000,d3   ; D3 = ..R8....
+    swap       d3            ; D3 = ......R8
+    Lsr.l      #4,d3         ; D3 = .......R
+    Ret_Int       
+
+    ; ****************************************** Return GREEN component from RGB12 color
+    Lib_Par retRgbG4FromRgbColor
+    ForceToRGB24 d3,d3
+    And.l      #$FF00,d3     ; D3 = ....G8..
+    Lsr.l      #8,d3         ; D3 = ......G8
+    Lsr.l      #4,d3         ; D3 = .......G
+    Ret_Int       
+
+    ; ****************************************** Return BLUE component from RGB12 color
+    Lib_Par retRgbB4FromRgbColor
+    ForceToRGB24 d3,d3
+    And.l      #$FF,d3       ; D3 = ......B8
+    Lsr.l      #4,d3         ; D3 = .......B
+    Ret_Int       
 
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***

@@ -1427,7 +1427,7 @@ ne5:
 ******* GET COLOUR D1
 EcGCol:
     move.l     T_EcCourant(a5),a0
-    and.l      #31,d1
+    and.l      #255,d1
     lsl.w      #1,d1
 ; **************** 2020.12.02 Always return a RGB24 color value - START
     move.l     a0,a1

@@ -7,9 +7,38 @@ TO DO AFTER :
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
-Issues :
-- Sprite bank erase CRASH.
-- Amos Lock CRASH
+
+; ************************************************************************
+; 2021.02.28
+- Fixed the graphic update issue in Amos Professional productivity Wonderland game. Now bobs refresh works as expected.
+- Tested with AGA bobs (256 colors) : Everything is now OK.
+- Updated ExtractedFromAmosProLib : Bnk.SaveA0, AMP_Bnk.Ric2
+- ECS Unity Save bobs/icons using Classics format (old ECS method)
+- ECS Unity can load AGA Unity save bobs/icons and uses them if they uses no more than 6 bitplanes (Extra AGA bitplanes will be simply ignored)
+----
+- Fixed =Colour(INDEX) bug
+- Start inserting new commands from Amos Professional X project
+- Inserted : =Is Aga Available(), =Is Ham8(), Ham8, Ham6,
+- Inserted : =Rgb24(Red8,Green8,Blue8), =RgbR8( RGBValue12/15/24 ), =RgbG8( RGBValue12/15/24 ), =RgbB8( RGBValue12/15/24)
+- Inserted : =Rgb12(Red4,Green4,Blue4), =RgbR4( RGBValue12/15/24 ), =RgbG4( RGBValue12/15/24 ), =RgbB4( RGBValue12/15/24)
+
+; ************************************************************************
+; 2021.02.27
+- Fixed Get Bob & Paste Bob crashs
+- AGA Unity Load/Save bob/Icons now works and handle AGAP Mode
+- AGA Unity Will always Save Bob/Icon using Amos Professional Unity method (AGAP Mode)
+- AGA Unity can load both Classics and Unity methods (AGAP Mode) Bob/Icon
+- Fixed Colour INDEX,RGBVALUE bug
+- Find a graphic update issue in Amos Professional Productivity Wonderland game (bobs are not cleared from screen)
+
+; ************************************************************************
+; 2021.02.26 : SPack & Unpack retro compatibility with Amos Professional Classics + Improvements
+- Major improvements for commands : SPack SCREEN To BANK, UnPack BANK To SCREEN
+- ECS Unity will always SPack using Amos Professional 2.0 Classics methods (old ECS method)
+- ECS Unity can UNPACK AGA Unity (AGAP Mode) methods if bitplanes amount <=6( ECS limits )
+- AGA Unity Will always SPack using Amos Professional Unity method (AGAP Mode)
+- AGA Unity can load, and unpack both Classics and Unity methods (AGAP Mode)
+- ECS Unity Screen Opening EcCree method updated to handle AGA Unity AGAP Mode for screens up to 6 bitplanes.
 
 ; ************************************************************************
 ; 2021.02.22-23

@@ -19,58 +19,62 @@ ampLib_Init:
 ; *************************************************************************************
 ; Here is the list of the callable methods from AmosPro.lib :
 amosprolib_functions:
-    bra        AMP_ResTempBuffer       ;   0 A_ResTempBuffer
-    bra        AMP_Open                ;   1 A_Open
-    bra        AMP_OpenD1              ;   2 A_Read
-    bra        AMP_Read                ;   3 A_Read
-    bra        AMP_Write               ;   4 A_Write
-    bra        AMP_Seek                ;   5 A_Seek
-    bra        AMP_Close               ;   6 A_Close
-    bra        AMP_IffRead             ;   7 A_IffRead
-    bra        AMP_IffSeek             ;   8 A_IffSeek
-    bra        AMP_IffFormPlay         ;   9 A_IffFormPlay
-    bra        AMP_IffFormSize         ;  10 A_IffFormSize
-    bra        AMP_IffForm             ;  11 A_IffForm
-    bra        AMP_IffFormLoad         ;  12 A_IffFormLoad
-    bra        AMP_IffSaveScreen       ;  13 A_IffSaveScreen
-    bra        AMP_InScreenOpen        ;  14 A_InScreenOpen
+    bra        AMP_ResTempBuffer            ;   0 A_ResTempBuffer
+    bra        AMP_Open                     ;   1 A_Open
+    bra        AMP_OpenD1                   ;   2 A_Read
+    bra        AMP_Read                     ;   3 A_Read
+    bra        AMP_Write                    ;   4 A_Write
+    bra        AMP_Seek                     ;   5 A_Seek
+    bra        AMP_Close                    ;   6 A_Close
+    bra        AMP_IffRead                  ;   7 A_IffRead
+    bra        AMP_IffSeek                  ;   8 A_IffSeek
+    bra        AMP_IffFormPlay              ;   9 A_IffFormPlay
+    bra        AMP_IffFormSize              ;  10 A_IffFormSize
+    bra        AMP_IffForm                  ;  11 A_IffForm
+    bra        AMP_IffFormLoad              ;  12 A_IffFormLoad
+    bra        AMP_IffSaveScreen            ;  13 A_IffSaveScreen
+    bra        AMP_InScreenOpen             ;  14 A_InScreenOpen
+    bra        AMP_InGetPalette2            ;  15 A_InGetPalette2
+    bra        AMP_GSPal                    ;  16 A_GSPal
+    bra        AMP_GetEc                    ;  17 A_GetEc
+    bra        AMP_InScreenDisplay          ;  18 A_InScreenDisplay
+    bra        AMP_ScreenCopy0              ;  19 A_ScreenCopy0
+    bra        AMP_UnPack_Bitmap            ;  20 A_UnPack_Bitmap
+    bra        AMP_UnPack_Screen            ;  21 A_UnPack_Screen
+    bra        AMP_Bnk.SaveA0               ;  22 A_Bnk.SaveA0
+    bra        AMP_SHunk                    ;  23 A_SHunk
+    bra        AMP_BnkUnRev                 ;  24 A_BnkUnRev
+    bra        AMP_BnkReserveIC2            ;  25 A_BnkReserveIC2
+    bra        AMP_BnkEffA0                 ;  26 A_BnkEffA0
+    bra        AMP_BnkEffBobA0              ;  27 A_BnkEffBobA0
+    bra        AMP_InPen                    ;  28 A_InPen
+    bra        AMP_WnPp                     ;  29 A_WnPp
+    bra        AMP_GoWn                     ;  30 A_GoWn
+    bra        AMP_PacPar                   ;  31 A_PacPar
+    bra        AMP_Pack                     ;  32 A_Pack
+    bra        AMP_GetSize                  ;  33 A_GetSize
+    bra        AMP_BnkReserve               ;  34 A_BnkReserve
+    bra        AMP_BnkGetAdr                ;  35 A_BnkGetAdr
+    bra        AMP_ResBank                  ;  36 A_ResBank
+    bra        AMP_InSPack6                 ;  37 A_InSPack6
+    bra        AMP_InRain                   ;  38 A_InRain
+    bra        AMP_FnRain                   ;  39 A_FnRain
+    bra        AMP_PalRout                  ;  40 A_PalRout
+    bra        AMP_Empty                    ;  41 A_agaHam8BPLS
+    bra        AMP_Empty                    ;  42 A_UpdateAGAColorsInCopper
+    bra        AMP_Empty                    ;  43 A_getAGAPaletteColourRGB12
+    bra        AMP_Empty                    ;  44 A_SColAga24Bits
+    bra        AMP_Empty                    ;  45 A_SPalAGA_CurrentScreen
+    bra        AMP_Empty                    ;  46 A_SPalAGA_ScreenA0
+    bra        AMP_Empty                    ;  47 A_SPalAGAFull
 
-    bra        AMP_InGetPalette2       ;  15 A_InGetPalette2
-    bra        AMP_GSPal               ;  16 A_GSPal
-
-    bra        AMP_GetEc               ;  17 A_GetEc
-    bra        AMP_InScreenDisplay     ;  18 A_InScreenDisplay
-    bra        AMP_ScreenCopy0         ;  19 A_ScreenCopy0
-
-    bra        AMP_UnPack_Bitmap       ;  20 A_UnPack_Bitmap
-    bra        AMP_UnPack_Screen       ;  21 A_UnPack_Screen
-
-    bra        AMP_Bnk.SaveA0          ;  22 A_Bnk.SaveA0
-    bra        AMP_SHunk               ;  23 A_SHunk
-    bra        AMP_BnkUnRev            ;  24 A_BnkUnRev
-    bra        AMP_BnkReserveIC2       ;  25 A_BnkReserveIC2
-    bra        AMP_BnkEffA0            ;  26 A_BnkEffA0
-    bra        AMP_BnkEffBobA0         ;  27 A_BnkEffBobA0
-
-    bra        AMP_InPen               ;  28 A_InPen
-    bra        AMP_WnPp                ;  29 A_WnPp
-    bra        AMP_GoWn                ;  30 A_GoWn
-    bra        AMP_PacPar              ;  31 A_PacPar
-    bra        AMP_Pack                ;  32 A_Pack
-    bra        AMP_GetSize             ;  33 A_GetSize
-
-    bra        AMP_BnkReserve          ;  34 A_BnkReserve
-    bra        AMP_BnkGetAdr           ;  35 A_BnkGetAdr
-    bra        AMP_ResBank             ;  36 A_ResBank
-
-    bra        AMP_InSPack6            ;  37 A_InSPack6
-    bra        AMP_InRain              ;  38 A_InRain
-    bra        AMP_FnRain              ;  39 A_FnRain
-    bra        AMP_PalRout             ;  40 A_PalRout
-    
 
 ;   bra        .........
     dc.l       0
+
+AMP_Empty:
+    rts
+
 ; *************************************************************************************
 ;     Reserve / Libere le buffer temporaire
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2571,3 +2575,4 @@ SaveA1:
     bne        DiskError
 .Skip:
     rts
+
