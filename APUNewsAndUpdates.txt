@@ -10,7 +10,15 @@ TO DO AFTER :
 
 ; ************************************************************************
 ; 2021.03.01
-- Create Memblock MEMBLOCKID,SIZE_IN_BYTES created and working.
+- Created : Create Memblock MEMBLOCKID,SIZE_IN_BYTES created and working.
+- Created : = Memblock Exist( MEMBLOCKID )
+- Created : = Get Memblock Size( MEMBLOCKID )
+- Created : Write Memblock Long MEMBLOCKID, POSITION, INTEGER(32Bits)
+- Created : Write Memblock Word MEMBLOCKID, POSITION, WORD(16Bits)
+- Created : Write Memblock Byte MEMBLOCKID, POSITION, BYTE(8Bits)
+- Created : LONG = Memblock Long( MEMBLOCKID, POSITION )
+- Created : WORD = Memblock Word( MEMBLOCKID, POSITION )
+- Created : BYTE = Memblock Byte( MEMBLOCKID, POSITION )
 
 ; ************************************************************************
 ; 2021.02.28

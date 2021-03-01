@@ -207,6 +207,22 @@ C_Tk:
 
     dc.w    L_CreateMemblock,L_Nul
     dc.b    "create membloc","k"+$80,"I0,0",-1
+    dc.w    L_Nul,L_MemblockExists
+    dc.b    "memblock exis","t"+$80,"00",-1
+    dc.w    L_Nul,L_GetMemblockSize
+    dc.b    "get memblock siz","e"+$80,"00",-1
+    dc.w    L_WriteMemblockLong,L_Nul
+    dc.b    "write memblock lon","g"+$80,"I0,0,0",-1
+    dc.w    L_Nul,L_ReadMemblockLong
+    dc.b    "memblock lon","g"+$80,"00,0",-1
+    dc.w    L_WriteMemblockWord,L_Nul
+    dc.b    "write memblock wor","d"+$80,"I0,0,0",-1
+    dc.w    L_Nul,L_ReadMemblockWord
+    dc.b    "memblock wor","d"+$80,"00,0",-1
+    dc.w    L_WriteMemblockByte,L_Nul
+    dc.b    "write memblock byt","e"+$80,"I0,0,0",-1
+    dc.w    L_Nul,L_ReadMemblockByte
+    dc.b    "memblock byt","e"+$80,"00,0",-1
 
 
 
@@ -1420,23 +1436,330 @@ ScNOp1:
 ; *************************************************************
   Lib_Par      CreateMemblock
 ; **************** 1. Check if MemblockID and Size mets the requirements
-     move.l      (a3)+,d0               ; D0 = Memblock ID, D3 = Memblock Size
-     cmp.l       #5,d0                  ;
-     Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-     cmp.l       #255,d0
-     Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-     cmp.l       #16,d3                 ; 
-     Rblt        L_Err12                ; Memblock size < 16 -> Error : Memblock size is invalid
-     moveq       #(1<<Bnk_BitMemblock+1<<Bnk_BitData),d1    Flags ; Memblock,DATA, FAST
-     move.l      d3,d2                  ; D2 = Memblock Size
-     lea         BkMbc(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
-     Rjsr        L_Bnk.Reserve
-     Rbeq        L_Err11                ; Not Enough Memory to allocation memblock.
-     move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
-     Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update)
-     rts
+    move.l      (a3)+,d4               ; D4 = Memblock ID, D3 = Memblock Size
+    cmp.l       #5,d4
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d4
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #16,d3                 ; 
+    Rblt        L_Err12                ; Memblock size < 16 -> Error : Memblock size is invalid
+; **************** 2. If bank already exists, we delete it before.
+    movem.l     d3-d4,-(sp)            ; Save D3,D4
+    move.l      d4,d0                  ; D0 = Bank ID
+    Rjsr        L_Bnk.GetAdr           ; Get Bank D0 Adress
+    beq.s       .nodel                 ; No bank = -> Jump .no deletion
+    Rjsr        L_Bnk.Eff              ; Erase previous bank if it was not a Memblock
+.nodel:
+    movem.l     (sp)+,d3-d4            ; Restore D3,D4
+    moveq       #(1<<Bnk_BitMemblock+1<<Bnk_BitData),d1    Flags ; Memblock,DATA, FAST
+    move.l      d3,d2                  ; D2 = Memblock Size
+    add.l       #4,d2                  ; +4 to save memblock size
+    lea         BkMbc(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
+    Rjsr        L_Bnk.Reserve
+    Rbeq        L_Err11                ; Not Enough Memory to allocation memblock.
+    move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
+    move.l      d3,(a0)
+    Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update)
+    rts
 BkMbc:
     dc.b       "MemBlock",0,0
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : = Memblock Exist( MemblockID )              *
+; *-----------------------------------------------------------*
+; * Description : This method will return 1 if the bank exists*
+; *               and is flagged as Memblock bank             *
+; *                                                           *
+; * Parameters : D3 = Memblock ID                             *
+; *                                                           *
+; * Return Value : 1 or 0                                     *
+; *************************************************************
+  Lib_Par      MemblockExists
+    cmp.l       #5,d3
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d3
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    move.l      d3,d0
+    clr.l       d3
+    Rjsr        L_Bnk.GetAdr
+    beq.s       .none
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    beq.s       .none
+    move.l      #1,d3
+.none:
+    Ret_Int
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      GetMemblockSize
+    cmp.l       #5,d3
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d3
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    move.l      d3,d0
+    clr.l       d3
+    Rjsr        L_Bnk.GetAdr
+    Rbeq        L_Err13
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err17
+    Move.l      (a0),d3
+    Ret_Int
+
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : Write Memblock Long MBCID, POSITION, VALUE  *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : MemblockID, MemblockPosition, IntegerToWrite *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      WriteMemblockLong       ; D3 = Value To Write
+    move.l      (a3)+,d4               ; D4 = Memblock Position
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d4                  ; Position < 0 ?
+    Rbmi        L_Err18                ; Yes -> Error
+    btst        #0,d4                  ; Is adress odd ?
+    Rbne        L_Err21                ; Error : Mamory adress is not word aligned
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err17                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d4,d0
+    Rblt        L_Err18                ; Outside MemBlock
+    adda.l      d4,a0                  ; a0 = Position to write inside the Memblock
+    move.l      d3,(a0)
+    rts
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      ReadMemblockLong        ; D3 = Position To Read
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d3                  ; Position < 0 ?
+    Rbmi        L_Err18                ; Yes -> Error
+    btst        #0,d3                  ; Is adress odd ?
+    Rbne        L_Err21                ; Error : Mamory adress is not word aligned
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err17                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d3,d0
+    Rblt        L_Err18                ; Outside MemBlock
+    adda.l      d3,a0                  ; a0 = Position to write inside the Memblock
+    move.l      (a0),d3
+    Ret_Int
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : Write Memblock Word MBCID, POSITION, VALUE  *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : MemblockID, MemblockPosition, WordToWrite    *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      WriteMemblockWord       ; D3 = Value To Write
+    move.l      (a3)+,d4               ; D4 = Memblock Position
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d4                  ; Position < 0 ?
+    Rbmi        L_Err18                ; Yes -> Error
+    btst        #0,d4                  ; Is adress odd ?
+    Rbne        L_Err21                ; Error : Mamory adress is not word aligned
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err17                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d4,d0
+    Rblt        L_Err18                ; Outside MemBlock
+    adda.l      d4,a0                  ; a0 = Position to write inside the Memblock
+    move.w      d3,(a0)
+    rts
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      ReadMemblockWord        ; D3 = Position To Read
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d3                  ; Position < 0 ?
+    Rbmi        L_Err18                ; Yes -> Error
+    btst        #0,d3                  ; Is adress odd ?
+    Rbne        L_Err21                ; Error : Mamory adress is not word aligned
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err17                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d3,d0
+    Rblt        L_Err18                ; Outside MemBlock
+    adda.l      d3,a0                  ; a0 = Position to write inside the Memblock
+    move.w      (a0),d3
+    and.l       #$FFFF,d3
+    Ret_Int
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : Write Memblock Long MBCID, POSITION, VALUE  *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : MemblockID, MemblockPosition, IntegerToWrite *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      WriteMemblockByte       ; D3 = Value To Write
+    move.l      (a3)+,d4               ; D4 = Memblock Position
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d4                  ; Position < 0 ?
+    Rbmi        L_Err18                ; Yes -> Error
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err17                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d4,d0
+    Rblt        L_Err18                ; Outside MemBlock
+    adda.l      d4,a0                  ; a0 = Position to write inside the Memblock
+    move.b      d3,(a0)
+    rts
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      ReadMemblockByte        ; D3 = Position To Read
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d3                  ; Position < 0 ?
+    Rbmi        L_Err18                ; Yes -> Error
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err17                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d3,d0
+    Rblt        L_Err18                ; Outside MemBlock
+    adda.l      d3,a0                  ; a0 = Position to write inside the Memblock
+    move.b      (a0),d3
+    And.l       #$FF,d3
+    Ret_Int
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+
+
 
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
@@ -1958,7 +2281,7 @@ ErDisk:
     moveq   #12,d0
     Rbra    L_Errors
 
-    Lib_Def FCall
+    Lib_Def Err13
     moveq   #13,d0
     Rbra    L_Errors
 
@@ -1974,6 +2297,14 @@ ErDisk:
     moveq   #16,d0
     Rbra    L_Errors
 
+    Lib_Def Err17
+    moveq   #17,d0
+    Rbra    L_Errors
+
+    Lib_Def Err18
+    moveq   #18,d0
+    Rbra    L_Errors
+
     Lib_Def Err19            ; The IFF Color palette colors amount is corrupted
     moveq   #19,d0
     Rbra    L_Errors
@@ -1982,6 +2313,9 @@ ErDisk:
     moveq   #20,d0
     Rbra    L_Errors
 
+    Lib_Def Err21
+    moveq   #21,d0
+    Rbra    L_Errors
 
     Lib_Def Errors
     lea     ErrMess(pc),a0
@@ -2004,14 +2338,15 @@ ErrMess:
     dc.b    "Valid memblock id range is 6-65535",0                                                 * Error #10
     dc.b    "Not enough free memory to allocate the requested memblock",0                          * Error #11
     dc.b    "Memblock Size is incorrect",0                                                         * Error #12
-    dc.b    "",0                                                                                   * Error #13
+    dc.b    "There is no memblock bank at this slot",0                                             * Error #13
     dc.b    "The specified file is not an IFF/ILBM Color Map (CMAP) file.",0                       * Error #14
     dc.b    "Cannot allocate memory to store the IFF/ILBM CMAP file.",0                            * Error #15
     dc.b    "The loaded IFF/ILBM, CMAP header is not found.",0                                     * Error #16
-    dc.b    "",0                                                                                   * Error #17
-    dc.b    "",0                                                                                   * Error #18
+    dc.b    "This bank is not a memblock bank",0                                                   * Error #17
+    dc.b    "The requested position is out of memblock size/range",0                               * Error #18
     dc.b    "The IFF CMAP Color palette colors amount is corrupted.",0                             * Error #19
     dc.b    "The IFF/FORM file size is incorrect.",0                                               * Error #20
+    dc.b    "The memblock position entered is not word aligned",0                                  * Error #21
 * IMPORTANT! Always EVEN!
     even
 
