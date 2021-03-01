@@ -205,6 +205,9 @@ C_Tk:
     dc.w    L_Nul,L_retRgbB4FromRgbColor
     dc.b    "rgbb","4"+$80,"00",-1
 
+    dc.w    L_CreateMemblock,L_Nul
+    dc.b    "create membloc","k"+$80,"I0,0",-1
+
 
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
@@ -1354,7 +1357,7 @@ ScNOp1:
     Ret_Int
 
     ; ************************************
-    Lib_Par    retRgb12Color
+  Lib_Par    retRgb12Color
     Move.b     3(a3),d2  ; xxxxxxxG
     Move.b     7(a3),d1  ; xxxxxxxR
     And.w      #$F,d2    ; xxxx...G
@@ -1368,7 +1371,7 @@ ScNOp1:
     Ret_Int
 
     ; ****************************************** Return RED component from RGB12 color
-    Lib_Par  retRgbR4FromRgbColor
+  Lib_Par  retRgbR4FromRgbColor
     ForceToRGB24 d3,d3
     And.l      #$FF0000,d3   ; D3 = ..R8....
     swap       d3            ; D3 = ......R8
@@ -1376,7 +1379,7 @@ ScNOp1:
     Ret_Int       
 
     ; ****************************************** Return GREEN component from RGB12 color
-    Lib_Par retRgbG4FromRgbColor
+  Lib_Par retRgbG4FromRgbColor
     ForceToRGB24 d3,d3
     And.l      #$FF00,d3     ; D3 = ....G8..
     Lsr.l      #8,d3         ; D3 = ......G8
@@ -1384,7 +1387,7 @@ ScNOp1:
     Ret_Int       
 
     ; ****************************************** Return BLUE component from RGB12 color
-    Lib_Par retRgbB4FromRgbColor
+  Lib_Par retRgbB4FromRgbColor
     ForceToRGB24 d3,d3
     And.l      #$FF,d3       ; D3 = ......B8
     Lsr.l      #4,d3         ; D3 = .......B
@@ -1395,13 +1398,57 @@ ScNOp1:
 ;                                                                                                                                     ***
 ; *********************************************************************************************************************************************
 ;                                                                                           *                                                 *
-;                                                                                           * AREA NAME : RGB12/24 Color manipulation methods *
+;                                                                                           * AREA NAME :                                     *
 ;                                                                                           *                                                 *
 ;                                                                                           ***************************************************
 ;                                                                                                 ***
 ;                                                                                              ***
 ;                                                                                           ************************
+  
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : Create Memblock ID,Size                     *
+; *-----------------------------------------------------------*
+; * Description : This method will try to create a new memory *
+; *               block                                       *
+; *                                                           *
+; * Parameters : (a3)+ = Memblock ID                          *
+; *              d0 = Memblock size in bytes                  *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+  Lib_Par      CreateMemblock
+; **************** 1. Check if MemblockID and Size mets the requirements
+     move.l      (a3)+,d0               ; D0 = Memblock ID, D3 = Memblock Size
+     cmp.l       #5,d0                  ;
+     Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+     cmp.l       #255,d0
+     Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+     cmp.l       #16,d3                 ; 
+     Rblt        L_Err12                ; Memblock size < 16 -> Error : Memblock size is invalid
+     moveq       #(1<<Bnk_BitMemblock+1<<Bnk_BitData),d1    Flags ; Memblock,DATA, FAST
+     move.l      d3,d2                  ; D2 = Memblock Size
+     lea         BkMbc(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
+     Rjsr        L_Bnk.Reserve
+     Rbeq        L_Err11                ; Not Enough Memory to allocation memblock.
+     move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
+     Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update)
+     rts
+BkMbc:
+    dc.b       "MemBlock",0,0
 
+;                                                                                                                      ************************
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                           *                                                 *
+;                                                                                           * AREA NAME :                                     *
+;                                                                                           *                                                 *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
 
 ;
 ; *****************************************************************************************************************************
@@ -1433,14 +1480,13 @@ ScNOp1:
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
 ; *********************************************************************************************************************************************
-;                                                                                           *                                                 *
-;                                                                                           * AREA NAME : Methods imported from AmosProAGA.lib*
-;                                                                                           *                                                 *
+;                                                                                          *                                                  *
+;                                                                                          * AREA NAME : Methods imported from AmosProAGA.lib *
+;                                                                                          *                                                  *
 ;                                                                                           ***************************************************
 ;                                                                                                 ***
 ;                                                                                              ***
 ;                                                                                           ************************
-
 
 ;
 ; *****************************************************************************************************************************
@@ -1900,6 +1946,18 @@ ErDisk:
     moveq   #9,d0
     Rbra    L_Errors
 
+    Lib_Def Err10            ; The Memblock ID Range is 1-255
+    moveq   #10,d0
+    Rbra    L_Errors
+
+    Lib_Def Err11
+    moveq   #11,d0
+    Rbra    L_Errors
+
+    Lib_Def Err12
+    moveq   #12,d0
+    Rbra    L_Errors
+
     Lib_Def FCall
     moveq   #13,d0
     Rbra    L_Errors
@@ -1924,6 +1982,7 @@ ErDisk:
     moveq   #20,d0
     Rbra    L_Errors
 
+
     Lib_Def Errors
     lea     ErrMess(pc),a0
     moveq   #0,d1        * Can be trapped
@@ -1942,9 +2001,9 @@ ErrMess:
     dc.b    "Screen index is invalid. (Valid range 0-12).", 0                                      * Error #7
     dc.b    "Chosen screen color range for copy is out of screen colors range.", 0                 * Error #8
     dc.b    "Invalid amount of colors to copy (Valid range is 1-255 for AGA and 1-31 for ECS).",0  * Error #9
-    dc.b    "",0                                                                                   * Error #10
-    dc.b    "",0                                                                                   * Error #11
-    dc.b    "",0                                                                                   * Error #12
+    dc.b    "Valid memblock id range is 6-65535",0                                                 * Error #10
+    dc.b    "Not enough free memory to allocate the requested memblock",0                          * Error #11
+    dc.b    "Memblock Size is incorrect",0                                                         * Error #12
     dc.b    "",0                                                                                   * Error #13
     dc.b    "The specified file is not an IFF/ILBM Color Map (CMAP) file.",0                       * Error #14
     dc.b    "Cannot allocate memory to store the IFF/ILBM CMAP file.",0                            * Error #15

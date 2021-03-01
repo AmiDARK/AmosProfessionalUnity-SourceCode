@@ -113,6 +113,11 @@ SyCallA1:        MACRO
         jsr    \1*4(a1)
         ENDM
 
+SyCallA2:        MACRO
+        move.l    T_SyVect(a5),a2
+        jsr    \1*4(a2)
+        ENDM
+
 SyJmp:           MACRO
         move.l    T_SyVect(a5),a0
         jmp    \1*4(a0)

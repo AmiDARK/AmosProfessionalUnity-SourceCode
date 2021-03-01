@@ -9,6 +9,10 @@ TO DO AFTER :
 
 
 ; ************************************************************************
+; 2021.03.01
+- Create Memblock MEMBLOCKID,SIZE_IN_BYTES created and working.
+
+; ************************************************************************
 ; 2021.02.28
 - Fixed the graphic update issue in Amos Professional productivity Wonderland game. Now bobs refresh works as expected.
 - Tested with AGA bobs (256 colors) : Everything is now OK.

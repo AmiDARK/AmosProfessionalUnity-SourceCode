@@ -44,7 +44,7 @@ amosprolib_functions:
     bra        AMP_Bnk.SaveA0               ;  22 A_Bnk.SaveA0
     bra        AMP_SHunk                    ;  23 A_SHunk
     bra        AMP_BnkUnRev                 ;  24 A_BnkUnRev
-    bra        AMP_BnkReserveIC2            ;  25 A_BnkReserveIC2
+    bra        AMP_Bnk.Ric2                 ;  25 A_BnkReserveIC2
     bra        AMP_BnkEffA0                 ;  26 A_BnkEffA0
     bra        AMP_BnkEffBobA0              ;  27 A_BnkEffBobA0
     bra        AMP_InPen                    ;  28 A_InPen
@@ -1824,7 +1824,6 @@ AMP_BnkUnRev:
 
 
 ; *************************************************************************
-AMP_BnkReserveIC2:
 AMP_Bnk.Ric2:
 ; - - - - - - - - - - - - -
     move.w     d2,d4                    ; D4 = D2 = Flags (Bnk_BitData + Bnk_BitBob + Bnk_BitIcon + ... )

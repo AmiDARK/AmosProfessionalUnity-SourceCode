@@ -7061,7 +7061,7 @@ FsApp3:    cmp.w    d4,d6
     moveq      #0,d1
     Rbsr       L_Bnk.GetBobs           ; A1 = Bob bank address
     beq.s      .Rien                   ; = NULL -> jump .Rien (no bob bank)
-    move.w     (a1),d1                 ; D1 = Max amount of bobx (already existing ?)
+    move.w     (a1),d1                 ; D1 = Max amount of bobs (already existing ?)
     cmp.w      d1,d0                   ; If D0 > D1
     bhi.s      .Rien                   ; YES -> Jump .Rien (no bob adress)
     lsl.w      #3,d0                   ; Bob ID * 8 (memory alignment)
