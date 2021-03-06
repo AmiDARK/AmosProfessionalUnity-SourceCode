@@ -224,6 +224,10 @@ C_Tk:
     dc.w    L_Nul,L_ReadMemblockByte
     dc.b    "memblock byt","e"+$80,"00,0",-1
 
+    dc.w    L_CreatePalette1,L_Nul
+    dc.b    "!create palett","e"+$80,"I0",-2
+    dc.w    L_CreatePalette2,L_Nul
+    dc.b    $80,"I0,0",-2
 
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
@@ -1414,7 +1418,7 @@ ScNOp1:
 ;                                                                                                                                     ***
 ; *********************************************************************************************************************************************
 ;                                                                                           *                                                 *
-;                                                                                           * AREA NAME :                                     *
+;                                                                                           * AREA NAME : Memblocks methods support           *
 ;                                                                                           *                                                 *
 ;                                                                                           ***************************************************
 ;                                                                                                 ***
@@ -1711,17 +1715,19 @@ BkMbc:
     move.b      (a0),d3
     And.l       #$FF,d3
     Ret_Int
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name :                                             *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters :                                              *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
+
+
+;                                                                                                                      ************************
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                           *                                                 *
+;                                                                                           * AREA NAME : Color Palette methods               *
+;                                                                                           *                                                 *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
 
 ;
 ; *****************************************************************************************************************************
@@ -1734,7 +1740,74 @@ BkMbc:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
-
+  Lib_Par    CreatePalette1
+    move.l   d3,-(a3)                  ; Push Colors Palette Index -> -(a3)
+    tst.w    T_isAga(a5)
+    beq.s    .ecs
+.aga:
+    move.l   #256,d3                   ; D3 = Create Colors Palette with 256 colors
+    Rbra     L_CreatePalette2
+.ecs:
+    move.l   #32,d3
+    Rbra     L_CreatePalette2
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    CreatePalette2            ; D3 = Colour Amount
+    move.l      (a3)+,d4               ; D4 = Color Palette Index
+    cmp.l       #5,d4
+    Rble        L_Err1                 ; Colors Palette ID < 6 -> Error : Invalid range
+    cmp.l       #255,d4
+    Rbhi        L_Err1                 ; Colors Palette ID > 255 -> Error : Invalid range
+    and.l       #$1FF,d3
+    cmp.w       #2,d3                  ; Wants 2 colours colors palette ?
+    beq.s       .isOK
+    cmp.w       #4,d3                  ; Wants 4 colours colors palette ?
+    beq.s       .isOK
+    cmp.w       #8,d3                  ; Wants 8 colours colors palette ?
+    beq.s       .isOK
+    cmp.w       #16,d3                 ; Wants 16 colours colors palette ?
+    beq.s       .isOK
+    cmp.w       #32,d3                 ; Wants 32 colours colors palette ?
+    beq.s       .isOK
+    cmp.w       #64,d3                 ; Wants 64 colours colors palette ?
+    beq.s       .isOK
+    cmp.w       #128,d3                ; Wants 128 colours colors palette ?
+    beq.s       .isOK
+    cmp.w       #256,d3                ; Wants 256 colours colors palette ?
+    beq.s       .isOK
+    Rblt        L_Err2                 ; Colors Palette size < 16 -> Error : Colors Palette size is invalid
+.isOK
+; **************** 2. If bank already exists, we delete it before.
+    movem.l     d3-d4,-(sp)            ; Save D3,D4
+    move.l      d4,d0                  ; D0 = Bank ID
+    Rjsr        L_Bnk.GetAdr           ; Get Bank D0 Adress
+    beq.s       .nodel                 ; No bank = -> Jump .no deletion
+    Rjsr        L_Bnk.Eff              ; Erase previous bank if it was not a Memblock
+.nodel:
+    movem.l     (sp)+,d3-d4            ; Restore D3,D4
+    moveq       #(1<<Bnk_BitMemblock+1<<Bnk_BitData),d1    Flags ; Memblock,DATA, FAST
+    move.l      d3,d2                  ; D2 = Memblock Size
+    add.l       #4,d2                  ; +4 to save memblock size
+    lea         BkPal(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
+    Rjsr        L_Bnk.Reserve
+    Rbeq        L_Err3                 ; Not Enough Memory to allocation memblock.
+    move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
+    move.l      d3,(a0)
+    Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update)
+    rts
+BkPal:
+    dc.b       "Palette ",0,0
+    Even
+  
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
@@ -2326,19 +2399,25 @@ ErDisk:
 
 ErrMess:
     dc.b    "err0",0
-    dc.b    "Color palette creation valid range is 0-7.",0                                         * Error #1
-    dc.b    "The requested color palette index already exists.", 0                                 * Error #2
-    dc.b    "Cannot alocate memory to create new color palette.",0                                 * Error #3
-    dc.b    "The requested color palette does not exists.",0                                       * Error #4
+; ******** Color Palette V2 error messages
+    dc.b    "Valid colors palette id range is 6-65535",0                                           * Error #1
+    dc.b    "colors amount is incorrect", 0                                                        * Error #2
+    dc.b    "Not enough free memory to allocate the requested colors palette",0                    * Error #3
+    dc.b    "There is no colors palette bank at this slot",0                                       * Error #4
+
     dc.b    "Starting color palette position is invalid (Valid range 0-255).", 0                   * Error #5
     dc.b    "Color palette range cannot exceed value 255.", 0                                      * Error #6
     dc.b    "Screen index is invalid. (Valid range 0-12).", 0                                      * Error #7
     dc.b    "Chosen screen color range for copy is out of screen colors range.", 0                 * Error #8
     dc.b    "Invalid amount of colors to copy (Valid range is 1-255 for AGA and 1-31 for ECS).",0  * Error #9
+; ******** Memblocks error messages
     dc.b    "Valid memblock id range is 6-65535",0                                                 * Error #10
     dc.b    "Not enough free memory to allocate the requested memblock",0                          * Error #11
     dc.b    "Memblock Size is incorrect",0                                                         * Error #12
     dc.b    "There is no memblock bank at this slot",0                                             * Error #13
+
+
+; ******** Color Palette V1 error messages OLD ONES
     dc.b    "The specified file is not an IFF/ILBM Color Map (CMAP) file.",0                       * Error #14
     dc.b    "Cannot allocate memory to store the IFF/ILBM CMAP file.",0                            * Error #15
     dc.b    "The loaded IFF/ILBM, CMAP header is not found.",0                                     * Error #16

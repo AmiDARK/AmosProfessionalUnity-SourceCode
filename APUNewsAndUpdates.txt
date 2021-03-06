@@ -11,6 +11,9 @@ TO DO AFTER :
 ; 2021.03.06
 - AGA Unity : Fixed a bug in the orignal ECS/OCS fading system.
 - AGA Unity : Fixed Colour Index #32 update bug.
+- Start New Integration of Personal.lib as AmosProUnity_Personal.lib
+- Personal commands added : Set Ntsc, Set Pal, = Right Click(), = Fire( 1,2 ), = Fire( 1,3 ), = EHB
+
 
 ; ************************************************************************
 ; 2021.03.01
