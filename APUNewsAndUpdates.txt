@@ -10,6 +10,7 @@ TO DO AFTER :
 ; ************************************************************************
 ; 2021.03.06
 - AGA Unity : Fixed a bug in the orignal ECS/OCS fading system.
+- AGA Unity : Fixed Colour Index #32 update bug.
 
 ; ************************************************************************
 ; 2021.03.01

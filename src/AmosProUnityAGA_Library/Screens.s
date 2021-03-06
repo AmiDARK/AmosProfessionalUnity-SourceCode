@@ -1382,7 +1382,7 @@ EcSCol:
     lsr.w      #1,d1
 ;EcSCol24Bits:
      ; ********************************* 2019.11.13 Update Colour ID, R4G4B4 to handle 256 colors in the Screen structure palette
-    cmp.w      #32,d1                  ; Check if requested color is in range 00-31 (ECS) or 32-255 (AGA Only) ( D1 = Color Index*2)
+    cmp.w      #31,d1                  ; Check if requested color is in range 00-31 (ECS) or 32-255 (AGA Only) ( D1 = Color Index*2)
     bgt        AGAPaletteColour        ; if color = 32-255 -> AGAPaletteColour
 ;    *************************** Setup color 00-31 (Original AmosPRO setup)
 ; Update the copper by poking directly in it.
