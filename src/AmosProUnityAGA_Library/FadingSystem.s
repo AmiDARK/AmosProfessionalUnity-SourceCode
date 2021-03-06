@@ -41,6 +41,12 @@ DoF1:
     moveq      #0,d6                   ; D6 = 0
     lea        T_FadeCol(a5),a3        ; A3 = T_FadeCol(a5) = Target color palette memory block
 
+; ******** 2021.03.06 Added this to detect AGAP mode and makes original ECS fading works correctly.
+    cmp.l      #"AGAP",(a1)
+    bne.s      DoF2
+    adda.l     #6,a1
+; ******** 2021.03.06 Added this to detect AGAP mode and makes original ECS fading works correctly.
+
 ; ******** This is the main loop that allow this method to scan all the color from the color palette
 DoF2:
     move.w     (a1)+,d2                ; D2 = RGB12 Color from New color palette

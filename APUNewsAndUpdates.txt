@@ -7,6 +7,9 @@ TO DO AFTER :
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
+; ************************************************************************
+; 2021.03.06
+- AGA Unity : Fixed a bug in the orignal ECS/OCS fading system.
 
 ; ************************************************************************
 ; 2021.03.01
