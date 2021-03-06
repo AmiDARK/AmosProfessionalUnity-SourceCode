@@ -24,7 +24,8 @@ def_BMHD_yAspect:      rs.b 1          ; Pixel aspect, a ratio width : height
 def_BMHD_pageWidth:    rs.w 1          ; Source "page" size in pixels
 def_BMHD_pageHeight:   rs.w 1          ; Source "page" size in pixels
 def_CMAP:              rs.l 1          ; "CMAP"
-def_CMAP_size:         rs.l 1          ; Size of CMAP bloc without aga_CMAP_size (nor aga_CMAP)
+def_CMAP_size:         rs.l 1          ; Size of CMAP bloc without aga_CMAP_size (nor aga_CMAP) = Colour Amount * 3 ( 3 bytes per colour R8+G8+B8)
+def_WithoutPalSize     equ __RS
 def_CMAP_Colors:       rs.b 256*3      ; All the colors components stores in RGB24 file format, 1 byte for each color component R,G,B
 def_DPI_:              rs.l 1          ; "DPI "
 def_DPI__size:         rs.l 1          ; Size of "DPI " bloc without aga_DPI__size (nor aga_DPI_)

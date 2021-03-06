@@ -349,7 +349,8 @@ Bnk_BitData     equ    0        Banque de data
 Bnk_BitChip     equ    1        Banque en chip
 Bnk_BitBob      equ    2        Banque de Bobs
 Bnk_BitIcon     equ    3        Banque d''icons
-Bnk_BitMemblock equ    4        Banque de blocs mémoires
+Bnk_BitMemblock equ    4        2021.03.01 Memblocks banks
+Bnk_BitPalette  equ    5        2021.03.06 Colours Palette banks
 
     include "src/AmosProUnity_Equates/AmosProUnity_Equ_ProgramDefine.s"
     include "src/AmosProUnity_Equates/AmosProUnity_Equ_EditingDefine.s"

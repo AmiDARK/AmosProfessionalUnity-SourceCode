@@ -228,6 +228,8 @@ C_Tk:
     dc.b    "!create palett","e"+$80,"I0",-2
     dc.w    L_CreatePalette2,L_Nul
     dc.b    $80,"I0,0",-2
+    dc.w    L_Nul,L_GetPaletteColoursAmount
+    dc.b    "get palette colours amoun","t"+$80,"00",-1
 
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
@@ -1765,7 +1767,7 @@ BkMbc:
     move.l      (a3)+,d4               ; D4 = Color Palette Index
     cmp.l       #5,d4
     Rble        L_Err1                 ; Colors Palette ID < 6 -> Error : Invalid range
-    cmp.l       #255,d4
+    cmp.l       #65535,d4
     Rbhi        L_Err1                 ; Colors Palette ID > 255 -> Error : Invalid range
     and.l       #$1FF,d3
     cmp.w       #2,d3                  ; Wants 2 colours colors palette ?
@@ -1794,14 +1796,21 @@ BkMbc:
     Rjsr        L_Bnk.Eff              ; Erase previous bank if it was not a Memblock
 .nodel:
     movem.l     (sp)+,d3-d4            ; Restore D3,D4
-    moveq       #(1<<Bnk_BitMemblock+1<<Bnk_BitData),d1    Flags ; Memblock,DATA, FAST
-    move.l      d3,d2                  ; D2 = Memblock Size
+    moveq       #(1<<Bnk_BitPalette+1<<Bnk_BitData),d1   D1 = Flags ; Memblock,DATA, FAST
+    move.l      d3,d2                  ; D2 = Colour Amount
+    mulu        #3,d2                  ; D2 = Memory size used to define each color ( 3 bytes per color R8+G8+B8 )
+    add.l       #def_WithoutPalSize,d2 ; D2 = Memory size used for IFF/ILBM color palette (containing palette), without DPI Block.
+    Add.l       #12,d2                 ; D2 = D2 + DPI Block = Full IFF/ILBM Color Palette
     add.l       #4,d2                  ; +4 to save memblock size
-    lea         BkPal(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
+    lea         BkPal(pc),a0           ; A0 = Pointer to BkPal (Bank Name)
+    movem.l     d3,-(sp)               ; Save Colour Amount
     Rjsr        L_Bnk.Reserve
     Rbeq        L_Err3                 ; Not Enough Memory to allocation memblock.
+
     move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
-    move.l      d3,(a0)
+    move.l      d2,(a0)+               ; Save full color palette
+    movem.l     (sp)+,d3               ; Restore Colours Amount
+    Rbsr        L_PopulateIFFCmapBlock
     Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update)
     rts
 BkPal:
@@ -1819,6 +1828,37 @@ BkPal:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
+  ; ******************************************* Modify A0 only
+  Lib_Def      PopulateIFFCmapBlock
+    move.l     #"FORM",def_FORM(a0)              ; Insert "FORM" header
+    move.l     d2,d0
+    sub.l      #8,d0
+    move.l     d0,def_FORM_size(a0)              ; Insert FORM whole content size
+    move.l     #"ILBM",def_ILBM(a0)              ; insert "ILBM" header
+    move.l     #"BMHD",def_BMHD(a0)              ; Insert "BMHD" header
+    move.l     #$0014,def_BMHD_size(a0)          ; Insert BMHD block size
+    move.w     #$0000,def_BMHD_W(a0)             ; Image Width = 0
+    move.w     #$0000,def_BMHD_W(a0)             ; Image Height = 0
+    move.w     #$0000,def_BMHD_X(a0)             ; Image Pixel Pos X
+    move.w     #$0000,def_BMHD_Y(a0)             ; Image Pixel Pos Y
+    move.b     #$00,def_BMHD_nPlanes(a0)         ; set bitplanes amount (and then colors count) at 0 per default
+    move.b     #$00,def_BMHD_masking(a0)         ; Masking = 0
+    move.b     #$00,def_BMHD_compression(a0)     ; Compression = 0 = No compression as there are no bitmaps there
+    move.b     #$00,def_BMHD_pad1(a0)            ; Pad1 = 0 as unused
+    move.w     #$0000,def_BMHD_transparentC(a0)  ; Transparency = Not available / Not Set
+    move.b     #$00,def_BMHD_xAspect(a0)         ; xAspect = 0
+    move.b     #$00,def_BMHD_yAspect(a0)         ; yAspect = 0
+    move.w     #$00,def_BMHD_pageWidth(a0)       ; xAspect = 0
+    move.w     #$00,def_BMHD_pageHeight(a0)      ; yAspect = 0
+    move.l     #"CMAP",def_CMAP(a0)              ; Insert "CMAP" header
+    move.l     d3,d0
+    mulu       #3,d0
+    move.l     d0,def_CMAP_size(a0)              ; Save the Amount of colors of the colour palette block
+    ; The forced update of the IFF/ILBM Color map block stop here.
+    ; Because Color size may vary depending on the amount of colors of the screen (bitplanes depth), 
+    ; the position of the DPI block may vary and, due to that, the block is inserted at end of palette integration.
+.end2:
+    rts
 
 ;
 ; *****************************************************************************************************************************
@@ -1831,8 +1871,21 @@ BkPal:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
-
-
+  Lib_Par      GetPaletteColoursAmount
+    cmp.l       #5,d3
+    Rble        L_Err1                ; Colours Palette ID < 6 -> Error : Invalid range
+    cmp.l       #255,d3
+    Rbhi        L_Err1                ; Colours Palette ID > 255 -> Error : Invalid range
+    move.l      d3,d0
+    clr.l       d3
+    Rjsr        L_Bnk.GetAdr
+    Rbeq        L_Err4
+    btst        #Bnk_BitPalette,d0    ; No Bnk_BitPalette flag = not a Colours Palette
+    Rbeq        L_Err3
+    move.l      (a0)+,d3              ; d3 = color palette block size
+    move.l      def_CMAP_size(a0),d3  ; D3 = Colour CMAP size.
+    divu        #3,d3
+    Ret_Int
 
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***

@@ -89,80 +89,7 @@ C_OFF		Dc.w	(L1-L0)/2,(L2-L1)/2,(L3-L2)/2,(L4-L3)/2,(L5-L4)/2
 
 C_TK		Dc.w	1,0
 		Dc.b	$80,-1
-		Dc.w	L_SNTSC,-1
-		Dc.b	"set nts","c"+$80,"I",-1
-		Dc.w	L_SPAL,-1
-		Dc.b	"set pa","l"+$80,"I",-1
-		Dc.w	-1,L_RCLICK
-		Dc.b	"right clic","k"+$80,"0",-1
-		Dc.w	-1,L_FIRE2
-		Dc.b	"fire(1,2",")"+$80,"0",-1
-		Dc.w	-1,L_FIRE3
-		Dc.b	"fire(1,3",")"+$80,"0",-1
-		Dc.w	-1,L_HAM
-		Dc.b	"ha","m"+$80,"0",-1
-		Dc.w	-1,L_EHB
-		Dc.b	"eh","b"+$80,"0",-1
-		Dc.w	L_CREATECOPPER,-1
-		Dc.b	"create ag","a"+$80,"I0",-1
-		Dc.w	-1,L_TESTA3
-		Dc.b	"tes","t"+$80,"0",-1
-		Dc.w	L_SETCOLOR,-1
-		Dc.b	"set colo","r"+$80,"I0,0,0,0",-1
-		Dc.w	L_XFADE,-1
-		Dc.b	"x fad","e"+$80,"I",-1
-		Dc.w	-1,L_COPPERBASE
-		Dc.b	"copper bas","e"+$80,"0",-1
-		Dc.w	L_CHANGECOPPER,-1
-		Dc.b	"copper bas","e"+$80,"I0",-1
-		Dc.w	L_SETPLANE,-1
-		Dc.b	"set plan","e"+$80,"I0,0",-1
-		Dc.w	-1,L_PLANEBASE
-		Dc.b	"plane bas","e"+$80,"00",-1
-		Dc.w	-1,L_COLORREAD
-		Dc.b	"set colo","r"+$80,"00",-1
-		Dc.w	L_LINEWAIT,-1
-		Dc.b	"copper next lin","e"+$80,"I",-1
-		Dc.w	-1,L_LINESEE
-		Dc.b	"copper lin","e"+$80,"0",-1
-		Dc.w	L_VIEW2,-1
-		Dc.b	"set view plane","s"+$80,"I0",-1
-		Dc.w	L_COLORWAIT,-1
-		Dc.b	"new color valu","e"+$80,"I0,0,0,0",-1
-		Dc.w	L_SCREENSIZE,-1
-		Dc.b	"set screen size","s"+$80,"I0,0",-1
-		Dc.w	-1,L_XSIZE
-		Dc.b	"screen x siz","e"+$80,"0",-1
-		Dc.w	-1,L_YSIZE
-		Dc.b	"screen y siz","e"+$80,"0",-1
-		Dc.w	L_CREATECOPPER2,-1
-		Dc.b	"create standar","d"+$80,"I0",-1
-		Dc.w	L_SCREENOFFSET,-1
-		Dc.b	"screen positio","n"+$80,"I0,0,0",-1
-		Dc.w	L_DUALPLAYFIELD,-1
-		Dc.b	"set dual mod","e"+$80,"I0",-1
-		Dc.w	L_RESOLUTION,-1
-		Dc.b	"set resolutio","n"+$80,"I0",-1
-		Dc.w	L_SETLACE,-1
-		Dc.b	"set lac","e"+$80,"I0",-1
-		Dc.w	L_COPPERLINE2,-1
-		Dc.b	"copper wait lin","e"+$80,"I0",-1
-		Dc.w	L_MOSAICx2,-1
-		Dc.b	"mosaic x","2"+$80,"I0",-1
-		Dc.w	L_MOSAICx4,-1
-		Dc.b	"mosaic x","4"+$80,"I0",-1
-		Dc.w	L_Mosaicx8,-1
-		Dc.b	"mosaic x","8"+$80,"I0",-1
-		Dc.w	L_Mosaicx16,-1
-		Dc.b	"mosaic x1","6"+$80,"I0",-1
-		Dc.w	L_MOSAICx32,-1
-		Dc.b	"mosaic x3","2"+$80,"I0",-1
-		Dc.w	L_ACTIVECOP,-1
-		Dc.b	"active coppe","r"+$80,"I",-1
-		Dc.w	L_SETHAMMODE,-1
-		Dc.b	"ham mod","e"+$80,"I0",-1
-		Dc.w	L_IFFTOSCREEN,-1
-		Dc.b	"iff conver","t"+$80,"I0",-1
+
 		Dc.w	L_ALLOWPLANES,-1
 		Dc.b	"allow plane co","l"+$80,"I0",-1
 		Dc.w	L_FORBIDPLANES,-1
@@ -189,10 +116,7 @@ C_TK		Dc.w	1,0
 		Dc.b	"iff y siz","e"+$80,"00",-1
 		Dc.w	-1,L_IFFDepth
 		Dc.b	"iff plane","s"+$80,"00",-1
-		Dc.w	L_DoubleMASK,-1
-		Dc.b	"double mas","k"+$80,"I0t0,0",-1
-		Dc.w	L_DoubleMASK2,-1
-		Dc.b	"l double mas","k"+$80,"I0,0,0t0,0",-1
+
 		Dc.w	L_RESERVESPRITE,-1
 		Dc.b	"f set sprite buffe","r"+$80,"I0,0",-1
 		Dc.w	L_GETEVENSPRITE,-1
@@ -201,10 +125,6 @@ C_TK		Dc.w	1,0
 		Dc.b	"get odd sprit","e"+$80,"I0,0,0,0t0",-1
 		Dc.w	L_ACTIVESPRITE,-1
 		Dc.b	"f sprit","e"+$80,"I0t0,0,0,0",-1
-		Dc.w	L_DOUBLEMASKB,-1			; Src1,Msk,Src2,Cible.
-		Dc.b	"blit mas","k"+$80,"I0,0,0t0",-1
-		Dc.w	L_DOUBLEMASKB2,-1	; Src1,Msk,Src2 To Cible,Ys,Ye.
-		Dc.b	"l blit mas","k"+$80,"I0,0,0t0,0,0",-1
 		Dc.w	L_PATCH13,-1
 		Dc.b	"aga of","f"+$80,"I",-1
 		Dc.w	L_LFILTER1,-1
@@ -245,26 +165,12 @@ C_TK		Dc.w	1,0
 		Dc.b	"iff8bits to iff4bit","s"+$80,"I0,0t0",-1
 		Dc.w	L_SETCOLORCOMP,-1
 		Dc.b	"set aga colo","r"+$80,"I0,0,0,0",-1
-		Dc.w	L_MFILL,-1
-		Dc.b	"octets fil","l"+$80,"I0,0t0",-1
-		Dc.w	L_BLITCOPY,-1
-		Dc.b	"blitter cop","y"+$80,"I0t0",-1
-		Dc.w	L_CONFORM32,-1
-		Dc.b	"s32 block to scree","n"+$80,"I0",-1
-		Dc.w	L_CONFORM32B,-1
-		Dc.b	"s32 vertice to scree","n"+$80,"I0",-1
+
 		Dc.w	L_SETDPLANE,-1
 		Dc.b	"set d plan","e"+$80,"I0,0",-1
 		Dc.w	L_SWAPPLANES,-1
 		Dc.b	"swap plane","s"+$80,"I",-1
-		Dc.w	L_RESICON,-1
-		Dc.b	"aga reserve ico","n"+$80,"I0",-1
-		Dc.w	L_ERAICON,-1
-		Dc.b	"aga erase ico","n"+$80,"I",-1
-		Dc.w	L_GETICON,-1
-		Dc.b	"aga get ico","n"+$80,"I0,0,0",-1
-		Dc.w	L_PASICON,-1
-		Dc.b	"aga paste ico","n"+$80,"I0,0,0",-1
+
 		Dc.w	-1,L_ICONBASE
 		Dc.b	"aga icon bas","e"+$80,"0",-1
 		Dc.w	L_SAVEICON,-1
@@ -520,46 +426,14 @@ _Tangente	IncBin	"_TABLES/_TanTable.Bin"
 L1
 ; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 L2
-; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-L_SNTSC			Equ	3				; OK
-L3	Move.w	#$0000,$DFF1DC
-	Rts
-; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-L_SPAL			Equ	4				; OK
-L4	Move.w	#$0020,$DFF1DC
-	Rts
-; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-L_RCLICK		Equ	5				; OK
-L5	Move.l	#0,d2
-	Move.l	#0,d3
-	Btst	#2,$Dff016
-	Bne.b	F1
-	Move.l	#$ffffffff,d3
-F1	Rts
-; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-L_FIRE2			Equ	6				; OK
-L6	Move.l	#0,d2
-	Move.l	#0,d3
-	Btst	#6,$dff016
-	Bne.b	F2
-	Move.l	#$ffffffff,d3
-F2	Rts
-; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-L_FIRE3			Equ	7				; OK
-L7	Move.l	#0,d2
-	Move.l	#0,d3
-	Btst	#4,$dff016
-	Bne.b	F3
-	Move.l	#$ffffffff,d3
-F3	Rts
-; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-L_HAM:			Equ	8
-L8	Move.l	#4096,d3
-	Move.l	#0,d2
-	Rts
+
+
+
+
 ; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 L_EHB			Equ	9
-L9	Move.l	#64,d3
+L9
+	Move.l	#64,d3
 	Move.l	#0,d2
 	Rts
 ; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
