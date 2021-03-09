@@ -1508,6 +1508,18 @@ AMP_Bnk.SaveA0:
     bne.s      .Chp
     addq.w     #1,2(a0)
 .Chp:
+; ******** 2021.03.09 Patch for Memblock Banks - START : These updates set bits 2 or 3 where Memory type is located
+    btst       #Bnk_BitMemblock,d2
+    beq.s      .Wrk2
+    or.w       #%10,2(a0)
+.Wrk2:
+; ******** 2021.03.09 Patch for Memblock Banks
+; ******** 2021.03.09 Patch for Palettes Banks
+    btst       #Bnk_BitPalette,d2
+    beq.s      .Wrk3
+    or.w       #%100,2(a0)
+.Wrk3:
+; ******** 2021.03.09 Patch for Palettes Banks - END
     move.l     -8*3+4(a2),d4        Taille banque
     subq.l     #8,d4            Moins header
     move.l     d4,4(a0)        Puis LONGUEUR.L

@@ -3939,21 +3939,23 @@ AskD:    move.l    a0,HiChaine(a5)
     move.l    d0,d5
 ; Charge l''entete de la banque (4 octets de debut!)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    move.l    Buffer(a5),d2
-    moveq    #4,d3
-    Rbsr    L_D_Read
-    bne    LB_DErr
-    move.l    d2,a1
-    move.l    (a1),d1
-    Rlea    L_NHunk,0
-    moveq    #1,d0
-.NHu1    cmp.l    (a0)+,d1
-    beq.s    .NHu2
+    move.l    Buffer(a5),d2     ; d2 = Output buffer pointer
+    moveq    #4,d3              ; D4 = Read 4 Bytes (Header AmBk)
+    Rbsr    L_D_Read            ; Dos.library>Read
+    bne    LB_DErr              ; No read ? -> Jump LB_DErr
+    move.l    d2,a1             ; d2 = a1
+    move.l    (a1),d1           ; d1 = Read at byte 0
+    Rlea    L_NHunk,0           ; Lea A0 = dc.b "AmBk" header reference
+    moveq    #1,d0              ; D0=1
+.NHu1
+    cmp.l    (a0)+,d1           ; Is D1="AmBk" ?
+    beq.s    .NHu2              ; No -> Jump .Nhu2
     addq.l    #1,d0
     tst.l    (a0)
     bne.s    .NHu1
     bra    LB_Pabank
-.NHu2    cmp.w    #4,d0                Icones
+.NHu2
+    cmp.w    #4,d0                Icones
     beq    LB_Icons    
     cmp.w    #3,d0                Multiples banques
     beq    LB_Multiples    
@@ -3963,28 +3965,45 @@ AskD:    move.l    a0,HiChaine(a5)
 ; ~~~~~~~~~~~~~~~~~~
     move.l    Buffer(a5),d2    ;        Charge l''entete
     move.l    d2,a2
-    moveq    #8,d3
-    Rbsr    L_D_Read
-    bne    LB_DErr
+    moveq     #8,d3
+    Rbsr      L_D_Read
+    bne       LB_DErr
     move.l    d5,d3            Si negatif>>> par défaut
     bpl.s    .Skip1
-    moveq    #0,d3
-    move.w    (a2),d3
-    bne.s    .Skip1            Si pas de numero,
-    moveq    #5,d3            Numero 5 par defaut!
-.Skip1    move.l    d3,d0            Numero
-    moveq    #0,d1            Type de banque
-    move.l    4(a2),d3        Longueur
-    move.l    d3,d2
-    and.l    #$0FFFFFFF,d2
-    subq.l    #8,d2            Moins le nom!
-    tst.l    d3            Data ou Work?
-    bpl.s    .Skip2
-    bset    #Bnk_BitData,d1
-.Skip2    tst.w    2(a2)            Chip ou Fast?
-    bne.s    .Skip3
-    bset    #Bnk_BitChip,d1
-.Skip3    Rlea    L_Bnk_NoLoad,0
+    moveq    #0,d3             ; D0.L = 0 (to makes Bank ID read at .w being in range 1-65535)
+    move.w    (a2),d3          ; (A2+0).W => Read Default Bank ID
+    bne.s    .Skip1            ; If D3!=0 (already set)-> Jump .Skip1
+    moveq    #5,d3             ; Default BankID for Data and others = 5!
+.Skip1:
+    move.l    d3,d0            ; D0 = Bank ID Number
+    moveq     #0,d1             ; D1 = 0 = Bank Type 
+    move.l    4(a2),d3         ; (A2+4).L => D3 = Bank Length
+    move.l    d3,d2            ; D2 = Bank Length
+    and.l     #$0FFFFFFF,d2    ; D2 = Bank Length
+    subq.l    #8,d2            ; Moins le nom!
+    tst.l     d3               ;  Data ou Work?
+    bpl.s     .Skip2
+    bset      #Bnk_BitData,d1
+.Skip2
+; ******** 2021.03.09 Update to handle both Memblocks & Colors Palettes - START
+    movem.l   d4,-(sp)        ; Save D4
+    move.w    2(a2),d4
+    btst      #1,d4
+    beq.s     .nmbc
+    bset      #Bnk_BitMemblock,d1
+.nmbc:
+    btst      #2,d4
+    beq.s     .npal
+    bset      #Bnk_BitPalette,d1
+.npal:
+    movem.l   (sp)+,d4        ; Load D4
+    and.w     #$1,2(a2)       ; Remove Memblock & Palette data for Chip/Fast checking.
+; ******** 2021.03.09 Update to handle both Memblocks & Colors Palettes - END
+    tst.w     2(a2)           ; (A2+2).> => Chip ou Fast?
+    bne.s     .Skip3
+    bset      #Bnk_BitChip,d1
+.Skip3:
+    Rlea    L_Bnk_NoLoad,0
     Rbsr    L_Bnk.Reserve
     beq    LB_MErr
 ; Charge la banque

@@ -8,6 +8,16 @@ TO DO AFTER :
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
 ; ************************************************************************
+; 2021.03.09
+- Updated Bnk.Load & Bnk.SaveA0 to handle Memblock and Palette datatypes
+
+
+; ************************************************************************
+; 2021.03.08
+- Added : Load CMAP To Palette FILENAME$, INDEX
+
+
+; ************************************************************************
 ; 2021.03.06
 - AGA Unity : Fixed a bug in the orignal ECS/OCS fading system.
 - AGA Unity : Fixed Colour Index #32 update bug.
@@ -31,6 +41,7 @@ TO DO AFTER :
 - Created : WORD = Memblock Word( MEMBLOCKID, POSITION )
 - Created : BYTE = Memblock Byte( MEMBLOCKID, POSITION )
 
+
 ; ************************************************************************
 ; 2021.02.28
 - Fixed the graphic update issue in Amos Professional productivity Wonderland game. Now bobs refresh works as expected.
@@ -45,6 +56,7 @@ TO DO AFTER :
 - Inserted : =Rgb24(Red8,Green8,Blue8), =RgbR8( RGBValue12/15/24 ), =RgbG8( RGBValue12/15/24 ), =RgbB8( RGBValue12/15/24)
 - Inserted : =Rgb12(Red4,Green4,Blue4), =RgbR4( RGBValue12/15/24 ), =RgbG4( RGBValue12/15/24 ), =RgbB4( RGBValue12/15/24)
 
+
 ; ************************************************************************
 ; 2021.02.27
 - Fixed Get Bob & Paste Bob crashs
@@ -54,6 +66,7 @@ TO DO AFTER :
 - Fixed Colour INDEX,RGBVALUE bug
 - Find a graphic update issue in Amos Professional Productivity Wonderland game (bobs are not cleared from screen)
 
+
 ; ************************************************************************
 ; 2021.02.26 : SPack & Unpack retro compatibility with Amos Professional Classics + Improvements
 - Major improvements for commands : SPack SCREEN To BANK, UnPack BANK To SCREEN
@@ -62,6 +75,7 @@ TO DO AFTER :
 - AGA Unity Will always SPack using Amos Professional Unity method (AGAP Mode)
 - AGA Unity can load, and unpack both Classics and Unity methods (AGAP Mode)
 - ECS Unity Screen Opening EcCree method updated to handle AGA Unity AGAP Mode for screens up to 6 bitplanes.
+
 
 ; ************************************************************************
 ; 2021.02.22-23
@@ -78,6 +92,7 @@ TO DO AFTER :
 - Updated AmodProfessionalUnityAGA.library files : RainbowsSystem.s, Screens.s, Texts.s
 - Restoring previous Amos LoadView (AmosProfessionalUnityAGA.library) prevent WB closed when quitting Amos Professional Unity.
 - Everything works excepted Bobs/Icons that must be fixed
+
 
 ; ************************************************************************
 ; 2021.02.18
@@ -107,11 +122,13 @@ TO DO AFTER :
 - Reintegration of AmpLCallR calls : A_InPen, A_WnPp and A_GoWn
 - Reintegration of AmpLCallR calls : A_UnPack_Screen and A_UnPack_Bitmap
 
+
 ; ************************************************************************
 ; 2021.02.12
 ; Reinserted EcCallA1, SyCallA1 and SyJmp from previous AGA version.
 ; Reinserted EcCall calls 77-84 from previous AGA version.
 ; Reinserted FMODE, BplCon3 & Color31 registers variables.
+
 
 ; ************************************************************************
 ; 2021.01.31
@@ -132,9 +149,11 @@ TO DO AFTER :
 - Moved AmosProUnityECS.library/convertRGB15toRGB24 inside AmosProUnitySupport.lib
 - Moved all methods to handle color conversion from AmosProUnityECS.library to AmosProUnitySupport.lib to avoid duplicate in others AmosProUnityXXX.library
 
+
 ; ************************************************************************
 ; 2021.01.18
 - Updated AmosProUnityXXX.library internal structures to handle new UnitySupport.lib (replacement for previous AgaSupport.lib)
+
 
 ; ************************************************************************
 ; 2021.01.16
@@ -149,17 +168,20 @@ TO DO AFTER :
 - Renamed Aga Fade FadeDelay -> Unity Fade FadeDelay
 - Renamed Fade To Aga Palette Index, Step -> Unity Fade To Palette Index, Step
 
+
 ; ************************************************************************
 ; 2020.12.19
 - Exported AmosProUnit_Lib.s/InRan & FnRain to AmosProfessional_Ecs.library/ExtractedFromAmosPro_lib.s
 - Rain command now support RGB12/RGB15 and RGB24 color input
 - Rain command will now always output RGB24 color value.
 
+
 ; ************************************************************************
 ; 2020.12.17
 - Fixed a bug that caused a crash in ForceToRGB24 conversion methods.
 - Set Rainbow can now uses RGB12,RGB15 and RGB24 as input for start value (latest parameter (optional))
 - Reimport commented version of CopBow method (Copper List Rainbow Creation)
+
 
 ; ************************************************************************
 ; 2020.12.16
@@ -180,6 +202,7 @@ TO DO AFTER :
 ; - Updated the EcGColor to use the new PushToRGB24 Macro
 ; - Everything tested working.
 
+
 ; ************************************************************************
 ; 2020.12.02
 ; - Updated EcSCol (Colour INDEX,RGB) to handle both RGB12 and RGB24 (with bit 24 set to 1)
@@ -191,12 +214,14 @@ TO DO AFTER :
 ; - Extracted PacPar, Pack, InSPack6 from compact.lib to push them into AmosProUnityECS.library
 ; - Extracted Bnk.Reserve and Bnk.GetAdr from AmosPro.lib to push them into AmosProUnityECS.library
 
+
 ; *************************************************************
 ; 2020.11.30
 ; - Extracted Bnk.SaveA0, SHunk and NHunk, Bnk.UnRev to push them into AmosProUnityECS.library
 ; - Extracted Bnk.Ric2, AMP_BnkEffA0, AMP_BnkEffBobA0
 ; - Copied AmosProUnity_Loaders.s/Lst.*** methods to AmosProUnityECS.library to makes them availbale for the Bnk.*** method exported
 ; - Extracted InPen, WnPp, GoWn to push them into AmosProUnityECS.library
+
 
 ; *************************************************************
 ; 2020.11.25
@@ -205,6 +230,7 @@ TO DO AFTER :
 ; - AmosProUnity_Lib.s/L_InIffAnim2 not exported as graphical works are done inside exported methods calls.
 ; - Moved UnPack_Screen, UnPack_Bitmap to AmosProUnityECS.library
 
+
 ; *************************************************************
 ; 2020.11.24
 ; Reversed all changes concerning AmosProUnity_Lib.s extraction (restored)
@@ -212,11 +238,13 @@ TO DO AFTER :
 ; Copied D_Open, D_OpenD1, D_Read, D_Write, D_Seek and D_Close from AmosPro_lib.s -> AmosProUnityEcs.library_ExtractedFromAmosPro_lib.s
 ; Imported : L_IffRead, L_IffSeek, L_IffFormPlay, L_IffFormSize, L_IffForm and L_IffFormLoad inside AmosProUnityECS.library ( As A_.... )
 
+
 ; *************************************************************
 ; 2020.11.20
 ; - Added AmpLVect vector to src/AmosProUnity_Equates/ExtractedFromAmosPro_Lib_Equ.s for list of AmosPro.lib extracted methods.
 ; - src/AmosProUnity_Equates/ExtractedFromAmosPro_Lib_Equ.s added as Include in AmosProUnity_library_equ.s
 ; - AmosProLibrary_Start.s/StartAll call for ampLib_Init included.
+
 
 ; *************************************************************
 ; 2020.11.18
@@ -225,6 +253,7 @@ TO DO AFTER :
 ; - Build Amos Professional Unity          completed : Tested Working
 ; - Update Amos Professional Unity "about" box (startup)
 ; - 1st working version of Amos Professional Unity is done. Initial GIT push.
+
 
 ; *************************************************************
 ; 2020.11.17 

@@ -1,9 +1,11 @@
 echo " "
 echo "******** Run Script to compile: Default tools/compilers used to build release"
 cd AmosPro
-echo "ATOOLS : Compile Check_CLib.AMOS"
+echo "ATOOLS : Compile Check_CLib_UnityECS.AMOS"
 APSystem/APCmp /c/Check_CLib_UnityECS.AMOS TYPE=0 WB NOERR NODEF
+echo "ATOOLS : Compile Check_CLib_UnityAGA.AMOS"
 APSystem/APCmp /c/Check_CLib_UnityAGA.AMOS TYPE=0 WB NOERR NODEF
+echo "ATOOLS : Compile Check_CLib_UnitySAGA.AMOS"
 APSystem/APCmp /c/Check_CLib_UnitySAGA.AMOS TYPE=0 WB NOERR NODEF
 echo "ATOOLS : Compile Get_Chunk.AMOS"
 APSystem/APCmp /c/Get_Chunk.AMOS TYPE=0 WB NOERR NODEF
