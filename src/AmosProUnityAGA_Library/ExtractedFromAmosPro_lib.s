@@ -1635,7 +1635,7 @@ Sco8:
     clr.w      (a3)+
     move.l     SccEcO(a5),a0
     move.l     SccEcD(a5),a1
-    moveq      #5,d7
+    moveq    #7,d7                      ; 2019.11.28 Updated to 8 bitplanes instead of initially 6 max.
 .BM:
     move.l     (a0)+,(a2)+
     move.l     (a1)+,(a3)+

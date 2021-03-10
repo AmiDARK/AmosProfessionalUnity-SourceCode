@@ -10,7 +10,7 @@ TO DO AFTER :
 ; ************************************************************************
 ; 2021.03.09
 - Updated Bnk.Load & Bnk.SaveA0 to handle Memblock and Palette datatypes
-
+- Updated Screen Copy for 8 Bitplanes (AGA Unity)
 
 ; ************************************************************************
 ; 2021.03.08
