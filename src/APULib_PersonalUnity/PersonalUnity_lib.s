@@ -14,7 +14,7 @@
 ;--------------------------------------------------------------------- 
 ;
 ;---------------------------------------------------------------------
-ExtNb    equ    13-1         ; Extension number #13
+ExtNb            Equ    13-1         ; Extension number #13
 
 ;---------------------------------------------------------------------
 ;    +++
@@ -41,11 +41,22 @@ ExtNb    equ    13-1         ; Extension number #13
     Include "devices/input.i"
     Include "devices/inputevent.i"
 
+; **************** 2021.03.10 Fast Icons Memory Banks datas
+; ******** Flags for Fast Icon Bank DataType
+Bnk_BitFIcons    Equ    6            ; = Bnk_BitReserved1
+; ******** Internal Structure of the FastIcon Bank
+FIconsBlockSize  Equ    0            ; Long (4)
+FIconsAmount     Equ    4            ; Word (2)
+FIconsWidth      Equ    6            ; Word (2)
+FIconsHeight     Equ    8            ; Word (2)
+FIconsDepth      Equ   10            ; Word (2)
+FIconsData       Equ   12            ; All Icons Datas
+
 ; A usefull macro to find the address of data in the extension''s own 
 ; datazone (see later)...
 Dlea    MACRO
     move.l    ExtAdr+ExtNb*16(a5),\2
-    add.w    #\1-MB,\2
+    add.w    #\1-PersonalUnityDatas,\2
     ENDM
 
 ; Another macro to load the base address of the datazone...
@@ -106,6 +117,19 @@ C_Tk:
         Dc.b    "fire(1,3",")"+$80,"0",-1
         Dc.w    L_Nul,L_EHB
         Dc.b    "eh","b"+$80,"0",-1
+
+        dc.w    L_ReserveFIcons,L_Nul
+        dc.b    "reserve f ico","n"+$80,"I0,0",-1
+        dc.w    L_UseFIconBank,L_Nul
+        dc.b    "set current f icon ban","k"+$80,"I0",-1
+        dc.w    L_Nul,L_GetCurrentFIconBank
+        dc.b    "get current f icon ban","k"+$80,"0",-1
+        dc.w    L_GetFIcon,L_Nul
+        dc.b    "get f ico","n"+$80,"I0,0,0",-1              ; Get F Icon ICONID,XPOS,YPOS
+        dc.w    L_PasteFIcon1,L_Nul
+        dc.b    "!paste f ico","n"+$80,"I0,0,0",-2            ; Paste F Icon ICONID,XPOS,YPOS
+        dc.w    L_PasteFIcon2,L_Nul
+        dc.b    $80,"I0,0,0,0",-2
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
@@ -354,6 +378,8 @@ BkCheck:
 ; *************************************************************
 ;
 PersonalUnityDatas:
+CurrentFIconBank:    dc.l 0
+
 
 ; Now follow all the music routines. Some are just routines called by others,
 ; some are instructions. 
@@ -545,9 +571,455 @@ PersonalUnityDatas:
 ; * Description :                                             *
 ; *                                                           *
 ; * Parameters :                                              *
+; *   D3 = Amount of F Icons to reserve/allocate              *
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
+  Lib_Par      ReserveFIcons
+ ; **************** 1. Check if MemblockID and Size mets the requirements
+    move.l      (a3)+,d4               ; D4 = Memory Bank ID, D3 = Amount of F Icons
+    cmp.l       #5,d4
+    Rble        L_Err1                 ; ID < 6 -> Error : Invalid range
+    cmp.l       #255,d4
+    Rbhi        L_Err1                 ; ID > 255 -> Error : Invalid range
+    cmp.l       #4,d3                  ; 
+    Rblt        L_Err2                 ; FIcons Amount < 4 -> Error : FIcons Amount is invalid
+; **************** 2. If bank already exists, we delete it before.
+    movem.l     d3-d4,-(sp)            ; Save D3,D4
+    move.l      d4,d0                  ; D0 = Bank ID
+    Rjsr        L_Bnk.GetAdr           ; Get Bank D0 Adress
+    beq.s       .nodel                 ; No bank = -> Jump .no deletion
+    Rjsr        L_Bnk.Eff              ; Erase previous bank if it was not a Memblock
+.nodel:
+    movem.l     (sp)+,d3-d4            ; Restore D3,D4
+    moveq       #(1<<Bnk_BitFIcons+1<<Bnk_BitData),d1    Flags ; Fast Icon,DATA, FAST
+    move.l      d3,d2                  ; D2 = Icons Amount
+    lsl.l       #5,d2                  ; D2 = Icon Amount * 16 Lines per Icon * 2 bytes per lines (global *32)
+    mulu        #9,d2                  ; Maximum 8 Bitplanes + 1 Mask (Makes AGA banks being capable to be used on ECS screens as paste uses screen bpls limit)
+    add.l       #FIconsData,d2         ; FullBlockSize.l, Amount.w, Width.w, Height.w, Depth.w
+    Movem.l     d2-d4,-(sp)            ; Save D2,D3,D4 (D2=FullBlockSize,D3=IconsCount,D4=MemoryBank)
+    lea         BkMbc(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
+    Rjsr        L_Bnk.Reserve          ; -> Need D0=BankID, D1=Flags, D2=Size(In bytes)
+    beq         .B_Err3                ; Not Enough Memory to allocation Fast Icon bank
+    move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
+    ; **************** 3. Now that the memory block (bank) is created we save informations in it.
+    Movem.l     (sp)+,d2-d4            ; Load D2,D3,D4 (FullBlockSize,D3=IconsCount,D4=MemoryBank)
+    move.l      d2,FIconsBlockSize(a0) ; Save Full Block Size
+    move.w      d3,FIconsAmount(a0)    ; Save Amount of Icons Available
+    move.w      #16,FIconsWidth(a0)    ; Save Icons Width
+    move.w      #16,FIconsHeight(a0)   ; Save Icons HEeght
+    cmp.w       #0,T_isAga(a5)         ; Check if program is running under AGA or ECS
+    beq.s       .useECS2
+.useAGA2:                              ; We are on AGA chipset
+    move.w      #8,FIconsDepth(a0)     ; Save Icons Depth : Maximum 8 Bitplanes + 1 Mask
+    bra.s       .follow2               ; -> .Follow2
+.useECS2:                              ; We are on ECS/OCS chipset
+    move.w      #6,FIconsDepth(a0)     ; Save Icons Depth : Maximum 6 Bitplanes + 1 Mask
+.follow2:
+    ; *************** 4. Save The Current Icon Bank as "Current"
+    Dlea        CurrentFIconBank,a0
+    move.l      d4,(a0)                ; Save CurrentFIconBank as the one freshly created
+    Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update) (a1 use)
+    rts
+.B_Err3:
+    movem.l     (sp)+,d2-d4
+    Rbra        L_Err3
+BkMbc:
+    dc.b       "F Icons ",0,0
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      UseFIconBank
+    cmp.l       #5,d3
+    Rble        L_Err1                 ; ID < 6 -> Error : Invalid range
+    cmp.l       #255,d3
+    Rbhi        L_Err1                 ; ID > 255 -> Error : Invalid range
+    movem.l     d3,-(sp)               ; Save BankID
+    move.l      d3,d0
+    clr.l       d3
+    Rjsr        L_Bnk.GetAdr
+    Rbeq        L_Err4
+    btst        #Bnk_BitFIcons,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err5
+    move.l      (sp)+,d3
+    Dlea        CurrentFIconBank,a0
+    move.l      d3,(a0)
+    rts
+; F Icon Content :
+; 1 ICON = 9 Bitplanes * 16 lignes each
+; Storing 1 full line after the other one.
+; Storing line X Mask.w Bpl1.w Bpl2.w Bpl3.w Bpl4.w .... Bpl8.w
+; Next line.
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      GetCurrentFIconBank
+    Dlea        CurrentFIconBank,a0
+    move.l      (a0),d3
+    Ret_Int
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : IconID, inScreenXPos, inScreenYPos           *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+  Lib_Par      GetFIcon               ; D3 = inScreenYPos
+    ; **************** 1. We get information from a3 stack
+    move.l      (a3)+,d4              ; D4 = inScreenXPos
+    move.l      (a3)+,d5              ; D5 = IconID
+    exg         d3,d5                 ; D3 = Icon ID, D4 = inScreenXPos, D5 = inScreenYPos
+    ; **************** 2. We check if the "Current Fast Icon Bank" exists and is valid
+    Dlea        CurrentFIconBank,a0
+    move.l      (a0),d0               ; d0 = FIcon Bank in use
+    Rjsr        L_Bnk.GetAdr          ; Get Bank memory adress (does not modify d3-d5)
+    Rbeq        L_Err4                ; Bank does not exists
+    btst        #Bnk_BitFIcons,d0     ; check No Bnk_BitFIcons flag = not a memblock
+    bne.s       .BankIsOk             ; Bank is a FIcons one -> Jmp to .BankIsOk
+.B_Err5:
+    Rbra        L_Err5                ; Error, not a FIcons bank
+ .BankIsOk:
+    move.l      a0,a2                 ; a2 = F Icon Bank Adress
+    ; **************** 3. Now, we check if Icon ID is correct and fit in the bank.
+    cmp.l       #0,d3
+    Rble        L_Err7                ; FIcon ID not in Bank Range
+    cmp.w       FIconsAmount(a2),d3
+    ble         .ok
+    Rbra        L_Err7                ; FIcon ID not in Bank Range
+.ok:
+
+; *********************************** Important variables state :
+; ** A2 = Icon Bank Pointer
+; ** D3 = IconID
+; ** D4 = inScreenXPos
+; ** D5 = inScreenYPos
+; ***********************************
+
+    ; **************** 4. We get the current screen to capture the Icon    
+	move.l	    ScOnAd(a5),d0         ; D0 = Get Current Screen
+    Rbeq        L_Err6
+    move.l      d0,a1                 ; *********************************************** a1 = Screen Structure Pointer
+
+    movem.l     d6-d7,-(sp)
+
+    sub.l       #1,d3                 ; D3 = IconID Shift = IconID -1 (true Icon index start at 0, where Icon 0 = no shift)
+    ; **************** 5. We push a2 adress to point at the start of the Icon to grab
+    move.w      FIconsDepth(a2),d2    ; D2.w = FIcon Depth (Bitplanes only)
+    ext.l       d2                    ; D2.l = FIcon Depth (Bitplanes only)
+    move.l      d2,d7                 ; D7.l = FIcon Depth (Bitplanes only) [Save]
+    addq        #1,d2                 : D2.L = FIcon Depth (Bitplanes + Mask)
+    lsl.l       #5,d2                 ; D2.l = FIcon Size in bytes
+    mulu.w      d3,d2                 ; D2 = Shift in Icon Bank where to start Icon writing
+    add.l       #FIconsData,d2        ; D2 = Add Bank header so now, D2 is real shift in a2 to start write the F Icon
+    add.l       d2,a2                 ; A2 = Pointer to the F Icon to grab
+
+; *********************************** Important variables state :
+; ** A1 = Current Screen Structure Pointer
+; ** D3 = IconID-1 (True Icon index start at 0 instead of 1)
+; ** D4 = inScreenXPos
+; ** D5 = inScreenYPos
+; ** A2 = Icon #IconID Pointer (1st pixel of icon mask bitplane)
+; ***********************************
+
+    ; **************** 6. Store current screen information
+    move.w      EcTx(a1),d0           ; d0 = Screen Width in pixels
+    ext.l       d0                    ; extends d0.w -> d0.l
+    move.w      EcTy(a1),d1           ; d1 = Screen Height in pixels
+    ext.l       d1                    ; extends d1.w -> d1.l
+
+    ; **************** 7. Verify that F Icon to grab coordinates are inside screen sizes
+    tst.l       d4                    ; Is XPos < 0 ?
+    Rblt        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
+    tst.l       d5                    ; Is YPos < 0 ?
+    Rblt        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
+    cmp.l       d0,d4                 ; is XPos >= Screen Width ?
+    Rbge        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
+    sub.l       #15,d1                ; Screen Height -15 (for F Icon grab position limits)
+    cmp.l       d1,d5                 ; is YPos >= Screen Height ?
+    Rbge        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
+
+    ; **************** 8. Calculate the offset in the bitplanes to start grab the Icon
+    move.w      EcTLigne(a1),d0       ; D0 = Screen line size in bytes
+    ext.l       d0
+    mulu.w      d0,d5                 ; D5 = Y Line Offset
+    lsr.l       #3,d4                 ; D2 = Icon X Pos X Shift (in bytes, can be odd)
+    bclr        #0,d4                 ; Clear #0 (Makes D2 be 16 Pixels aligned, always even adress) / D4 = X Offset
+    add.l       d4,d5                 ; *********************************************** D5 = Final Offset inside bitplanes
+    move.l      a2,d4                 ; D4 = Icon Pointer
+
+
+; *********************************** Important variables state :
+; ** A1 = Current Screen Structure Pointer
+; ** A2 = Icon #IconID Pointer (1st pixel of icon mask bitplane)
+; ** D4 = Icon #IconID Pointer (1st pixel of icon mask bitplane) [Save]
+; ** D5 = X,Y FIcon to grab position inside Screen 
+; ** D0 = Bitplan Width in Bytes
+; ** D7 = Icon Depth (Bitplanes Only)
+; ***********************************
+
+    ; **************** 9. We grab the icon
+    move.l     d7,d6                  ; D6 = Icon Depth to grab
+    add.l      #1,d6                  ; D6 = True Icon Bitplanes Amount (counting Mask one)
+    lsl.l      #1,d6                  ; D6 = 1 line ( X Bpls + Mask ) size in bytes
+    lea        EcCurrent(a1),a1        ; a1 = Pointer sur EcPhysic Bitplan 0
+    move.l     d7,d3                  ; D5 = Icon Depth to grab
+    subq       #1,d3                  ; for dbra works for the loop ( Icon Depth -1 )
+    move.l     #2,d1                  ; D1 = Start Bitplan Shift in ICON ( For Bitplane 0 , After mask )
+.BplsLoop:
+    move.l     (a1)+,a0               ; A0 = Bitplan X Pointer, A1 = Pointer to next bitplane
+    add.l      d5,a0
+    cmp.l      #0,a0                  ; Current Bitplane = NULL (=0) ?
+    beq.s      .endOfCopy             ; Can occur if screen have less bitplanes than the Icon limitation
+    move.l     d4,a2                  ; A2 = Start Icon (Bitplan Mask, Position 0,0)
+    moveq      #15,d2                 ; 16 lines to copy (-1 will stop copy)
+    Add.l      d1,a2                  ; A2 = Start Icon (Bitplan D1  , Position 0,0)
+.linesLoop
+    move.w     (a0),(a2)              ; Grab 2 Bytes = 16 Pixels for the icon
+    add.l      d0,a0                  ; a0 = Next Bitplane Line position
+    add.l      d6,a2                  ; a3 = Next Icon Line
+    dbra       d2,.linesLoop          ; Continue Copy until 16 lines are done
+    add.l      #2,d1                  ; D2 = Next Icon Bitplane to copy
+    dbra       d3,.BplsLoop           ; Jump to Next Bitplane Copy if not finished
+.endOfCopy:
+
+    bra.s      .ende
+; *********************************** Important variables state :
+; ** D4 = Icon #IconID Pointer (1st pixel of icon mask bitplane) [Save]
+; ** D6 = 1 line ( X Bpls + Mask ) size in bytes
+; ** D7 = Icon Depth (Bitplanes Only)
+; ***********************************
+;    moveq      #18,d6                 ; 9 bpls * 2 = 18 bytes per icon line.
+    ; **************** 10. Last phase, we calculate the mask.
+    moveq      #15,d2                 ; D2 = 16 lines to check
+    move.l     d4,a0                  ; A0 = Pointer to Icon Line 0 Mask Plane
+.linesLoop2:
+    clr.l      d0                     ; D0 = Clear MASK
+    move.l     a0,a1                  ; A1 = Pointer to Icon Current Line Mask (-1)
+    add.l      #2,a1                  ; A1 = Current Line Bitplane 0            
+    move.l     d7,d1                  ; D1 = Icon Depth
+    subq       #1,d1                  ; D1 = Icon Depth - 1 / for Dbra loop
+.bplsLoop2:
+    move.w     (a1)+,d5               ; D5 = Bpl(x) datas content
+    or.w       d5,d0                  ; D0 = D0 + D5 (Mask all pixels)
+    dbra       d1,.bplsLoop2          ; Next bitplane for this line ? Yes -> .bplsLoop2
+    not        d0                     ; D0 = Mask of acceptation
+    move.w     d0,(a0)
+    add.l      d6,a0                  ; A0 = Pointer to next Icon line X Mask Plane
+    dbra       d2,.linesLoop2         ; Next Line for this icon ? Yes -> .linesLoop2
+
+.ende:
+    movem.l     (sp)+,d6-d7
+    moveq      #0,d0                  ; D0 = 0 -> Everything completed with no problem
+    rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      PasteFIcon1            ; D3 = inScreenYPos
+    move.l      d3,-(a3)              ; push inScreenYPos in a3 stack
+    move.l      #0,d3                 ; D3 = No Mask
+    Rbra       L_PasteFIcon2
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      PasteFIcon2            ; D3 = inScreenYPos
+    ; **************** 1. We get information from a3 stack
+    move.l      d3,d2                 ; D2 = Mask or not Mask.
+    move.l      (a3)+,d3              ; D3 = inScreenYPos
+    and.l       #$FF0,d3              ; D3 = inScreenYPos (multiples of 16)
+    move.l      (a3)+,d4              ; D4 = inScreenXPos
+    move.l      (a3)+,d5              ; D5 = IconID
+    exg         d3,d5                 ; D3 = Icon ID, D4 = inScreenXPos, D5 = inScreenYPos
+    movem.l     d6-d7/a3,-(sp)
+    move.l      d2,d6                 ; D6 = Mask or not Mask [Save]
+    ; **************** 2. We check if the "Current Fast Icon Bank" exists and is valid
+    Dlea        CurrentFIconBank,a0
+    move.l      (a0),d0               ; d0 = FIcon Bank in use
+    Rjsr        L_Bnk.GetAdr          ; Get Bank memory adress (does not modify d3-d5)
+    Rbeq        L_Err4                ; Bank does not exists
+    btst        #Bnk_BitFIcons,d0     ; check No Bnk_BitFIcons flag = not a memblock
+    bne.s       .BankIsOk             ; Bank is a FIcons one -> Jmp to .BankIsOk
+.B_Err5:
+    Rbra        L_Err5                ; Error, not a FIcons bank
+ .BankIsOk:
+    move.l      a0,a2                 ; a2 = F Icon Bank Adress
+    ; **************** 3. Now, we check if Icon ID is correct and fit in the bank.
+    cmp.l       #0,d3
+    Rble        L_Err7                ; FIcon ID not in Bank Range
+    cmp.w       FIconsAmount(a2),d3
+    ble         .ok
+    Rbra        L_Err7                ; FIcon ID not in Bank Range
+.ok:
+
+; *********************************** Important variables state :
+; ** A2 = Icon Bank Pointer
+; ** D3 = IconID
+; ** D4 = inScreenXPos
+; ** D5 = inScreenYPos
+; ***********************************
+
+    ; **************** 4. We get the current screen to capture the Icon    
+	move.l	    ScOnAd(a5),d0         ; D0 = Get Current Screen
+    Rbeq        L_Err6
+    move.l      d0,a1                 ; *********************************************** a1 = Screen Structure Pointer
+    sub.l       #1,d3                 ; D3 = IconID Shift = IconID -1 (true Icon index start at 0, where Icon 0 = no shift)
+    ; **************** 5. We push a2 adress to point at the start of the Icon to grab
+    move.w      FIconsDepth(a2),d2    ; D2.w = FIcon Depth (Bitplanes only)
+    ext.l       d2                    ; D2.l = FIcon Depth (Bitplanes only)
+    move.l      d2,d7                 ; D7.l = FIcon Depth (Bitplanes only) [Save]
+    addq        #1,d2                 : D2.L = FIcon Depth (Bitplanes + Mask)
+    lsl.l       #5,d2                 ; D2.l = FIcon Size in bytes
+    mulu.w      d3,d2                 ; D2 = Shift in Icon Bank where to start Icon writing
+    add.l       #FIconsData,d2        ; D2 = Add Bank header so now, D2 is real shift in a2 to start write the F Icon
+    add.l       d2,a2                 ; A2 = Pointer to the F Icon to grab
+
+; *********************************** Important variables state :
+; ** A1 = Current Screen Structure Pointer
+; ** D3 = IconID-1 (True Icon index start at 0 instead of 1)
+; ** D4 = inScreenXPos
+; ** D5 = inScreenYPos
+; ** A2 = Icon #IconID Pointer (1st pixel of icon mask bitplane)
+; ***********************************
+
+    ; **************** 6. Store current screen information
+    move.w      EcTx(a1),d0          ; d0.w = Screen Width in pixels
+    ext.l       d0                    ; extends d0.w -> d0.l
+    move.w      EcTy(a1),d1          ; d1.w = Screen Height in pixels
+    ext.l       d1                    ; extends d1.w -> d1.l
+    move.w      EcNPlan(a1),d7        ; d7.w = Screen Depth in bitplanes amount
+    ext.l       d7
+
+    ; **************** 7. Verify that F Icon to grab coordinates are inside screen sizes
+    tst.l       d4                    ; Is XPos < 0 ?
+    Rblt        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
+    tst.l       d5                    ; Is YPos < 0 ?
+    Rblt        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
+    cmp.l       d0,d4                 ; is XPos >= Screen Width ?
+    Rbge        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
+    sub.l       #15,d1                ; Screen Height -15 (for F Icon grab position limits)
+    cmp.l       d1,d5                 ; is YPos >= Screen Height ?
+    Rbge        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
+
+    ; **************** 8. Calculate the offset in the bitplanes to start grab the Icon
+    move.w      EcTLigne(a1),d0       ; D0 = Screen line size in bytes
+    ext.l       d0
+    mulu.w      d0,d5                 ; D5 = Y Line Offset
+    lsr.l       #3,d4                 ; D2 = Icon X Pos X Shift (in bytes, can be odd)
+    bclr        #0,d4                 ; Clear #0 (Makes D2 be 16 Pixels aligned, always even adress) / D4 = X Offset
+    add.l       d4,d5                 ; *********************************************** D5 = Final Offset inside bitplanes
+    move.l      a2,d4                 ; D4 = Icon Pointer
+
+; *********************************** Important variables state :
+; ** A1 = Current Screen Structure Pointer
+; ** D4 = Icon #IconID Pointer (1st pixel of icon mask bitplane) [Save]
+; ** D5 = X,Y FIcon to grab position inside Screen 
+; ** D0 = Bitplan Width in Bytes
+; ** D7 = Screen Depth (Bitplanes Only)
+; ***********************************
+; D6 = Amount of icon lines to paste (=15 for 16 lines, dbra makes end at -1)
+; a3 = EcCurrent bitplanes pointer of current screen
+; ** A2 = Icon #IconID Pointer (1st pixel of icon mask bitplane)
+; A1 = Bitplanes List pointer
+; A0 = Bitplane X pointer + InPos X,Y for Icon
+; D1 = Icon Depth (based on screen depth as icons are always 8 bitplanes)
+; D2 = Screen Datas
+; D3 = Mask
+;
+    ; **************** 9. We push the icon in the Screen
+    lea        EcCurrent(a1),a3       ; a3 = Pointer sur EcCurrent (=EcPhysic) Bitplan 0
+    tst.b      d6
+    beq.s      .drawNoMask
+
+.DrawWithMask:
+    moveq      #15,d6                 ; d6 = 16 lines to push into the screen
+.linesLoop2:
+    move.l     d7,d1                  ; D5 = Icon Depth to grab
+    subq       #1,d1                  ; for dbra works for the loop ( Icon Depth -1 )
+    move.l     d4,a2                  ; A2 = Pointer to the current FIcon line to paste
+    move.w     (a2)+,d3               ; d3 = Mask to apply to screen data before including icon ones.
+    move.l     a3,a1                  ; a1 = Pointer sur EcCurrent
+.BplsLoop2:
+    move.l     (a1)+,a0               ; a0 = BitPlane X pointer
+    cmp.l      #0,a0
+    beq.s      .nextLine
+    add.l      d5,a0                  ; a0 = Bitplane X pointer to X,Y position to paste.
+    move.w     (a0),d2                ; D2 = Screen Datas
+    and.w      d3,d2                  ; D2 = Screen Datas modified by Mask
+    or.w       (a2)+,d2               ; D2 = Screen Datas + Icon Datas using MASK
+    move.w     d2,(a0)                ; Push new modified data inside Screen
+    dbra       d1,.BplsLoop2
+.nextLine:
+    add.l      #18,d4                 ; D4 = Move Icon pointer to next line
+    add.l      d0,d5
+    dbra       d6,.linesLoop2
+    bra.s      .endOfCopy4
+
+.drawNoMask:
+    moveq      #15,d6                 ; d6 = 16 lines to push into the screen
+.linesLoop3:
+    move.l     d7,d1                  ; D5 = Icon Depth to grab
+    subq       #1,d1                  ; for dbra works for the loop ( Icon Depth -1 )
+    move.l     d4,a2                  ; A2 = Pointer to the current FIcon line to paste
+    add.w      #2,a2
+    move.l     a3,a1                  ; a1 = Pointer sur EcCurrent
+.BplsLoop3:
+    move.l     (a1)+,a0               ; a0 = BitPlane X pointer
+    cmp.l      #0,a0
+    beq.s      .nextLine2
+    add.l      d5,a0                  ; a0 = Bitplane X pointer to X,Y position to paste.
+    move.w     (a2)+,(a0)
+    dbra       d1,.BplsLoop3
+.nextLine2:
+    add.l      #18,d4                 ; D4 = Move Icon pointer to next line
+    add.l      d0,d5
+    dbra       d6,.linesLoop3
+
+.endOfCopy4:
+    movem.l    (sp)+,d6-d7/a3
+    moveq      #0,d0                  ; D0 = 0 -> Everything completed with no problem
+    rts
+
+
+
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
@@ -560,7 +1032,29 @@ PersonalUnityDatas:
 ; * Return Value :                                            *
 ; *************************************************************
 
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
 
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
 
 
 ;                                                                                                                      ************************
@@ -875,10 +1369,6 @@ ErDisk:
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;    +++ ERROR MESSAGES...
-; 
-;     NOTE: this extension uses the main internal AMOS error messages,
-;     But, follow the explanation on how to create NEW error messages,
-;     specific to the extension. Everything is remark, of course...        
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   Lib_Def    FonCall
@@ -886,35 +1376,35 @@ ErDisk:
     moveq     #23,d0
     Rbra    L_GoError
 
-    Lib_Def Err1             ; 
+    Lib_Def Err1             ; The requested F Icons ID number is invalid (valid range=0-65535).
     moveq   #1,d0
     Rbra    L_Errors
 
-    Lib_Def Err2             ; 
+    Lib_Def Err2             ; You cannot reserve less than 4 F Icons in a bank.
     moveq   #2,d0
     Rbra    L_Errors
 
-    Lib_Def Err3             ; 
+    Lib_Def Err3             ; Not enough memory to allocate F Icon bank.
     moveq   #3,d0
     Rbra    L_Errors
 
-    Lib_Def Err4             ; 
+    Lib_Def Err4             ; The requested memory bank does not exists.
     moveq   #4,d0
     Rbra    L_Errors
 
-    Lib_Def Err5             ; 
+    Lib_Def Err5             ; The requested memory bank is not a F Icons one.
     moveq   #5,d0
     Rbra    L_Errors
 
-    Lib_Def Err6             ; 
+    Lib_Def Err6             ; No Current Screen to grab the F Icon.
     moveq   #6,d0
     Rbra    L_Errors
 
-    Lib_Def Err7             ; 
+    Lib_Def Err7             ; The F Icon ID Number does not fit the current F Icon Bank amount.
     moveq   #7,d0
     Rbra    L_Errors
 
-    Lib_Def Err8             ; 
+    Lib_Def Err8             ; The F Icon coordinates are out of screen sizes.
     moveq   #8,d0
     Rbra    L_Errors
 
@@ -935,14 +1425,14 @@ ErDisk:
 
 ErrMess:
     dc.b    "err0",0
-    dc.b    " ",0                                                                                  * Error #1
-    dc.b    " ",0                                                                                  * Error #2
-    dc.b    " ",0                                                                                  * Error #3
-    dc.b    " ",0                                                                                  * Error #4
-    dc.b    " ",0                                                                                  * Error #5
-    dc.b    " ",0                                                                                  * Error #6
-    dc.b    " ",0                                                                                  * Error #7
-    dc.b    " ",0                                                                                  * Error #8
+    dc.b    "The requested F Icons ID number is invalid (valid range=0-65535).",0                  * Error #1
+    dc.b    "You cannot reserve less than 4 F Icons in a bank.",0                                  * Error #2
+    dc.b    "Not enough memory to allocate F Icon bank.",0                                         * Error #3
+    dc.b    "The requested memory bank does not exists.",0                                         * Error #4
+    dc.b    "The requested memory bank is not a F Icons one.",0                                    * Error #5
+    dc.b    "No Current Screen to grab the F Icon.",0                                              * Error #6
+    dc.b    "The F Icon ID Number does not fit the current F Icon Bank amount",0                   * Error #7
+    dc.b    "The F Icon coordinates are out of screen sizes.",0                                    * Error #8
     dc.b    " ",0                                                                                  * Error #9
     dc.b    " ",0                                                                                  * Error #10
 * IMPORTANT! Always EVEN!

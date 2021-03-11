@@ -314,7 +314,7 @@ EcDup2: move.w  d1,EcCon2(a0)
     bra EcOtoV
     ENDC
 
-******* Creation de l'ecran
+******* Creation de l''ecran
 *   D1= #
 *   D2= TX
 *   D3= TY
@@ -345,7 +345,7 @@ EcCree:
 ReEc:   move.l  d1,-(sp)
     bsr EcGet
     beq.s   EcCr0
-; Efface l'ecran deja réserve
+; Efface l''ecran deja réserve
     move.l  (sp)+,d1
     bsr EcDel
     bra.s   ReEc
@@ -384,7 +384,7 @@ EcCr4:
     dbra       d0,EcCr4
     ; *********************************** 2019.11.23 Copy the AGA Color palette from the default palette
 
-; Taille de l'ecran
+; Taille de l''ecran
 ; ~~~~~~~~~~~~~~~~~
     move.w  d2,EcTx(a4)
     move.w  d2,EcTxM(a4)
@@ -399,7 +399,7 @@ EcCr4:
     move.l  d7,EcTPlan(a4)
     move.w  d4,EcNPlan(a4)
 
-;   Parametres d'affichage -1-
+;   Parametres d''affichage -1-
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l  T_GfxBase(a5),a0    EcCon0
     move.w  164(a0),d0
@@ -443,7 +443,7 @@ EcCra:  move.l  d7,d0
     addq.l  #4,d2
     dbra    d6,EcCra
 
-;   Ouverture d'un rastport intuition REEL
+;   Ouverture d''un rastport intuition REEL
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l  T_LayBase(a5),a6        
     jsr _LVONewLayerInfo(a6)        Creation de LayerInfo

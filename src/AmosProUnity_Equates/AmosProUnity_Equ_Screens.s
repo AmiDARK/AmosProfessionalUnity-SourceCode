@@ -199,13 +199,8 @@ ScCpyW        equ 73
 MaxRaw        equ 74
 NTSC        equ 75
 PourSli        equ 76
-SPalAGA:        equ 77
-SHam8BPLS       equ 78
-SCol24Bits     equ 79                  ; 2020.08.31 Added to makes EcSCol being able to set full RGB24->RGB24
-SColAga24Bits  equ 80                  ; 2020.08.31 Added to makes AgaPaletteColour being able to set full RGB24->RGB24
-UpdateAGAColorsInCopper equ 81         ; 2020.09.16 Added to makes new Fade AGA method to update the Copper list with changes in the global color palette
-ForceFullAGAPalette_ScreenA0 Equ 82    ; 2020.09.16 Added for optimising color updating.
-
+GetEc          equ 77       ; 2021.03.10 Restored for PersonalUnity.lib
+GetCurrentScreen equ 78
 
 EcCall:        MACRO
         move.l    T_EcVect(a5),a0

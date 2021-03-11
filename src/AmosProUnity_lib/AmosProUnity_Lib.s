@@ -3996,6 +3996,24 @@ AskD:    move.l    a0,HiChaine(a5)
     beq.s     .npal
     bset      #Bnk_BitPalette,d1
 .npal:
+; ******** 2021.03.10 Addon update to futures Banks DataType Bnk_BitReserved1-4 - START
+    btst      #3,d4
+    beq.s     .rsrvd1
+    bset      #Bnk_BitReserved1,d1
+.rsrvd1:
+    btst      #3,d4
+    beq.s     .rsrvd2
+    bset      #Bnk_BitReserved2,d1
+.rsrvd2:
+    btst      #3,d4
+    beq.s     .rsrvd3
+    bset      #Bnk_BitReserved3,d1
+.rsrvd3:
+    btst      #3,d4
+    beq.s     .rsrvd4
+    bset      #Bnk_BitReserved4,d1
+.rsrvd4:
+; ******** 2021.03.10 Addon update to futures Banks DataType Bnk_BitReserved1-4 - START
     movem.l   (sp)+,d4        ; Load D4
     and.w     #$1,2(a2)       ; Remove Memblock & Palette data for Chip/Fast checking.
 ; ******** 2021.03.09 Update to handle both Memblocks & Colors Palettes - END

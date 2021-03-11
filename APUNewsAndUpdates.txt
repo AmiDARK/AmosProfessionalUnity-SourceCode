@@ -3,14 +3,37 @@ Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
 
 TO DO AFTER :
+- Update ECS EcCree to allocate bitmaps like AGA version (Alignment)
 - Create a compilation process that allow to load .ASCII, tokenise them (test) and then compiles them to .exe (like compiler) to make .ASCII being compilable from commons IDE.
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
 ; ************************************************************************
+; 2021.03.11
+PersonalUnity.lib :
+- Added : Paste F Icon ICONID,XPOS,YPOS[,MASKMODE] method where XPOS & YPOS are multiple of 16
+
+
+; ************************************************************************
+; 2021.03.10
+PersonalUnity.lib :
+- Added : = Get Current F Icon Bank()
+- Added : Get F Icon ICONID,XPOS,YPOS (XPos = multiple of 16)
+
+
+; ************************************************************************
+; 2021.03.10
+- Updated Bnk.Load & Bnk.SaveA0 to handle futures Banks DataType (Use Banks Flags Bnk_BitReserved1-4)
+PersonalUnity.lib :
+- Added : Reserve F Icon BANK_ID,ICONS_AMOUNT
+- Added : Set Current F Icon Bank BANK_ID
+
+
+; ************************************************************************
 ; 2021.03.09
-- Updated Bnk.Load & Bnk.SaveA0 to handle Memblock and Palette datatypes
+- Updated Bnk.Load & Bnk.SaveA0 to handle Memblock and Palette banks datatypes
 - Updated Screen Copy for 8 Bitplanes (AGA Unity)
+
 
 ; ************************************************************************
 ; 2021.03.08

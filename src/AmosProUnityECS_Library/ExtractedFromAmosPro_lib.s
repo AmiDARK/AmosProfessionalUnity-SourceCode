@@ -1493,9 +1493,9 @@ AMP_Bnk.SaveA0:
     move.l     a0,a2
     move.w     -16+4(a2),d2        Flags
     btst       #Bnk_BitBob,d2
-    bne.s      SB_Bob
+    bne        SB_Bob
     btst       #Bnk_BitIcon,d2
-    bne.s      SB_Icon
+    bne        SB_Icon
 ; Sauve une banque normale!
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~
     moveq      #1,d0            AmBk
@@ -1520,6 +1520,24 @@ AMP_Bnk.SaveA0:
     or.w       #%100,2(a0)
 .Wrk3:
 ; ******** 2021.03.09 Patch for Palettes Banks - END
+; ******** 2021.03.10 Patch for future Banks DataTypes - Start
+    btst       #Bnk_BitReserved1,d2
+    beq.s      .Wrk4
+    or.w       #%1000,2(a0)
+.Wrk4:
+    btst       #Bnk_BitReserved2,d2
+    beq.s      .Wrk5
+    or.w       #%10000,2(a0)
+.Wrk5:
+    btst       #Bnk_BitReserved3,d2
+    beq.s      .Wrk6
+    or.w       #%100000,2(a0)
+.Wrk6:
+    btst       #Bnk_BitReserved4,d2
+    beq.s      .Wrk7
+    or.w       #%1000000,2(a0)
+.Wrk7:
+; ******** 2021.03.10 Patch for future Banks DataTypes - End
     move.l     -8*3+4(a2),d4        Taille banque
     subq.l     #8,d4            Moins header
     move.l     d4,4(a0)        Puis LONGUEUR.L

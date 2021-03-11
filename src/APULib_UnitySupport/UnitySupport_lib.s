@@ -575,7 +575,6 @@ C_Lib
     movem.l    (sp)+,a0
     moveq      #0,d0
 
-
     lea        UnityVectors(pc),a0
     move.l     a0,T_UnityVct(a5)
 

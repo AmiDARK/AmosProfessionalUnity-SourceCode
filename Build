@@ -14,8 +14,8 @@ execute AMOSProUnity_Compiler.batch
 echo "Build Step 2/3 : Cleaning development folder (removing useless files)"
 delete tmpCompil/Toktab_Verif.Bin
 delete tmpCompil/AmosProUnity_Lib_Size.s
-delete tmpCompil/AmosProUnity_LibI_Size.s
-delete tmpCompil/AmosProUnity_LibI_Functions.s
+delete tmpCompil/AmosProUnity_ILib_Size.s
+delete tmpCompil/AmosProUnity_ILib_Functions.s
 echo "Build Step 3/3 : Update all default tools/compilers"
 execute AMOSProUnity_Tools.batch
 echo "Build Success : RELEASE build available in 'AmosProUnity_Build' directory"
