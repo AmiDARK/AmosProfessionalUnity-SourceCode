@@ -1509,33 +1509,33 @@ AMP_Bnk.SaveA0:
     addq.w     #1,2(a0)
 .Chp:
 ; ******** 2021.03.09 Patch for Memblock Banks - START : These updates set bits 2 or 3 where Memory type is located
-    btst       #Bnk_BitMemblock,d2
+    btst       #Bnk_BitReserved0,d2
     beq.s      .Wrk2
-    or.w       #%10,2(a0)
+    or.w       #$2,2(a0)
 .Wrk2:
 ; ******** 2021.03.09 Patch for Memblock Banks
 ; ******** 2021.03.09 Patch for Palettes Banks
-    btst       #Bnk_BitPalette,d2
+    btst       #Bnk_BitReserved1,d2
     beq.s      .Wrk3
-    or.w       #%100,2(a0)
+    or.w       #$4,2(a0)
 .Wrk3:
 ; ******** 2021.03.09 Patch for Palettes Banks - END
 ; ******** 2021.03.10 Patch for future Banks DataTypes - Start
-    btst       #Bnk_BitReserved1,d2
-    beq.s      .Wrk4
-    or.w       #%1000,2(a0)
-.Wrk4:
     btst       #Bnk_BitReserved2,d2
-    beq.s      .Wrk5
-    or.w       #%10000,2(a0)
-.Wrk5:
+    beq.s      .Wrk4
+    or.w       #$8,2(a0)
+.Wrk4:
     btst       #Bnk_BitReserved3,d2
-    beq.s      .Wrk6
-    or.w       #%100000,2(a0)
-.Wrk6:
+    beq.s      .Wrk5
+    or.w       #$16,2(a0)
+.Wrk5:
     btst       #Bnk_BitReserved4,d2
+    beq.s      .Wrk6
+    or.w       #$32,2(a0)
+.Wrk6:
+    btst       #Bnk_BitReserved5,d2
     beq.s      .Wrk7
-    or.w       #%1000000,2(a0)
+    or.w       #$64,2(a0)
 .Wrk7:
 ; ******** 2021.03.10 Patch for future Banks DataTypes - End
     move.l     -8*3+4(a2),d4        Taille banque

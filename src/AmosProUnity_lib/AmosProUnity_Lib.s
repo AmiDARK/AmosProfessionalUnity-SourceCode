@@ -3985,38 +3985,38 @@ AskD:    move.l    a0,HiChaine(a5)
     bpl.s     .Skip2
     bset      #Bnk_BitData,d1
 .Skip2
-; ******** 2021.03.09 Update to handle both Memblocks & Colors Palettes - START
+; ******** 2021.03.10 Addon update to futures Banks DataType Bnk_BitReserved0-1 - START
     movem.l   d4,-(sp)        ; Save D4
     move.w    2(a2),d4
     btst      #1,d4
-    beq.s     .nmbc
-    bset      #Bnk_BitMemblock,d1
-.nmbc:
+    beq.s     .rsrvd0
+    bset      #Bnk_BitReserved0,d1
+.rsrvd0:
     btst      #2,d4
-    beq.s     .npal
-    bset      #Bnk_BitPalette,d1
-.npal:
-; ******** 2021.03.10 Addon update to futures Banks DataType Bnk_BitReserved1-4 - START
-    btst      #3,d4
     beq.s     .rsrvd1
     bset      #Bnk_BitReserved1,d1
 .rsrvd1:
+; ******** 2021.03.10 Addon update to futures Banks DataType Bnk_BitReserved2-4 - START
     btst      #3,d4
     beq.s     .rsrvd2
     bset      #Bnk_BitReserved2,d1
 .rsrvd2:
-    btst      #3,d4
+    btst      #4,d4
     beq.s     .rsrvd3
     bset      #Bnk_BitReserved3,d1
 .rsrvd3:
-    btst      #3,d4
+    btst      #5,d4
     beq.s     .rsrvd4
     bset      #Bnk_BitReserved4,d1
 .rsrvd4:
-; ******** 2021.03.10 Addon update to futures Banks DataType Bnk_BitReserved1-4 - START
+    btst      #6,d4
+    beq.s     .rsrvd5
+    bset      #Bnk_BitReserved5,d1
+.rsrvd5:
+; ******** 2021.03.10 Addon update to futures Banks DataType Bnk_BitReserved1-4 - END
     movem.l   (sp)+,d4        ; Load D4
     and.w     #$1,2(a2)       ; Remove Memblock & Palette data for Chip/Fast checking.
-; ******** 2021.03.09 Update to handle both Memblocks & Colors Palettes - END
+; ******** 2021.03.10 Addon update to futures Banks DataType Bnk_BitReserved0.1 - END
     tst.w     2(a2)           ; (A2+2).> => Chip ou Fast?
     bne.s     .Skip3
     bset      #Bnk_BitChip,d1

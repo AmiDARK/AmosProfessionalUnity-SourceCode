@@ -345,16 +345,16 @@ DataLong:    equ __RS
 
 ;    Flags banques
 ; ~~~~~~~~~~~~~~~~~~~
-Bnk_BitData     equ    0        Banque de data
-Bnk_BitChip     equ    1        Banque en chip
-Bnk_BitBob      equ    2        Banque de Bobs
-Bnk_BitIcon     equ    3        Banque d''icons
-Bnk_BitMemblock equ    4        2021.03.01 Memblocks banks
-Bnk_BitPalette  equ    5        2021.03.06 Colours Palette banks
-Bnk_BitReserved1 equ   6        2021.03.10 Bits for Newer Banks DataType
-Bnk_BitReserved2 equ   7        2021.03.10 Bits for newer Banks DataTypes
-Bnk_BitReserved3 equ   8        2021.03.10 Bits for newer Banks DataTypes
-Bnk_BitReserved4 equ   9        2021.03.10 Bits for newer Banks DataTypes
+Bnk_BitData      equ    0        Banque de data
+Bnk_BitChip      equ    1        Banque en chip
+Bnk_BitBob       equ    2        Banque de Bobs
+Bnk_BitIcon      equ    3        Banque d''icons
+Bnk_BitReserved0 equ    4        2021.03.01 Bits for Newer Banks DataTypes
+Bnk_BitReserved1 equ    5        2021.03.06 Bits for Newer Banks DataTypes
+Bnk_BitReserved2 equ    6        2021.03.10 Bits for Newer Banks DataTypes
+Bnk_BitReserved3 equ    7        2021.03.10 Bits for newer Banks DataTypes
+Bnk_BitReserved4 equ    8        2021.03.10 Bits for newer Banks DataTypes
+Bnk_BitReserved5 equ    9        2021.03.10 Bits for newer Banks DataTypes
 
     include "src/AmosProUnity_Equates/AmosProUnity_Equ_ProgramDefine.s"
     include "src/AmosProUnity_Equates/AmosProUnity_Equ_EditingDefine.s"

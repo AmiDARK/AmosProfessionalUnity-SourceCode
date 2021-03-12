@@ -41,9 +41,14 @@ ExtNb            Equ    13-1         ; Extension number #13
     Include "devices/input.i"
     Include "devices/inputevent.i"
 
+VersionPUL MACRO
+           dc.b "0.1 Alpha",0
+           ENDM
+
 ; **************** 2021.03.10 Fast Icons Memory Banks datas
 ; ******** Flags for Fast Icon Bank DataType
-Bnk_BitFIcons    Equ    6            ; = Bnk_BitReserved1
+Bnk_BitMemblock  Equ    4            ; = Bnk.BitReserved0
+Bnk_BitFIcons    Equ    6            ; = Bnk_BitReserved2
 ; ******** Internal Structure of the FastIcon Bank
 FIconsBlockSize  Equ    0            ; Long (4)
 FIconsAmount     Equ    4            ; Word (2)
@@ -117,6 +122,29 @@ C_Tk:
         Dc.b    "fire(1,3",")"+$80,"0",-1
         Dc.w    L_Nul,L_EHB
         Dc.b    "eh","b"+$80,"0",-1
+        dc.w    L_Nul,L_getHam6Value
+        dc.b    "ham","6"+$80,"0",-1
+
+        dc.w    L_CreateMemblock,L_Nul
+        dc.b    "create membloc","k"+$80,"I0,0",-1
+        dc.w    L_Nul,L_MemblockExists
+        dc.b    "memblock exis","t"+$80,"00",-1
+        dc.w    L_Nul,L_GetMemblockSize
+        dc.b    "get memblock siz","e"+$80,"00",-1
+        dc.w    L_WriteMemblockLong,L_Nul
+        dc.b    "write memblock lon","g"+$80,"I0,0,0",-1
+        dc.w    L_Nul,L_ReadMemblockLong
+        dc.b    "memblock lon","g"+$80,"00,0",-1
+        dc.w    L_WriteMemblockWord,L_Nul
+        dc.b    "write memblock wor","d"+$80,"I0,0,0",-1
+        dc.w    L_Nul,L_ReadMemblockWord
+        dc.b    "memblock wor","d"+$80,"00,0",-1
+        dc.w    L_WriteMemblockByte,L_Nul
+        dc.b    "write memblock byt","e"+$80,"I0,0,0",-1
+        dc.w    L_Nul,L_ReadMemblockByte
+        dc.b    "memblock byt","e"+$80,"00,0",-1
+        dc.w    L_CreateMemblockFromFile,L_Nul
+        dc.b    "create memblock from fil","e"+$80,"I2,0",-1
 
         dc.w    L_ReserveFIcons,L_Nul
         dc.b    "reserve f ico","n"+$80,"I0,0",-1
@@ -551,6 +579,359 @@ CurrentFIconBank:    dc.l 0
     Moveq       #64,d3
     Ret_Int
 
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : L_getHam6Value                              *
+; *-----------------------------------------------------------*
+; * Description : This method will return an integer value of *
+; * 4096 and can be used in the Amos Professional method cal- *
+; * -led "Screen Open" to open a HAM6 screen.                 *
+; *                                                           *
+; * Parameters : -                                            *
+; *                                                           *
+; * Return Value : 4096 (Integer)                             *
+; *************************************************************
+    ; ****************************************** Return Ham6 value for screen open (=4096)
+  Lib_Par      getHam6Value
+    Move.l     #4096,d3
+    Ret_Int
+
+;                                                                                                                      ************************
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                           *                                                 *
+;                                                                                           * AREA NAME : Memblocks methods support           *
+;                                                                                           *                                                 *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
+  
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : Create Memblock ID,Size                     *
+; *-----------------------------------------------------------*
+; * Description : This method will try to create a new memory *
+; *               block                                       *
+; *                                                           *
+; * Parameters : (a3)+ = Memblock ID                          *
+; *              d0 = Memblock size in bytes                  *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+  Lib_Par      CreateMemblock
+; **************** 1. Check if MemblockID and Size mets the requirements
+    move.l      (a3)+,d4               ; D4 = Memblock ID, D3 = Memblock Size
+    cmp.l       #5,d4
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d4
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #16,d3                 ; 
+    Rblt        L_Err12                ; Memblock size < 16 -> Error : Memblock size is invalid
+; **************** 2. If bank already exists, we delete it before.
+    movem.l     d3-d4,-(sp)            ; Save D3,D4
+    move.l      d4,d0                  ; D0 = Bank ID
+    Rjsr        L_Bnk.GetAdr           ; Get Bank D0 Adress
+    beq.s       .nodel                 ; No bank = -> Jump .no deletion
+    Rjsr        L_Bnk.Eff              ; Erase previous bank if it was not a Memblock
+.nodel:
+    movem.l     (sp)+,d3-d4            ; Restore D3,D4
+    moveq       #(1<<Bnk_BitMemblock+1<<Bnk_BitData),d1    Flags ; Memblock,DATA, FAST
+    move.l      d3,d2                  ; D2 = Memblock Size
+    add.l       #4,d2                  ; +4 to save memblock size
+    lea         BkMbc(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
+    Rjsr        L_Bnk.Reserve
+    Rbeq        L_Err11                ; Not Enough Memory to allocation memblock.
+    move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
+    move.l      d3,(a0)
+    Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update)
+    rts
+BkMbc:
+    dc.b       "MemBlock",0,0
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : = Memblock Exist( MemblockID )              *
+; *-----------------------------------------------------------*
+; * Description : This method will return 1 if the bank exists*
+; *               and is flagged as Memblock bank             *
+; *                                                           *
+; * Parameters : D3 = Memblock ID                             *
+; *                                                           *
+; * Return Value : 1 or 0                                     *
+; *************************************************************
+  Lib_Par      MemblockExists
+    cmp.l       #5,d3
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d3
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    move.l      d3,d0
+    clr.l       d3
+    Rjsr        L_Bnk.GetAdr
+    beq.s       .none
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    beq.s       .none
+    move.l      #1,d3
+.none:
+    Ret_Int
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      GetMemblockSize
+    cmp.l       #5,d3
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d3
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    move.l      d3,d0
+    clr.l       d3
+    Rjsr        L_Bnk.GetAdr
+    Rbeq        L_Err13
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err14
+    Move.l      (a0),d3
+    Ret_Int
+
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : Write Memblock Long MBCID, POSITION, VALUE  *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : MemblockID, MemblockPosition, IntegerToWrite *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      WriteMemblockLong       ; D3 = Value To Write
+    move.l      (a3)+,d4               ; D4 = Memblock Position
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d4                  ; Position < 0 ?
+    Rbmi        L_Err15                ; Yes -> Error
+    btst        #0,d4                  ; Is adress odd ?
+    Rbne        L_Err16                ; Error : Mamory adress is not word aligned
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err14                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d4,d0
+    Rblt        L_Err15                ; Outside MemBlock
+    adda.l      d4,a0                  ; a0 = Position to write inside the Memblock
+    move.l      d3,(a0)
+    rts
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      ReadMemblockLong        ; D3 = Position To Read
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d3                  ; Position < 0 ?
+    Rbmi        L_Err15                ; Yes -> Error
+    btst        #0,d3                  ; Is adress odd ?
+    Rbne        L_Err16                ; Error : Mamory adress is not word aligned
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err14                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d3,d0
+    Rblt        L_Err15                ; Outside MemBlock
+    adda.l      d3,a0                  ; a0 = Position to write inside the Memblock
+    move.l      (a0),d3
+    Ret_Int
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : Write Memblock Word MBCID, POSITION, VALUE  *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : MemblockID, MemblockPosition, WordToWrite    *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      WriteMemblockWord       ; D3 = Value To Write
+    move.l      (a3)+,d4               ; D4 = Memblock Position
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d4                  ; Position < 0 ?
+    Rbmi        L_Err15                ; Yes -> Error
+    btst        #0,d4                  ; Is adress odd ?
+    Rbne        L_Err16                ; Error : Mamory adress is not word aligned
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err14                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d4,d0
+    Rblt        L_Err15                ; Outside MemBlock
+    adda.l      d4,a0                  ; a0 = Position to write inside the Memblock
+    move.w      d3,(a0)
+    rts
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      ReadMemblockWord        ; D3 = Position To Read
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d3                  ; Position < 0 ?
+    Rbmi        L_Err15                ; Yes -> Error
+    btst        #0,d3                  ; Is adress odd ?
+    Rbne        L_Err16                ; Error : Mamory adress is not word aligned
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err14                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d3,d0
+    Rblt        L_Err15                ; Outside MemBlock
+    adda.l      d3,a0                  ; a0 = Position to write inside the Memblock
+    move.w      (a0),d3
+    and.l       #$FFFF,d3
+    Ret_Int
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : Write Memblock Long MBCID, POSITION, VALUE  *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : MemblockID, MemblockPosition, IntegerToWrite *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      WriteMemblockByte       ; D3 = Value To Write
+    move.l      (a3)+,d4               ; D4 = Memblock Position
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d4                  ; Position < 0 ?
+    Rbmi        L_Err15                ; Yes -> Error
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err14                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d4,d0
+    Rblt        L_Err15                ; Outside MemBlock
+    adda.l      d4,a0                  ; a0 = Position to write inside the Memblock
+    move.b      d3,(a0)
+    rts
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      ReadMemblockByte        ; D3 = Position To Read
+    move.l      (a3)+,d5               ; D5 = Memblock ID
+    cmp.l       #5,d5
+    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+    cmp.l       #255,d5
+    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+    cmp.l       #0,d3                  ; Position < 0 ?
+    Rbmi        L_Err15                ; Yes -> Error
+    move.l      d5,d0                  ; D0 = Memblock ID 
+    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
+    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
+    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
+    Rbeq        L_Err14                ; Not a memblock -> Error
+    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
+    cmp.l       d3,d0
+    Rblt        L_Err15                ; Outside MemBlock
+    adda.l      d3,a0                  ; a0 = Position to write inside the Memblock
+    move.b      (a0),d3
+    And.l       #$FF,d3
+    Ret_Int
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par      CreateMemblockFromFile  ; D3 = Memblock ID
+    move.l      (a3)+,d4               ; D4 = File Name
+;    movem.l     d3,-(sp)               ; Save Memblock ID
+;    ; Check if memblock ID is correct or not.
+;    cmp.l       #5,d3
+;    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
+;    cmp.l       #255,d3
+;    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
+;; ******** Open File
+;    move.l     a4,a2                   ; a2 = a4 = FileName
+;    Rbsr       L_NomDisc2              ; This method will update the filename to be full Path+FileName
+;    move.l     #1005,d2                ; D2 = READ ONLY dos file mode
+;    Rbsr       L_OpenFile              ; Dos->Open
+;    Rbeq       L_DiskFileError         ; -> Error when trying to open the file.
+;    Rbsr       L_SaveRegsD6D7           ; Save AMOS System registers
+;    move.l     Handle(a5),d1           ; D1 = File Handle
+;; ******** Get the file size
+;   Rbsr        L_LoadRegsD6D7
+   rts
+
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
@@ -598,7 +979,7 @@ CurrentFIconBank:    dc.l 0
     mulu        #9,d2                  ; Maximum 8 Bitplanes + 1 Mask (Makes AGA banks being capable to be used on ECS screens as paste uses screen bpls limit)
     add.l       #FIconsData,d2         ; FullBlockSize.l, Amount.w, Width.w, Height.w, Depth.w
     Movem.l     d2-d4,-(sp)            ; Save D2,D3,D4 (D2=FullBlockSize,D3=IconsCount,D4=MemoryBank)
-    lea         BkMbc(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
+    lea         BkFIco(pc),a0          ; A0 = Pointer to BkMbc (Bank Name)
     Rjsr        L_Bnk.Reserve          ; -> Need D0=BankID, D1=Flags, D2=Size(In bytes)
     beq         .B_Err3                ; Not Enough Memory to allocation Fast Icon bank
     move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
@@ -624,7 +1005,7 @@ CurrentFIconBank:    dc.l 0
 .B_Err3:
     movem.l     (sp)+,d2-d4
     Rbra        L_Err3
-BkMbc:
+BkFIco:
     dc.b       "F Icons ",0,0
 
 ;
@@ -863,14 +1244,14 @@ BkMbc:
 ; *************************************************************
   Lib_Par      PasteFIcon2            ; D3 = inScreenYPos
     ; **************** 1. We get information from a3 stack
-    move.l      d3,d2                 ; D2 = Mask or not Mask.
+    move.b      d3,d2                 ; D2.b = Mask or not Mask.
     move.l      (a3)+,d3              ; D3 = inScreenYPos
     and.l       #$FF0,d3              ; D3 = inScreenYPos (multiples of 16)
     move.l      (a3)+,d4              ; D4 = inScreenXPos
     move.l      (a3)+,d5              ; D5 = IconID
     exg         d3,d5                 ; D3 = Icon ID, D4 = inScreenXPos, D5 = inScreenYPos
     movem.l     d6-d7/a3,-(sp)
-    move.l      d2,d6                 ; D6 = Mask or not Mask [Save]
+    move.b      d2,d6                 ; D6.b = Mask or not Mask [Save]
     ; **************** 2. We check if the "Current Fast Icon Bank" exists and is valid
     Dlea        CurrentFIconBank,a0
     move.l      (a0),d0               ; d0 = FIcon Bank in use
@@ -901,16 +1282,16 @@ BkMbc:
 	move.l	    ScOnAd(a5),d0         ; D0 = Get Current Screen
     Rbeq        L_Err6
     move.l      d0,a1                 ; *********************************************** a1 = Screen Structure Pointer
-    sub.l       #1,d3                 ; D3 = IconID Shift = IconID -1 (true Icon index start at 0, where Icon 0 = no shift)
+    subq        #1,d3                 ; D3 = IconID Shift = IconID -1 (true Icon index start at 0, where Icon 0 = no shift)
     ; **************** 5. We push a2 adress to point at the start of the Icon to grab
     move.w      FIconsDepth(a2),d2    ; D2.w = FIcon Depth (Bitplanes only)
-    ext.l       d2                    ; D2.l = FIcon Depth (Bitplanes only)
-    move.l      d2,d7                 ; D7.l = FIcon Depth (Bitplanes only) [Save]
+;    ext.l       d2                    ; D2.l = FIcon Depth (Bitplanes only)
+    move.w      d2,d7                 ; D7.l = FIcon Depth (Bitplanes only) [Save]
     addq        #1,d2                 : D2.L = FIcon Depth (Bitplanes + Mask)
-    lsl.l       #5,d2                 ; D2.l = FIcon Size in bytes
+    lsl.w       #5,d2                 ; D2.l = FIcon Size in bytes
     mulu.w      d3,d2                 ; D2 = Shift in Icon Bank where to start Icon writing
-    add.l       #FIconsData,d2        ; D2 = Add Bank header so now, D2 is real shift in a2 to start write the F Icon
-    add.l       d2,a2                 ; A2 = Pointer to the F Icon to grab
+    add.w       #FIconsData,d2        ; D2 = Add Bank header so now, D2 is real shift in a2 to start write the F Icon
+    add.w       d2,a2                 ; A2 = Pointer to the F Icon to grab
 
 ; *********************************** Important variables state :
 ; ** A1 = Current Screen Structure Pointer
@@ -929,19 +1310,19 @@ BkMbc:
     ext.l       d7
 
     ; **************** 7. Verify that F Icon to grab coordinates are inside screen sizes
-    tst.l       d4                    ; Is XPos < 0 ?
+    tst.w       d4                    ; Is XPos < 0 ?
     Rblt        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
-    tst.l       d5                    ; Is YPos < 0 ?
+    tst.w       d5                    ; Is YPos < 0 ?
     Rblt        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
-    cmp.l       d0,d4                 ; is XPos >= Screen Width ?
+    cmp.w       d0,d4                 ; is XPos >= Screen Width ?
     Rbge        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
-    sub.l       #15,d1                ; Screen Height -15 (for F Icon grab position limits)
-    cmp.l       d1,d5                 ; is YPos >= Screen Height ?
+    sub.w       #15,d1                ; Screen Height -15 (for F Icon grab position limits)
+    cmp.w       d1,d5                 ; is YPos >= Screen Height ?
     Rbge        L_Err8                ; Yes -> Error Err8 (Out of screen coordinates)
 
     ; **************** 8. Calculate the offset in the bitplanes to start grab the Icon
     move.w      EcTLigne(a1),d0       ; D0 = Screen line size in bytes
-    ext.l       d0
+;    ext.l       d0
     mulu.w      d0,d5                 ; D5 = Y Line Offset
     lsr.l       #3,d4                 ; D2 = Icon X Pos X Shift (in bytes, can be odd)
     bclr        #0,d4                 ; Clear #0 (Makes D2 be 16 Pixels aligned, always even adress) / D4 = X Offset
@@ -966,21 +1347,21 @@ BkMbc:
 ;
     ; **************** 9. We push the icon in the Screen
     lea        EcCurrent(a1),a3       ; a3 = Pointer sur EcCurrent (=EcPhysic) Bitplan 0
-    tst.b      d6
+    tst.b      d6                     ; d6.b = Mask on [=1] or Mask Off [=0]
     beq.s      .drawNoMask
 
 .DrawWithMask:
     moveq      #15,d6                 ; d6 = 16 lines to push into the screen
 .linesLoop2:
-    move.l     d7,d1                  ; D5 = Icon Depth to grab
+    move.w     d7,d1                  ; D1.b = Icon Depth to grab
     subq       #1,d1                  ; for dbra works for the loop ( Icon Depth -1 )
     move.l     d4,a2                  ; A2 = Pointer to the current FIcon line to paste
     move.w     (a2)+,d3               ; d3 = Mask to apply to screen data before including icon ones.
     move.l     a3,a1                  ; a1 = Pointer sur EcCurrent
 .BplsLoop2:
     move.l     (a1)+,a0               ; a0 = BitPlane X pointer
-    cmp.l      #0,a0
-    beq.s      .nextLine
+;    cmp.l      #0,a0
+;    beq.s      .nextLine
     add.l      d5,a0                  ; a0 = Bitplane X pointer to X,Y position to paste.
     move.w     (a0),d2                ; D2 = Screen Datas
     and.w      d3,d2                  ; D2 = Screen Datas modified by Mask
@@ -996,15 +1377,15 @@ BkMbc:
 .drawNoMask:
     moveq      #15,d6                 ; d6 = 16 lines to push into the screen
 .linesLoop3:
-    move.l     d7,d1                  ; D5 = Icon Depth to grab
+    move.w     d7,d1                  ; D5 = Icon Depth to grab
     subq       #1,d1                  ; for dbra works for the loop ( Icon Depth -1 )
     move.l     d4,a2                  ; A2 = Pointer to the current FIcon line to paste
     add.w      #2,a2
     move.l     a3,a1                  ; a1 = Pointer sur EcCurrent
 .BplsLoop3:
     move.l     (a1)+,a0               ; a0 = BitPlane X pointer
-    cmp.l      #0,a0
-    beq.s      .nextLine2
+;    cmp.l      #0,a0
+;    beq.s      .nextLine2
     add.l      d5,a0                  ; a0 = Bitplane X pointer to X,Y position to paste.
     move.w     (a2)+,(a0)
     dbra       d1,.BplsLoop3
@@ -1376,44 +1757,68 @@ ErDisk:
     moveq     #23,d0
     Rbra    L_GoError
 
-    Lib_Def Err1             ; The requested F Icons ID number is invalid (valid range=0-65535).
+  Lib_Def Err1             ; The requested F Icons ID number is invalid (valid range=0-65535).
     moveq   #1,d0
     Rbra    L_Errors
 
-    Lib_Def Err2             ; You cannot reserve less than 4 F Icons in a bank.
+  Lib_Def Err2             ; You cannot reserve less than 4 F Icons in a bank.
     moveq   #2,d0
     Rbra    L_Errors
 
-    Lib_Def Err3             ; Not enough memory to allocate F Icon bank.
+  Lib_Def Err3             ; Not enough memory to allocate F Icon bank.
     moveq   #3,d0
     Rbra    L_Errors
 
-    Lib_Def Err4             ; The requested memory bank does not exists.
+  Lib_Def Err4             ; The requested memory bank does not exists.
     moveq   #4,d0
     Rbra    L_Errors
 
-    Lib_Def Err5             ; The requested memory bank is not a F Icons one.
+  Lib_Def Err5             ; The requested memory bank is not a F Icons one.
     moveq   #5,d0
     Rbra    L_Errors
 
-    Lib_Def Err6             ; No Current Screen to grab the F Icon.
+  Lib_Def Err6             ; No Current Screen to grab the F Icon.
     moveq   #6,d0
     Rbra    L_Errors
 
-    Lib_Def Err7             ; The F Icon ID Number does not fit the current F Icon Bank amount.
+  Lib_Def Err7             ; The F Icon ID Number does not fit the current F Icon Bank amount.
     moveq   #7,d0
     Rbra    L_Errors
 
-    Lib_Def Err8             ; The F Icon coordinates are out of screen sizes.
+  Lib_Def Err8             ; The F Icon coordinates are out of screen sizes.
     moveq   #8,d0
     Rbra    L_Errors
 
-    Lib_Def Err9             ; 
+  Lib_Def Err9             ; 
     moveq   #9,d0
     Rbra    L_Errors
 
-    Lib_Def Err10             ; 
+  Lib_Def Err10            ; The Memblock ID Range is 1-255
     moveq   #10,d0
+    Rbra    L_Errors
+
+  Lib_Def Err11            ; Not enough free memory to allocate the requested memblock
+    moveq   #11,d0
+    Rbra    L_Errors
+
+  Lib_Def Err12            ; Memblock Size is incorrect
+    moveq   #12,d0
+    Rbra    L_Errors
+
+  Lib_Def Err13            ; There is no memblock bank at this slot
+    moveq   #13,d0
+    Rbra    L_Errors
+
+  Lib_Def Err14             ; This bank is not a memblock bank
+    moveq   #17,d0
+    Rbra    L_Errors
+
+  Lib_Def Err15            ; The requested position is out of memblock size/range
+    moveq   #18,d0
+    Rbra    L_Errors
+
+  Lib_Def Err16            ; The memblock position entered is not word aligned
+    moveq   #21,d0
     Rbra    L_Errors
 
     Lib_Def Errors
@@ -1433,8 +1838,17 @@ ErrMess:
     dc.b    "No Current Screen to grab the F Icon.",0                                              * Error #6
     dc.b    "The F Icon ID Number does not fit the current F Icon Bank amount",0                   * Error #7
     dc.b    "The F Icon coordinates are out of screen sizes.",0                                    * Error #8
-    dc.b    " ",0                                                                                  * Error #9
-    dc.b    " ",0                                                                                  * Error #10
+    dc.b    " ",0                                                                                  * Error #9 UNUSED
+; ******** Memblocks error messages CURRENT VERSION
+    dc.b    "Valid memblock id range is 6-65535.",0                                                * Error #10 USED
+    dc.b    "Not enough free memory to allocate the requested memblock.",0                         * Error #11 USED
+    dc.b    "Memblock Size is incorrect.",0                                                        * Error #12 USED
+    dc.b    "There is no memblock bank at this slot.",0                                            * Error #13 USED
+    dc.b    "This bank is not a memblock bank.",0                                                  * Error #17 USED
+    dc.b    "The requested position is out of memblock size/range.",0                              * Error #18 USED
+    dc.b    "The memblock position entered is not word aligned.",0                                 * Error #21 USED
+
+
 * IMPORTANT! Always EVEN!
     even
 
@@ -1460,10 +1874,10 @@ ErrMess:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;     +++ TITLE OF THE EXTENSION!
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_Title    dc.b    "AMOSPro Personal Unity version V "
-    Version
+C_Title    dc.b    "AMOSPro Personal Unity SupportLib version V "
+    VersionPUL
     dc.b    0,"$VER: "
-    Version
+    VersionPUL
     dc.b    0
     Even
 

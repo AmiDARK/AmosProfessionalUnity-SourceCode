@@ -45,6 +45,13 @@ ExtNb    equ    7-1         ; Extension number #7
     Include "devices/input.i"
     Include "devices/inputevent.i"
 
+VersionUS  MACRO
+           dc.b "0.3 Alpha",0
+           ENDM
+
+Bnk_BitPalette    Equ    5            ; = Bnk.BitReserved1
+
+
 ; A usefull macro to find the address of data in the extension''s own 
 ; datazone (see later)...
 Dlea     MACRO
@@ -208,8 +215,6 @@ C_Tk:
     dc.b    "is ham","8"+$80,"0",-1
     dc.w    L_Nul,L_getHam8Value
     dc.b    "ham","8"+$80,"0",-1
-    dc.w    L_Nul,L_getHam6Value
-    dc.b    "ham","6"+$80,"0",-1
 
     dc.w    L_Nul,L_retRgb24Color
     dc.b    "rgb2","4"+$80,"00,0,0",-1
@@ -229,27 +234,6 @@ C_Tk:
     dc.w    L_Nul,L_retRgbB4FromRgbColor
     dc.b    "rgbb","4"+$80,"00",-1
 
-    dc.w    L_CreateMemblock,L_Nul
-    dc.b    "create membloc","k"+$80,"I0,0",-1
-    dc.w    L_Nul,L_MemblockExists
-    dc.b    "memblock exis","t"+$80,"00",-1
-    dc.w    L_Nul,L_GetMemblockSize
-    dc.b    "get memblock siz","e"+$80,"00",-1
-    dc.w    L_WriteMemblockLong,L_Nul
-    dc.b    "write memblock lon","g"+$80,"I0,0,0",-1
-    dc.w    L_Nul,L_ReadMemblockLong
-    dc.b    "memblock lon","g"+$80,"00,0",-1
-    dc.w    L_WriteMemblockWord,L_Nul
-    dc.b    "write memblock wor","d"+$80,"I0,0,0",-1
-    dc.w    L_Nul,L_ReadMemblockWord
-    dc.b    "memblock wor","d"+$80,"00,0",-1
-    dc.w    L_WriteMemblockByte,L_Nul
-    dc.b    "write memblock byt","e"+$80,"I0,0,0",-1
-    dc.w    L_Nul,L_ReadMemblockByte
-    dc.b    "memblock byt","e"+$80,"00,0",-1
-    dc.w    L_CreateMemblockFromFile,L_Nul
-    dc.b    "create memblock from fil","e"+$80,"I2,0",-1
-
     dc.w    L_CreatePalette1,L_Nul
     dc.b    "!create palett","e"+$80,"I0",-2
     dc.w    L_CreatePalette2,L_Nul
@@ -258,6 +242,10 @@ C_Tk:
     dc.b    "get palette colors amoun","t"+$80,"00",-1
     dc.w    L_LoadIFFPalette,L_Nul
     dc.b    "load cmap to palett","e"+$80,"I2,0",-1
+    dc.w    L_Nul,L_GetPaletteColourID
+    dc.b    "get palette colo","r"+$80,"00,0",-1
+    dc.w    L_SetPaletteColourID,L_Nul
+    dc.b    "set palette colo","r"+$80,"I0,0,0",-1
 
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
@@ -836,7 +824,7 @@ UnityVectors:
 ; ************************************ Separate RGB12, RGB15 and RGB24 color data into 2 RGB12 outputs.
     movem.l    d0-d1/a0,-(sp)
     move.b     T_rgbInput(a5),d0
-    and.l      #$0F,d0                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
+    and.l      #%11,d0                 ; d1 = in Interval {0-3} (Ignore high bits as there are only 3 formats supported)
     lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
     lea        inputFormats(pc),a0
     adda.l     d0,a0                   ; a0 = Pointer to the method to callable
@@ -848,6 +836,7 @@ inputFormats:
     Rbra       L_InputIsRGB12          ; 12 Bits (R4,G4,B4)
     Rbra       L_InputIsRGB24          ; 24 bits (R8,G8,B8)
     Rbra       L_InputIsR5G5B5         ; 15 bits (R5,G5,B5)
+    Rbra       L_Err10                 ; Unknown input format
 
 ;
 ; *****************************************************************************************************************************
@@ -969,7 +958,7 @@ inputFormats:
 ; ************************************ Merge rgb12High and rgb12Low to create a new output format
     movem.l    d0-d1/a0,-(sp)
     move.b     T_rgbOutput(a5),d0
-    and.l      #$0F,d0
+    and.l      #%11,d0
     lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
     lea        outputFormats(pc),a0
     adda.l     d0,a0                   ; a0 = Pointer to the method to callable
@@ -981,6 +970,7 @@ outputFormats:
     Rbra       L_OutputIsRGB12         ; 12 Bits (R4,G4,B4)
     Rbra       L_OutputIsRGB24         ; 24 bits (R8,G8,B8)
     Rbra       L_OutputIsR5G5B5        ; 15 bits (R5,G5,B5)
+    Rbra       L_Err10                 ; Unknown input format
 
 ;
 ; *****************************************************************************************************************************
@@ -1119,7 +1109,7 @@ outputFormats:
 ; ************************************ Force any input format (RGB12,RGB15 and RGB24) to be outputted as RGB24
     movem.l    d0-d1/a0,-(sp)
     move.b     T_rgbInput(a5),d0
-    and.l      #$0F,d0                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
+    and.l      #%11,d0                 ; d1 = in Interval {0-15} (Ignore high bits as there are only 3 formats supported)
     lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
     lea        F24_inputFormats(pc),a0
     adda.l     d0,a0                   ; a0 = Pointer to the method to callable
@@ -1131,6 +1121,7 @@ F24_inputFormats:
     Rbra       L_F24_InputIsRGB12          ; 12 Bits (R4,G4,B4)
     Rbra       L_F24_InputIsRGB24          ; 24 bits (R8,G8,B8)
     Rbra       L_F24_InputIsR5G5B5         ; 15 bits (R5,G5,B5)
+    Rbra       L_Err10                     ; Unknown input format
 
 ;
 ; *****************************************************************************************************************************
@@ -1336,24 +1327,6 @@ ScNOp1:
     Move.l     #262144,d3
     Ret_Int
 
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : L_getHam6Value                              *
-; *-----------------------------------------------------------*
-; * Description : This method will return an integer value of *
-; * 4096 and can be used in the Amos Professional method cal- *
-; * -led "Screen Open" to open a HAM6 screen.                 *
-; *                                                           *
-; * Parameters : -                                            *
-; *                                                           *
-; * Return Value : 4096 (Integer)                             *
-; *************************************************************
-    ; ****************************************** Return Ham6 value for screen open (=4096)
-  Lib_Par      getHam6Value
-    Move.l     #4096,d3
-    Ret_Int
-
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
@@ -1459,350 +1432,6 @@ ScNOp1:
     Lsr.l      #4,d3         ; D3 = .......B
     Ret_Int       
 
-;                                                                                                                      ************************
-;                                                                                                                                        ***
-;                                                                                                                                     ***
-; *********************************************************************************************************************************************
-;                                                                                           *                                                 *
-;                                                                                           * AREA NAME : Memblocks methods support           *
-;                                                                                           *                                                 *
-;                                                                                           ***************************************************
-;                                                                                                 ***
-;                                                                                              ***
-;                                                                                           ************************
-  
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : Create Memblock ID,Size                     *
-; *-----------------------------------------------------------*
-; * Description : This method will try to create a new memory *
-; *               block                                       *
-; *                                                           *
-; * Parameters : (a3)+ = Memblock ID                          *
-; *              d0 = Memblock size in bytes                  *
-; *                                                           *
-; * Return Value : -                                          *
-; *************************************************************
-  Lib_Par      CreateMemblock
-; **************** 1. Check if MemblockID and Size mets the requirements
-    move.l      (a3)+,d4               ; D4 = Memblock ID, D3 = Memblock Size
-    cmp.l       #5,d4
-    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d4
-    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-    cmp.l       #16,d3                 ; 
-    Rblt        L_Err12                ; Memblock size < 16 -> Error : Memblock size is invalid
-; **************** 2. If bank already exists, we delete it before.
-    movem.l     d3-d4,-(sp)            ; Save D3,D4
-    move.l      d4,d0                  ; D0 = Bank ID
-    Rjsr        L_Bnk.GetAdr           ; Get Bank D0 Adress
-    beq.s       .nodel                 ; No bank = -> Jump .no deletion
-    Rjsr        L_Bnk.Eff              ; Erase previous bank if it was not a Memblock
-.nodel:
-    movem.l     (sp)+,d3-d4            ; Restore D3,D4
-    moveq       #(1<<Bnk_BitMemblock+1<<Bnk_BitData),d1    Flags ; Memblock,DATA, FAST
-    move.l      d3,d2                  ; D2 = Memblock Size
-    add.l       #4,d2                  ; +4 to save memblock size
-    lea         BkMbc(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
-    Rjsr        L_Bnk.Reserve
-    Rbeq        L_Err11                ; Not Enough Memory to allocation memblock.
-    move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
-    move.l      d3,(a0)
-    Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update)
-    rts
-BkMbc:
-    dc.b       "MemBlock",0,0
-
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : = Memblock Exist( MemblockID )              *
-; *-----------------------------------------------------------*
-; * Description : This method will return 1 if the bank exists*
-; *               and is flagged as Memblock bank             *
-; *                                                           *
-; * Parameters : D3 = Memblock ID                             *
-; *                                                           *
-; * Return Value : 1 or 0                                     *
-; *************************************************************
-  Lib_Par      MemblockExists
-    cmp.l       #5,d3
-    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d3
-    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-    move.l      d3,d0
-    clr.l       d3
-    Rjsr        L_Bnk.GetAdr
-    beq.s       .none
-    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
-    beq.s       .none
-    move.l      #1,d3
-.none:
-    Ret_Int
-
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name :                                             *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters :                                              *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par      GetMemblockSize
-    cmp.l       #5,d3
-    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d3
-    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-    move.l      d3,d0
-    clr.l       d3
-    Rjsr        L_Bnk.GetAdr
-    Rbeq        L_Err13
-    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
-    Rbeq        L_Err17
-    Move.l      (a0),d3
-    Ret_Int
-
-
-
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : Write Memblock Long MBCID, POSITION, VALUE  *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters : MemblockID, MemblockPosition, IntegerToWrite *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par      WriteMemblockLong       ; D3 = Value To Write
-    move.l      (a3)+,d4               ; D4 = Memblock Position
-    move.l      (a3)+,d5               ; D5 = Memblock ID
-    cmp.l       #5,d5
-    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d5
-    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-    cmp.l       #0,d4                  ; Position < 0 ?
-    Rbmi        L_Err18                ; Yes -> Error
-    btst        #0,d4                  ; Is adress odd ?
-    Rbne        L_Err21                ; Error : Mamory adress is not word aligned
-    move.l      d5,d0                  ; D0 = Memblock ID 
-    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
-    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
-    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
-    Rbeq        L_Err17                ; Not a memblock -> Error
-    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
-    cmp.l       d4,d0
-    Rblt        L_Err18                ; Outside MemBlock
-    adda.l      d4,a0                  ; a0 = Position to write inside the Memblock
-    move.l      d3,(a0)
-    rts
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name :                                             *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters :                                              *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par      ReadMemblockLong        ; D3 = Position To Read
-    move.l      (a3)+,d5               ; D5 = Memblock ID
-    cmp.l       #5,d5
-    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d5
-    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-    cmp.l       #0,d3                  ; Position < 0 ?
-    Rbmi        L_Err18                ; Yes -> Error
-    btst        #0,d3                  ; Is adress odd ?
-    Rbne        L_Err21                ; Error : Mamory adress is not word aligned
-    move.l      d5,d0                  ; D0 = Memblock ID 
-    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
-    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
-    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
-    Rbeq        L_Err17                ; Not a memblock -> Error
-    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
-    cmp.l       d3,d0
-    Rblt        L_Err18                ; Outside MemBlock
-    adda.l      d3,a0                  ; a0 = Position to write inside the Memblock
-    move.l      (a0),d3
-    Ret_Int
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : Write Memblock Word MBCID, POSITION, VALUE  *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters : MemblockID, MemblockPosition, WordToWrite    *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par      WriteMemblockWord       ; D3 = Value To Write
-    move.l      (a3)+,d4               ; D4 = Memblock Position
-    move.l      (a3)+,d5               ; D5 = Memblock ID
-    cmp.l       #5,d5
-    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d5
-    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-    cmp.l       #0,d4                  ; Position < 0 ?
-    Rbmi        L_Err18                ; Yes -> Error
-    btst        #0,d4                  ; Is adress odd ?
-    Rbne        L_Err21                ; Error : Mamory adress is not word aligned
-    move.l      d5,d0                  ; D0 = Memblock ID 
-    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
-    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
-    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
-    Rbeq        L_Err17                ; Not a memblock -> Error
-    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
-    cmp.l       d4,d0
-    Rblt        L_Err18                ; Outside MemBlock
-    adda.l      d4,a0                  ; a0 = Position to write inside the Memblock
-    move.w      d3,(a0)
-    rts
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name :                                             *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters :                                              *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par      ReadMemblockWord        ; D3 = Position To Read
-    move.l      (a3)+,d5               ; D5 = Memblock ID
-    cmp.l       #5,d5
-    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d5
-    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-    cmp.l       #0,d3                  ; Position < 0 ?
-    Rbmi        L_Err18                ; Yes -> Error
-    btst        #0,d3                  ; Is adress odd ?
-    Rbne        L_Err21                ; Error : Mamory adress is not word aligned
-    move.l      d5,d0                  ; D0 = Memblock ID 
-    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
-    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
-    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
-    Rbeq        L_Err17                ; Not a memblock -> Error
-    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
-    cmp.l       d3,d0
-    Rblt        L_Err18                ; Outside MemBlock
-    adda.l      d3,a0                  ; a0 = Position to write inside the Memblock
-    move.w      (a0),d3
-    and.l       #$FFFF,d3
-    Ret_Int
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : Write Memblock Long MBCID, POSITION, VALUE  *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters : MemblockID, MemblockPosition, IntegerToWrite *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par      WriteMemblockByte       ; D3 = Value To Write
-    move.l      (a3)+,d4               ; D4 = Memblock Position
-    move.l      (a3)+,d5               ; D5 = Memblock ID
-    cmp.l       #5,d5
-    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d5
-    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-    cmp.l       #0,d4                  ; Position < 0 ?
-    Rbmi        L_Err18                ; Yes -> Error
-    move.l      d5,d0                  ; D0 = Memblock ID 
-    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
-    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
-    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
-    Rbeq        L_Err17                ; Not a memblock -> Error
-    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
-    cmp.l       d4,d0
-    Rblt        L_Err18                ; Outside MemBlock
-    adda.l      d4,a0                  ; a0 = Position to write inside the Memblock
-    move.b      d3,(a0)
-    rts
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name :                                             *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters :                                              *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par      ReadMemblockByte        ; D3 = Position To Read
-    move.l      (a3)+,d5               ; D5 = Memblock ID
-    cmp.l       #5,d5
-    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d5
-    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-    cmp.l       #0,d3                  ; Position < 0 ?
-    Rbmi        L_Err18                ; Yes -> Error
-    move.l      d5,d0                  ; D0 = Memblock ID 
-    Rjsr        L_Bnk.GetAdr           ; A0 = Memblock ADR
-    Rbeq        L_Err13                ; A0 = 0 = No Memblock -> Error
-    btst        #Bnk_BitMemblock,d0    ; No Bnk_BitMemblock flag = not a memblock
-    Rbeq        L_Err17                ; Not a memblock -> Error
-    Move.l      (a0)+,d0               ; D0 = Memblock Size, A0 = Pointer to Memblock byte #0 
-    cmp.l       d3,d0
-    Rblt        L_Err18                ; Outside MemBlock
-    adda.l      d3,a0                  ; a0 = Position to write inside the Memblock
-    move.b      (a0),d3
-    And.l       #$FF,d3
-    Ret_Int
-
-
-
-
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name :                                             *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters :                                              *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par      CreateMemblockFromFile  ; D3 = Memblock ID
-    move.l      (a3)+,d4               ; D4 = File Name
-;    movem.l     d3,-(sp)               ; Save Memblock ID
-;    ; Check if memblock ID is correct or not.
-;    cmp.l       #5,d3
-;    Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-;    cmp.l       #255,d3
-;    Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
-;; ******** Open File
-;    move.l     a4,a2                   ; a2 = a4 = FileName
-;    Rbsr       L_NomDisc2              ; This method will update the filename to be full Path+FileName
-;    move.l     #1005,d2                ; D2 = READ ONLY dos file mode
-;    Rbsr       L_OpenFile              ; Dos->Open
-;    Rbeq       L_DiskFileError         ; -> Error when trying to open the file.
-;    Rbsr       L_SaveRegsD6D7           ; Save AMOS System registers
-;    move.l     Handle(a5),d1           ; D1 = File Handle
-;; ******** Get the file size
-
-
-
-
-
-
-
-
-;   Rbsr        L_LoadRegsD6D7
-   rts
 
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
@@ -1868,25 +1497,24 @@ BkMbc:
     Rble        L_Err1                 ; Colors Palette ID < 6 -> Error : Invalid range
     cmp.l       #65535,d4
     Rbhi        L_Err1                 ; Colors Palette ID > 255 -> Error : Invalid range
-    and.l       #$1FF,d3
-    cmp.w       #2,d3                  ; Wants 2 Colors colors palette ?
-    beq.s       .isOK
-    cmp.w       #4,d3                  ; Wants 4 Colors colors palette ?
-    beq.s       .isOK
-    cmp.w       #8,d3                  ; Wants 8 Colors colors palette ?
-    beq.s       .isOK
-    cmp.w       #16,d3                 ; Wants 16 Colors colors palette ?
-    beq.s       .isOK
-    cmp.w       #32,d3                 ; Wants 32 Colors colors palette ?
-    beq.s       .isOK
-    cmp.w       #64,d3                 ; Wants 64 Colors colors palette ?
-    beq.s       .isOK
-    cmp.w       #128,d3                ; Wants 128 Colors colors palette ?
-    beq.s       .isOK
-    cmp.w       #256,d3                ; Wants 256 Colors colors palette ?
-    beq.s       .isOK
-    Rbra        L_Err2                 ; Colors Palette size < 16 -> Error : Colors Palette size is invalid
-.isOK
+    and.l       #$1FE,d3               ;
+    ; We will count the amount of bits sets in d3. if not equal to 1, -> Error
+
+   ; We will count the amount of bits sets in d3. if not equal to 1, -> Error
+
+    moveq       #9,d0                  ; Start at bit #9
+    moveq       #0,d1                  ; counter = 0
+.loop:
+    btst        d0,d3                  ; test bit d0 of d3
+    beq.s       .loopct                ; = 0 -> .loopct
+    addq        #1,d1                  ; counter = counter + 1 
+.loopct:
+    dbra        d0,.loop
+    cmp.b       #1,d1                  ; if more than 1 bit is set
+    Rbne        L_Err2                 ; -> Jump to L_Err2
+    btst        #0,d3                  ; if bit #0 is set (mean 1 color or odd color amount)
+    Rbne        L_Err2                 ; -> Jump to L_Err2
+.isOK:
 ; **************** 2. If bank already exists, we delete it before.
     movem.l     d3-d4,-(sp)            ; Save D3,D4
     move.l      d4,d0                  ; D0 = Bank ID
@@ -2011,7 +1639,7 @@ BkPal:
     move.l     #aga_iffPalSize,d0      ; Reserve a block enough large to handle a full 256 color palette in IFF/ILBM format
     SyCall     MemFastClear
     cmpa.l     #0,a0
-    Rbeq       L_Err15                 ; Error 15 : Not enough memory
+    Rbeq       L_Err7                 ; Error 15 : Not enough memory
     ; ******** And then, we check block was created otherwise we cast an error
     Dlea       AgaCMAPColorFile,a1
     move.l     a0,(a1)                 ; Save the new block in Memory
@@ -2087,8 +1715,8 @@ BkPal:
     bne.s       .cty                   ; No bank = -> Jump .no deletion
     Rbra        L_Err4                 ; No Colors Palette Bank at this location
 .cty:
-    btst        #Bnk_BitPalette,d0     ; No Bnk_BitMemblock flag = not a memblock
-    Rbeq        L_Err17                ; Not a memblock -> Error
+    btst        #Bnk_BitPalette,d0     ; No Bnk_BitPalette flag = not a memblock
+    Rbeq        L_Err5                 ; Not a Color Palette bank -> Error
     Move.l      (a0)+,d0               ; D0 = Palette bank Size, A0 = Pointer to Palette byte #0 
     Dlea        AgaCMAPColorFile,a1
     Move.l      (a1),a1                ; A1 = Loaded IFF/ILBM Color Palette file
@@ -2096,7 +1724,7 @@ BkPal:
     Add.l       #def_CMAP,a1           ; A1 point to "CMAP" header in the loaded file.
     cmp.l       #"CMAP",(a1)
     beq.s       .loadedCMAPisOk
-    Rbra        L_Err16                ; CMAP not found at its logical location
+    Rbra        L_Err8                ; CMAP not found at its logical location
 .loadedCMAPisOk:
     add.l       #4,a1                  ; A1 point to CMAP Size
     move.l      (a1)+,d0               ; D0 = CMAP size
@@ -2116,13 +1744,100 @@ BkPal:
   Lib_Def    notCMAPFile
     Rbsr       L_LoadRegsD6D7          ; Load Amos System registers
     Rbsr       L_CloseFile
-    Rbra       L_Err14                 ; Error : The specified file is not an IFF/ILBM Color Map (CMAP) file.
+    Rbra       L_Err6                 ; Error : The specified file is not an IFF/ILBM Color Map (CMAP) file.
 
   Lib_Def    notCMAPFileSizeKO
     Rbsr       L_LoadRegsD6D7          ; Load Amos System registers
     Rbsr       L_CloseFile
-    Rbra       L_Err20                 ; Error : The IFF/FORM file size is incorrect.
+    Rbra       L_Err9                 ; Error : The IFF/FORM file size is incorrect.
 
+
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : PaletteID, ColorID                           *
+; *                                                           *
+; * Return Value : RGB24Value                                 *
+; *************************************************************
+  Lib_Par   GetPaletteColourID
+    move.l      d3,d4                 ; D4 = ColorID
+    move.l      (a3)+,d0              ; D0 = Color Palette BankID
+    cmp.l       #5,d0
+    Rble        L_Err1                ; Colors Palette ID < 6 -> Error : Invalid range
+    cmp.l       #255,d0
+    Rbhi        L_Err1                ; Colors Palette ID > 255 -> Error : Invalid range
+    clr.l       d3
+    Rjsr        L_Bnk.GetAdr
+    Rbeq        L_Err4
+    btst        #Bnk_BitPalette,d0    ; No Bnk_BitPalette flag = not a Colors Palette
+    Rbeq        L_Err3
+    move.l      (a0)+,d3              ; d3 = color palette block size
+    move.l      def_CMAP_size(a0),d3  ; D3 = Colour CMAP size.
+    divu        #3,d3
+    cmp.l       #0,d4
+    Rblt        L_Err11               ; Err11 : The requested color index is out of the color palette range.
+    cmp.l       d3,d4
+    Rbge        L_Err11               ; Err11 : The requested color index is out of the color palette range.
+    mulu        #3,d4                 ; Each Color component uses 3 bytes
+    Add.l       #def_CMAP_Colors,d4   ; d4 can point to chosen color in color palette bank A0
+    clr.l       d3
+    add.l       d4,a0
+    move.b      (a0)+,d3
+    lsl.l       #8,d3
+    move.b      (a0)+,d3
+    lsl.l       #8,d3
+    move.b      (a0)+,d3
+    or.l        #modeRgb24,d3         ; Set RGB24 return value mode
+    Ret_Int
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : PaletteID, ColorID, RGB24Value               *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par   SetPaletteColourID
+    move.l      d3,d2                 ; D2 = RGB24Value
+    move.l      (a3)+,d4              ; D4 = ColorID
+    move.l      (a3)+,d0              ; D0 = Color Palette BankID
+    cmp.l       #5,d0
+    Rble        L_Err1                ; Colors Palette ID < 6 -> Error : Invalid range
+    cmp.l       #255,d0
+    Rbhi        L_Err1                ; Colors Palette ID > 255 -> Error : Invalid range
+    clr.l       d3
+    Rjsr        L_Bnk.GetAdr
+    Rbeq        L_Err4
+    btst        #Bnk_BitPalette,d0    ; No Bnk_BitPalette flag = not a Colors Palette
+    Rbeq        L_Err3
+    move.l      (a0)+,d3              ; d3 = color palette block size
+    move.l      def_CMAP_size(a0),d3  ; D3 = Colour CMAP size.
+    divu        #3,d3
+    cmp.l       #0,d4
+    Rblt        L_Err11               ; Err11 : The requested color index is out of the color palette range.
+    cmp.l       d3,d4
+    Rbge        L_Err11               ; Err11 : The requested color index is out of the color palette range.
+    mulu        #3,d4                 ; Each Color component uses 3 bytes
+    Add.l       #def_CMAP_Colors,d4   ; d4 can point to chosen color in color palette bank A0
+    add.l       d4,a0
+    ForceToRGB24 d2,d2                ; Force color value to be RGB24 bits
+    move.l      d2,d0
+    swap        d0
+    move.b      d0,(a0)+              ; Push R8 in (a0)+
+    move.l      d2,d0
+    lsr.l       #8,d0
+    move.b      d0,(a0)+              ; Push G8 in (a0)+
+    move.b      d4,(a0)+              ; Push B8 in (a0)+
+    rts
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
@@ -2604,73 +2319,34 @@ ErDisk:
     moveq   #4,d0
     Rbra    L_Errors
 
-;  Lib_Def Err5             ; 
-;    moveq   #5,d0
-;    Rbra    L_Errors
-;
-;  Lib_Def Err6             ;
-;    moveq   #6,d0
-;    Rbra    L_Errors
-;
-;  Lib_Def Err7             ;
-;    moveq   #7,d0
-;    Rbra    L_Errors
-;
-;  Lib_Def Err8             ;
-;    moveq   #8,d0
-;    Rbra    L_Errors
-;
-;  Lib_Def Err9             ;
-;    moveq   #9,d0
-;    Rbra    L_Errors
+  Lib_Def Err5             ; 
+    moveq   #5,d0
+    Rbra    L_Errors
 
-  Lib_Def Err10            ; The Memblock ID Range is 1-255
+  Lib_Def Err6            ; The specified file is not an IFF/ILBM Color Map (CMAP) file.
+    moveq   #6,d0
+    Rbra    L_Errors
+
+  Lib_Def Err7            ; Cannot allocate memory to store the IFF/ILBM CMAP file.
+    moveq   #7,d0
+    Rbra    L_Errors
+
+  Lib_Def Err8            ; The loaded IFF/ILBM, CMAP header is not found at normal location.
+    moveq   #8,d0
+    Rbra    L_Errors
+
+  Lib_Def Err9            ; The IFF/FORM file size is incorrect
+    moveq   #9,d0
+    Rbra    L_Errors
+
+  Lib_Def Err10           ; The input RGB format is not recognized.
     moveq   #10,d0
     Rbra    L_Errors
 
-  Lib_Def Err11            ; Not enough free memory to allocate the requested memblock
+  Lib_Def Err11           ; The requested color index is out of the color palette range.
     moveq   #11,d0
     Rbra    L_Errors
 
-  Lib_Def Err12            ; Memblock Size is incorrect
-    moveq   #12,d0
-    Rbra    L_Errors
-
-  Lib_Def Err13            ; There is no memblock bank at this slot
-    moveq   #13,d0
-    Rbra    L_Errors
-
-  Lib_Def Err14            ; The specified file is not an IFF/ILBM Color Map (CMAP) file.
-    moveq   #14,d0
-    Rbra    L_Errors
-
-  Lib_Def Err15            ; Cannot allocate memory to store the IFF/ILBM CMAP file.
-    moveq   #15,d0
-    Rbra    L_Errors
-
-  Lib_Def Err16            ; The loaded IFF/ILBM, CMAP header is not found at normal location.
-    moveq   #16,d0
-    Rbra    L_Errors
-
-  Lib_Def Err17             ; This bank is not a memblock bank
-    moveq   #17,d0
-    Rbra    L_Errors
-
-  Lib_Def Err18            ; The requested position is out of memblock size/range
-    moveq   #18,d0
-    Rbra    L_Errors
-
-;  Lib_Def Err19            ; 
-;    moveq   #19,d0
-;    Rbra    L_Errors
-
-  Lib_Def Err20            ; The IFF/FORM file size is incorrect
-    moveq   #20,d0
-    Rbra    L_Errors
-
-  Lib_Def Err21            ; The memblock position entered is not word aligned
-    moveq   #21,d0
-    Rbra    L_Errors
 
     Lib_Def Errors
     lea     ErrMess(pc),a0
@@ -2686,25 +2362,22 @@ ErrMess:
     dc.b    "Colors amount is incorrect (Valids values are 2,4,8,16,32,64,128,256)", 0             * Error #2 USED
     dc.b    "Not enough free memory to allocate the requested colors palette",0                    * Error #3 USED
     dc.b    "There is no colors palette bank at this slot",0                                       * Error #4 USED
+    dc.b    "This bank is not a Color Palette bank.",0                                             * Error #5 USED
 ; *******
-    dc.b    "Starting color palette position is invalid (Valid range 0-255).", 0                       * Error #5 UNUSED
-    dc.b    "Color palette range cannot exceed value 255.", 0                                          * Error #6 UNUSED
-    dc.b    "Screen index is invalid. (Valid range 0-12).", 0                                          * Error #7 UNUSED
-    dc.b    "Chosen screen color range for copy is out of screen colors range.", 0                     * Error #8 UNUSED
-    dc.b    "Invalid amount of colors to copy (Valid range is 1-255 for AGA and 1-31 for ECS).",0      * Error #9 UNUSED
-; ******** Memblocks error messages CURRENT VERSION
-    dc.b    "Valid memblock id range is 6-65535.",0                                                * Error #10 USED
-    dc.b    "Not enough free memory to allocate the requested memblock.",0                         * Error #11 USED
-    dc.b    "Memblock Size is incorrect.",0                                                        * Error #12 USED
-    dc.b    "There is no memblock bank at this slot.",0                                            * Error #13 USED
-    dc.b    "The specified file is not an IFF/ILBM Color Map (CMAP) file.",0                       * Error #14 USED
-    dc.b    "Cannot allocate memory to store the IFF/ILBM CMAP file.",0                            * Error #15 USED
-    dc.b    "The loaded IFF/ILBM, CMAP header is not found at normal location.",0                  * Error #16 USED
-    dc.b    "This bank is not a memblock bank.",0                                                  * Error #17 USED
-    dc.b    "The requested position is out of memblock size/range.",0                              * Error #18 USED
-    dc.b    "The IFF CMAP Color palette is corrupted.",0                                 * Error #19 UNUSED
-    dc.b    "The IFF/FORM file size is incorrect.",0                                               * Error #20 USED
-    dc.b    "The memblock position entered is not word aligned.",0                                 * Error #21 USED
+    dc.b    "The specified file is not an IFF/ILBM Color Map (CMAP) file.",0                       * Error #6 USED -> (#14)
+    dc.b    "Cannot allocate memory to store the IFF/ILBM CMAP file.",0                            * Error #7 USED -> (#15)
+    dc.b    "The loaded IFF/ILBM, CMAP header is not found at normal location.",0                  * Error #8 USED -> (#16)
+    dc.b    "The IFF/FORM file size is incorrect.",0                                               * Error #9 USED -> (#20)
+; *******
+    dc.b    "The input RGB format is not recognized."                                              * Error #10
+    dc.b    "The requested color index is out of the color palette range."                         * Error #11
+
+    dc.b    "Starting color palette position is invalid (Valid range 0-255).", 0                   * Error #5 UNUSED
+    dc.b    "Color palette range cannot exceed value 255.", 0                                      * Error #6 UNUSED
+    dc.b    "Screen index is invalid. (Valid range 0-12).", 0                                      * Error #7 UNUSED
+    dc.b    "Chosen screen color range for copy is out of screen colors range.", 0                 * Error #8 UNUSED
+    dc.b    "Invalid amount of colors to copy (Valid range is 1-255 for AGA and 1-31 for ECS).",0  * Error #9 UNUSED
+    dc.b    "The IFF CMAP Color palette is corrupted.",0                                          * Error #19 UNUSED
 * IMPORTANT! Always EVEN!
     even
 
@@ -2731,9 +2404,9 @@ ErrMess:
 ;     +++ TITLE OF THE EXTENSION!
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_Title    dc.b    "AMOSPro Unity Support extension V "
-    Version
+    VersionUS
     dc.b    0,"$VER: "
-    Version
+    VersionUS
     dc.b    0
     Even
 

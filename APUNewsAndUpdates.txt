@@ -1,4 +1,9 @@
 ; **************************************************************
+TO DO :
+- AGA Rainbow compatible with ECS ones
+- Detect CPU+FastRam performances to see if blitter is faster than Cpu+FastRam and then select CPU or BLITTER for FIcons paste method.
+  To do this, I must do some tests in WinUAE to see where the CPU+Ram start to be faster than Blitter
+
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
 
@@ -7,6 +12,15 @@ TO DO AFTER :
 - Create a compilation process that allow to load .ASCII, tokenise them (test) and then compiles them to .exe (like compiler) to make .ASCII being compilable from commons IDE.
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
+
+; ************************************************************************
+; 2021.03.12
+AmosPro_UnitySupporT.lib :
+- Updated SeparateRGBComponents, MergeRGBComponents and ForceToRGB24 to cast an error when an unknown input format is detected
+- Optimized L_CreatePalette3 checking for amount of colors requested in creation process
+- Added RGB24Value = Get Palette Color( PaletteBANKID, ColorINDEX ) (method GetPaletteColourID )
+- Added Set Palette Color( PaletteBANKID, ColorINDEX, RGB12/15/24ColorValue ) (method SetPaletteColourID )
+
 
 ; ************************************************************************
 ; 2021.03.11
