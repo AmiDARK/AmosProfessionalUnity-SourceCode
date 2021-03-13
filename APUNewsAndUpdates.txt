@@ -3,6 +3,7 @@ TO DO :
 - AGA Rainbow compatible with ECS ones
 - Detect CPU+FastRam performances to see if blitter is faster than Cpu+FastRam and then select CPU or BLITTER for FIcons paste method.
   To do this, I must do some tests in WinUAE to see where the CPU+Ram start to be faster than Blitter
+- Add color palette save in F Icons bank with get/set colors for it and interactions with color palette banks.
 
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
@@ -14,8 +15,19 @@ TO DO AFTER :
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
 ; ************************************************************************
+; 2021.03.13
+- Planet Zybex updated as "Get Palette" now detect exact screen colour amount to get and does not copy colours outside the screen range.
+- Wonderland tested OK.
+- Assign updated for Amos Professional Unity
+- Editor & Interpreter configurations creation updated
+- Amos Professional Unity Editor menu links to launch applications updated and tested ok.
+- Update Compiler/APComp.s for Sprites & Icons banks with AGAP mode (256 colors)
+- Fixed the issue that prevented Amos Professional Unity compiled program from returning to WorkBench on exit.
+- Update Compiler/Header.s to handle new AmosProUnityXXX.library instead of old AMOS.library 
+
+; ************************************************************************
 ; 2021.03.12
-AmosPro_UnitySupporT.lib :
+AmosPro_UnitySupport.lib :
 - Updated SeparateRGBComponents, MergeRGBComponents and ForceToRGB24 to cast an error when an unknown input format is detected
 - Optimized L_CreatePalette3 checking for amount of colors requested in creation process
 - Added RGB24Value = Get Palette Color( PaletteBANKID, ColorINDEX ) (method GetPaletteColourID )

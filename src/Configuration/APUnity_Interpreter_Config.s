@@ -115,8 +115,8 @@ Txt1		EdT	1,<APUSystem/>
 		EdT	9,<AmosProUnity_Productivity1:Equates/AMOSPro_System_Equates>	
 		EdT	10,<AmosProUnity_Monitor>
 		EdT	11,<AmosPro_Monitor_Resource.Abk>
-		EdT	12,<AmosProUnity_Accessories:AMOSPro_Help/AMOSPro_Help>
-		EdT	13,<AmosProUnity_Accessories:AMOSPro_Help/LatestNews>
+		EdT	12,<AmosProUnity_Accessories:AMOSProUnity_Help/AMOSProUnity_Help>
+		EdT	13,<AmosProUnity_Accessories:AMOSProUnity_Help/LatestNews>
 		EdT	14,<AmosProUnity.Lib>
 		EdT	15,<>
 ; Liste des 26 extensions

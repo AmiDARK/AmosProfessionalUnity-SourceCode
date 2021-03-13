@@ -7,12 +7,12 @@ echo "Step 1/1 : Compile complier components"
 ; ***************************************************** STEP 1 : Prepare the compiler configuration file and push it in the correct place
 echo "***Assembling the Compiler Configuration"
 c/Genim2 src/compiler/Compiler_Config.s -oRAM:Compiler_Config.o
-c/Get_Chunk RAM:Compiler_Config.o AmosProfessionalUnity/Extras/Configurations/AMOSProUnity_Compiler_Config.Backup
+c/Get_Chunk RAM:Compiler_Config.o AmosProfessionalUnity/Unity_Extras/Configurations/AMOSProUnity_Compiler_Config.Backup
 delete RAM:Compiler_Config.o
 echo "***Installing compiler configuration"
-Copy AmosProfessionalUnity/Extras/Configurations/AMOSProUnity_Compiler_Config.Backup AmosProfessionalUnity/S/AMOSProUnity_Compiler_Config
+Copy AmosProfessionalUnity/Unity_Extras/Configurations/AMOSProUnity_Compiler_Config.Backup AmosProfessionalUnity/S/AMOSProUnity_Compiler_Config
 echo "***Installing compiler configuration to s:"
-Copy AmosProfessionalUnity/Extras/Configurations/AMOSProUnity_Compiler_Config.Backup s:AMOSProUnity_Compiler_Config
+Copy AmosProfessionalUnity/Unity_Extras/Configurations/AMOSProUnity_Compiler_Config.Backup s:AMOSProUnity_Compiler_Config
 
 
 ; ***************************************************** STEP 2 : Compile the AMOSPro_Sustem:APUSystem/APUCmp file

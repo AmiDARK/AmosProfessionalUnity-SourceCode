@@ -162,7 +162,7 @@ pp_Flash	dc.l	0
 pp_CrunchInfo	dc.l	0
 
 Cmp_Name1	dc.b	"C:"
-Cmp_Name2	dc.b	"APCmp",0
+Cmp_Name2	dc.b	"APUCmp",0
 CSize		dc.l	0
 CNumb		dc.l	0
 LErreur		dc.w	0
@@ -227,7 +227,7 @@ pp_Name		dc.b	"powerpacker.library",0
 ; ~~~~~~~~~~~~~~~~~~~~~~~
 .Step	move.l	d3,Cmp_NSteps-CD(a2)
 	rts
-; Stocke l'adresse de la config
+; Stocke l''adresse de la config
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Conf	move.l	d3,Cmp_Config-CD(a2)
 	rts
@@ -305,9 +305,9 @@ pp_Name		dc.b	"powerpacker.library",0
 	Lib_Par	CompLoad0
 ; - - - - - - - - - - - - -
 	Dload	a2
-	lea	Cmp_Name2-CD(a2),a0	APCMP
-	Rjsr	L_Sys_AddPath		+ path systeme
-	Rbra	L_CLoad			= nom complet!
+	lea	    Cmp_Name2-CD(a2),a0    ; APUCMP
+	Rjsr	L_Sys_AddPath	       ; + path systeme
+	Rbra	L_CLoad		           ; = nom complet!
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;	COMP LOAD "nom"
@@ -470,7 +470,7 @@ Cmp3	rts
 	move.l	d0,d5
 	moveq	#0,d0
 	Rjsr	L_ResTempBuffer
-; Lis l'entete
+; Lis l''entete
 	move.l	Buffer(a5),d2
 	moveq	#4,d3
 	Rjsr	L_D_Read
@@ -558,7 +558,7 @@ Cmp3	rts
 	Rbne	L_OOMem
 	bra.s	.BB
 ; Icons
-.Icons	move.w	(a3)+,d6		Nombre d'icons
+.Icons	move.w	(a3)+,d6		Nombre d''icons
 	tst.l	d5			Overwrite?
 	ble.s	.IOver
 	Rjsr	L_Bnk.GetIcons		Demande le nombre de bobs
@@ -597,7 +597,7 @@ Cmp3	rts
 	move.w	-4(a3),(a0)		Plus de FLAGS!
 	and.w	#$3FFF,(a0)+
 	move.w	-2(a3),(a0)+
-	move.l	a0,a1			Copie l'image
+	move.l	a0,a1			Copie l''image
 	move.l	a3,a0
 	move.l	d3,d0
 	Rjsr	L_TransMem
@@ -740,7 +740,7 @@ Cmp3	rts
 .Errnotres
 	Rjmp	L_BkNoRes
 
-;	Trouve la taille d'une banque de memoire quelconque, avec le nom
+;	Trouve la taille d''une banque de memoire quelconque, avec le nom
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 B_Length
 	movem.l	a0-a1/d1-d2,-(sp)
@@ -1543,7 +1543,8 @@ L224506	ROXL.L	#1,D2
 	moveq	#ExtNb,d2		* Number of extension
 	moveq	#0,d3			* IMPORTANT!!!
 	Rjmp	L_ErrorExt		* Jump to routine...
-ErrMess	dc.b	"Cannot run 1.3 compiled procedures under AMOSPro",0
+ErrMess
+	dc.b	"Cannot run 1.3 compiled procedures under AMOSPro",0
 	dc.b	"Cannot open powerpacker.library (v35)",0
 	dc.b	"Not a powerpacked memory bank",0
 	dc.b	"Cannot pack this bank",0	

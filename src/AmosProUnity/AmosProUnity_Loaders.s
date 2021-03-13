@@ -1961,7 +1961,7 @@ AutoAssigns
 .CoCop    move.b    (a0)+,(a1)+
     bne.s    .CoCop
     JJsr    L_RExist
-    beq.s    .NoAss
+    beq.w    .NoAss
 ; Fait les assigns...
     JJsr    L_AskDir
     lea    AssCon(pc),a0        Ouvre un NIL:
@@ -1972,25 +1972,28 @@ AutoAssigns
     beq.s    .NoAss
     move.l    d0,ParamE(a5)
     moveq    #0,d2
-    lea    Ass1(pc),a0        Productivity1
+    lea    Ass1(pc),a0        Accessories
     bsr.s    DoAssign
     add.w    d0,d2
     lea    Ass2(pc),a0        Productivity1
     bsr.s    DoAssign
     add.w    d0,d2
-    lea    Ass3(pc),a0        Tutorial
+    lea    Ass3(pc),a0        Productivity2
     bsr.s    DoAssign
     add.w    d0,d2
-    lea    Ass4(pc),a0        Examples
+    lea    Ass4(pc),a0        Tutorials
     bsr.s    DoAssign
     add.w    d0,d2
-    lea    Ass5(pc),a0        Accessories
+    lea    Ass5(pc),a0        Examples
     bsr.s    DoAssign
     add.w    d0,d2
     lea    Ass6(pc),a0        Compiler
     bsr.s    DoAssign
     add.w    d0,d2
-    lea    Ass7(pc),a0        Extras
+    lea    Ass7(pc),a0        Extras (Unity)
+    bsr.s    DoAssign
+    add.w    d0,d2
+    lea    Ass8(pc),a0        Examples (Classics)
     bsr.s    DoAssign
     add.w    d0,d2
     beq.s    .Skip            sur les accessoires,
@@ -2923,7 +2926,7 @@ Boot_Fatal
 Nom_W:
     ds.b       32
 NDatas2:
-    dc.b       "s:"
+    dc.b       "s:AMOSProUnity_Interpreter_Config"
 NDatas1:
     dc.b       "AMOSProUnity_Interpreter_Config",0
 NDatas3:
@@ -2969,30 +2972,33 @@ Ass0:
     dc.b       "AMOSProUnity_System:",0
     dc.b       0
 
+; General Association remains unchanged as they contain original Amos Professional (compatibles) datas
+Ass1:
+    dc.b       "AMOSProUnity_Accessories:",0
+    dc.b       "Unity_Accessories",0
+Ass2:
+    dc.b       "AMOSProUnity_Productivity1:",0
+    dc.b       "Unity_Productivity",0
+Ass3:
+    dc.b       "AMOSProUnity_Productivity2:",0
+    dc.b       "Unity_Productivity",0
+Ass4:
+    dc.b       "AMOSProUnity_Tutorial:",0
+    dc.b       "Unity_Tutorial",0
+Ass5:
+    dc.b       "AMOSProUnity_Examples:",0
+    dc.b       "Unity_Examples",0
 ; Compiler Association updated to Unity mode
 Ass6:
     dc.b       "AMOSProUnity_Compiler:",0
-    dc.b       "APUCompiler",0
-
-; General Association remains unchanged as they contain original Amos Professional (compatibles) datas
-Ass1:
-    dc.b       "AMOSPro_Accessories:",0
-    dc.b       "Accessories",0
-Ass2:
-    dc.b       "AMOSPro_Productivity1:",0
-    dc.b       "Productivity",0
-Ass3:
-    dc.b       "AMOSPro_Productivity2:",0
-    dc.b       "Productivity",0
-Ass4:
-    dc.b       "AMOSPro_Tutorial:",0
-    dc.b       "Tutorial",0
-Ass5:
-    dc.b       "AMOSPro_Examples:",0
-    dc.b       "Examples",0
+    dc.b       "Unity_Compiler",0
+; Extras
 Ass7:
-    dc.b       "AMOSPro_Extras:",0
-    dc.b       "Extras",0
+    dc.b       "AMOSProUnity_Extras:",0
+    dc.b       "Unity_Extras",0
+Ass8:
+    dc.b       "AMOSProUnity_ClassicsExamples:",0
+    dc.b       "Classics_Examples",0
 AssCon:
     dc.b       "NIL:",0
 

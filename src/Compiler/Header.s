@@ -128,38 +128,91 @@ ReRun_Normal
 
 ; 4-5 : amos.library + datazone + mouse.abk
 	btst	#FHead_PRun,Head_Flags(a4)	PRun?
-	bne	.PRunne
+	bne	 LocPRunne
 	btst	#FHead_Run,Head_Flags(a4)	Run?
-	bne	.Runne
+	bne	  LocRunne
 
 	lea	H_Load+3*8(a4),a6
 	bsr	DecHunk
 	bmi	Abort_Mem
 	tst.l	(a1)				Une librairie?
-	bne.s	.Libhere
-	bsr	EffLastLoad			Non, on enleve de la memoire
+	bne    LocLibhere
+	bsr	   EffLastLoad			Non, on enleve de la memoire
 	move.l	a6,-(sp)			Et on charge du disque
+
+; * Before loading any AmosProfessionalUnityXXX.library, we try to detect which chipset the program run.
+; ***************************************************************************************************************** DETECT AGA CHIPSET HERE
+detectChipsetToLoad.library:
+    movem.l    a0/d1-d3,-(sp)              ; 2020.08.10 Save registers before doing AGA Checking : Fix the AMOS Switcher AMOS/WB
+    moveq     #30,d3             ; Loop amount()
+    lea     $dff07c,a0         ; lea the register to check content
+    move.w     (a0),d1         ; D1 = read register
+    and.w     #$FF,d1         ; D1 = filtered
+dcLoop:
+    move.w     (a0),d2         ; D2 = Read Register
+    and.w     #$FF,d2         ; D2 = filtered
+    cmp.b     d1,d2             ; Compare D1 read & D2 Read
+    bne.s     cEcs             ; Not equal -> Bus Garbage -> ECS
+    dbra     d3,dcLoop         ; Loop until d3 = -1
+    or.b     #$F0,d1         ; D1 & $F0
+    cmp.b     #$F8,d1         ; if D1 =$F8 -> AGA
+    bne.s     cEcs             ; Else -> ECS
+;    move.w     #1,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3
+    bra       openAmosProfessionalAGALib
+cEcs:
+;    move.w     #0,T_isAga(a5)
+    movem.l    (sp)+,a0/d1-d3              ; 2020.08.10 Restore registers after AGA Checking completed : Fix the AMOS Switcher AMOS/WB
+
+; ********************************************* Open ECS Version of the Library
+openAmosProfessionalECSLib:
+; Charge amos.library: differents essais si pas installe!
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	move.l	H_DosBase(a4),a6
-	lea	LibName2(pc),a0			APSystem/amos.library
-	move.l	a0,d1
-	jsr	_LVOLoadSeg(a6)
-	tst.l	d0
-	bne.s	.Ok
-	lea	LibName3(pc),a0			libs/amos.library
-	move.l	a0,d1
-	jsr	_LVOLoadSeg(a6)
-	tst.l	d0
-	bne.s	.Ok
-	lea	LibName1(pc),a0			libs:amos.library
-	move.l	a0,d1
-	jsr	_LVOLoadSeg(a6)
-.Ok	move.l	(sp)+,a6
+    lea    LibNameECS2(pc),a0        APSystem/AmosProfessionalUnityECS.library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameECS3(pc),a0        libs/AmosProfessionalUnityECS.library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameECS1(pc),a0        libs:AmosProfessionalUnityECS.library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+;    bne.s    LibraryLoaded.Ok
+    bra    LibraryLoaded.Ok
+
+; ********************************************* Open AGA Version of the Library
+openAmosProfessionalAGALib:
+	move.l	H_DosBase(a4),a6
+    lea    LibNameAGA2(pc),a0        APSystem/AmosProfessionalUnityAGA.Library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameAGA3(pc),a0        libs/AmosProfessionalUnityAGA.Library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameAGA1(pc),a0        libs:AmosProfessionalUnityAGA.Library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    
+LibraryLoaded.Ok:
+
+    move.l	(sp)+,a6
 	move.l	d0,H_WSegment(a4)		Adresse du segment
 	lsl.l	#2,d0
 	beq	Abort_Lib
 	addq.l	#4,d0
 	move.l	d0,a1
-.Libhere
+LocLibhere:
 	move.l	a1,a3
 	move.l	a3,H_WAddress(a4)	Adresse amos.library
 
@@ -179,7 +232,7 @@ ReRun_Normal
 	lea	-32(a0),a0
 	move.l	a0,BufLabel(a5)		Buffer label expression
 	lea	-BbLong(a0),a0
-	move.l	a0,BufBob(a5)		Buffer dessin d'un bob
+	move.l	a0,BufBob(a5)		Buffer dessin d''un bob
 	lea	-12*2(a0),a0
 	move.l	a0,MnTDraw(a5)		Buffer outline menus
 	lea	-(AAreaSize*5+6)(a0),a0
@@ -226,15 +279,18 @@ ReRun_Normal
 	bne.s	.Mouse
 	bsr	EffLastLoad
 	bra.s	.FMouse
-.Mouse	move.l	a1,PI_AdMouse(a5)
-.FMouse	bra.s	.Fin45
+.Mouse:
+	move.l	a1,PI_AdMouse(a5)
+.FMouse:
+	bra.s	LocFin45
 
 ; 4-5: RUN, on ne charge rien
-.Runne	bsr	EffHunk			Saute AMOS.library
+LocRunne:
+	bsr	EffHunk			Saute AMOS.library
 	bsr	EffHunk			Saute mouse.abk
-.Fin45
+LocFin45:
 
-; 6 : Recopie l'environement systeme
+; 6 : Recopie l''environement systeme
 	lea	H_Load+5*8(a4),a6
 	bsr	DecHunk			Environment interpreter
 	bmi	Abort_Mem
@@ -251,14 +307,15 @@ ReRun_Normal
 .Cop2	move.b	(a1)+,(a0)+
 	dbra	d0,.Cop2
 	bsr	EffLastLoad
-	bra.s	.PaPRun
+	bra.s	LocPaPRun
 
 ; 4-5-6: PRUN, on saute tout!
-.PRunne	bsr	EffHunk			amos.library
+LocPRunne:
+	bsr	EffHunk			amos.library
 	bsr	EffHunk			mouse.abk
 	bsr	EffHunk			environment systeme
 	move.b	#1,H_PRun(a4)		Met le flag PRUN
-.PaPRun
+LocPaPRun:
 
 ; 7 : Banque de dialogues par defaut
 	lea	H_Load+6*8(a4),a6
@@ -279,7 +336,7 @@ ReRun_Normal
 	move.l	a0,Sys_Resource(a5)
 .Nobk
 
-; 8 : les messages d'erreur
+; 8 : les messages d''erreur
 	lea	H_Load+7*8(a4),a6
 	bsr	DecHunk
 	bmi	Abort_Mem
@@ -526,10 +583,10 @@ Load_Run
 ; 	SORTIE DU PROGRAMME
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-;	Messages d'erreur!
+;	Messages d''erreur!
 ; ~~~~~~~~~~~~~~~~~~~~~~~~
 Abort_Panic				
-	moveq	#20,d0			Rien n'est ouvert!
+	moveq	#20,d0			Rien n''est ouvert!
 	bra	Abort_Finish
 Abort_Mem				
 	moveq	#-2,d0			Out of mem
@@ -537,13 +594,13 @@ Abort_Mem
 Abort_Lib
 	moveq	#-3,d0			Cannot open amos.library
 
-;	Trouve / Copie le message d'erreur
+;	Trouve / Copie le message d''erreur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Abort	move.l	d0,-(sp)		Message d'erreur reel
+Abort	move.l	d0,-(sp)		Message d''erreur reel
 	sub.l	a2,a2
 	move.l	d0,d2
 	beq.s	.Push
-	moveq	#20,d2			Message d'erreur CLI= 20
+	moveq	#20,d2			Message d''erreur CLI= 20
 	cmp.w	#-2,d0			Out of memory
 	beq.s	.Mem
 	cmp.w	#-3,d0			Cannot open amos.library
@@ -562,7 +619,7 @@ Abort	move.l	d0,-(sp)		Message d'erreur reel
 	bne.s	.Copy
 .Push	movem.l	a2/d2,-(sp)
 
-; Quelquechose d'ouvert?
+; Quelquechose d''ouvert?
 	move.l	Header_DZ(pc),d0	Adresse de la datazone
 	beq.s	.PMess			Rien de demarre!
 	move.l	d0,a4
@@ -576,7 +633,7 @@ Abort	move.l	d0,-(sp)		Message d'erreur reel
 	move.l	H_IntBase(a4),d6
 	lea	Header_DZ(pc),a0
 	bsr	A0_Free
-; Imprime l'eventuel message d'erreur
+; Imprime l''eventuel message d''erreur
 .PMess	move.l	4(sp),a0
 	bsr	Print_Message
 	move.l	(sp),d0
@@ -608,7 +665,7 @@ Abort_Finish
 	move.l	Header_Pile(pc),sp
 	rts
 
-; Sort d'un PRUN
+; Sort d''un PRUN
 ; ~~~~~~~~~~~~~~
 Abort_PRun
 	bsr	Abort_Run		Les banques + buffers
@@ -620,7 +677,7 @@ Abort_PRun
 	move.l	H_IntBase(a4),d6
 	lea	Header_DZ(pc),a0	La zone de donnee header
 	bsr	A0_Free
-	move.l	8(sp),d0		Reprend le message d'erreur
+	move.l	8(sp),d0		Reprend le message d''erreur
 	bra.s	Abort_Finish		On sort!
 
 ; Ferme toute la datazone AMOS 
@@ -684,7 +741,7 @@ Abort_Run
 	clr.l	Sys_Resource(a5)
 .NoRes	rts
 
-; 	Imprime le message d'erreur dans l'entree courante
+; 	Imprime le message d''erreur dans l''entree courante
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;	A0=	Message
 ;	D4=	WB Message
@@ -883,7 +940,7 @@ Get_Bank
 	subq.l	#8,4(a1)
 	move.l	(a0),(a1)
 	move.l	a1,(a0)
-	bsr	EffLastLoad		Efface l'origine
+	bsr	EffLastLoad		Efface l''origine
 	bra	.Ok
 	ENDC
 ; Banque de sprites
@@ -891,7 +948,7 @@ Get_Bank
 	lea	Head_Sprite(pc),a0
 	moveq	#1<<Bnk_BitBob+1<<Bnk_BitData,d4
 	bra.s	.SprIco
-; Banque d'icones
+; Banque d''icones
 .Ico	moveq	#2,d3
 	lea	Head_Icon(pc),a0
 	moveq	#1<<Bnk_BitIcon+1<<Bnk_BitData,d4
@@ -901,7 +958,7 @@ Get_Bank
 	move.w	(a1)+,d2		Nombre de sprites
 	move.w	d2,d0
 	lsl.w	#3,d0			* 8
-	add.w	#24+2+32*2,d0		+ header + Palette
+	add.w	#24+2+259*2,d0		+ header + Palette ; * 2021.03.13 Updated from 32 colors to 256 + AGAP & Count (256*2)+6 = 259*2)
 	ext.l	d0
 	SyCall	MemFastClear
 	beq.s	.Error
@@ -920,7 +977,7 @@ Get_Bank
 	move.l	(a0)+,(a2)+
 	move.w	d2,(a2)+		Nombre de sprites
 	bra.s	.SIn
-.SLoop	move.w	(a1),d0			Taille d'un sprite
+.SLoop	move.w	(a1),d0			Taille d''un sprite
 	mulu	2(a1),d0
 	mulu	4(a1),d0
 	beq.s	.SNext
@@ -940,7 +997,7 @@ Get_Bank
 .Pal	move.w	(a1)+,(a2)+
 	dbra	d0,.Pal
 	bsr	EffLastLoad		Debranche des hunks
-; Retourne l'adresse de la banque
+; Retourne l''adresse de la banque
 .Ok	move.l	Cur_Banks(a5),a0	Retourne Start(b)
 	move.l	(a0),a0
 	lea	8*3(a0),a0
@@ -977,7 +1034,7 @@ DecHunk	movem.l	a0/a2-a5/d2-d7,-(sp)
 ; Non compacte, met directement dans la liste delete
 	move.l	(a2),-4(a4)		Detache de la liste
 	move.l	-(a2),d1
-	move.l	a2,(a6)+		Poke l'adresse REELLE dans la liste
+	move.l	a2,(a6)+		Poke l''adresse REELLE dans la liste
 	move.l	d1,(a6)+		La longueur REELLE
 	lea	8(a2),a1
 	subq.l	#8,d1
@@ -1218,10 +1275,30 @@ DosName		dc.b	"dos.library",0
 IntName		dc.b	"intuition.library",0
 GfxName		dc.b	"graphics.library",0
 OOfMem		dc.b	"Out of memory.",0
-NoAMOSlib	dc.b	"Cannot open AMOSProUnityECS.library (V2.01 or newer).",0
-LibName1	dc.b	"Libs:AMOSProAGA.library",0
-LibName2	dc.b	"APUSystem/AMOSProUnityECS.library",0
-LibName3	dc.b	"Libs/AMOSProUnityECS.library",0
+NoAMOSlib	dc.b	"Cannot open AMOSProUnity???.library (V2.01 or newer).",0
+
+
+LibNameECS1:
+    dc.b       "libs:AmosProUnityECS.library",0
+LibNameECS2:
+    dc.b       "APUSystem/AmosProUnityECS.library",0
+LibNameECS3:
+    dc.b       "libs/AmosProUnityECS.library",0
+
+LibNameAGA1:
+    dc.b       "libs:AmosProUnityAGA.library",0
+LibNameAGA2:
+    dc.b       "APUSystem/AmosProUnityAGA.library",0
+LibNameAGA3:
+    dc.b       "libs/AmosProUnityAGA.library",0
+
+LibNameSAGA1:
+    dc.b       "libs:AmosProUnitySAGA.library",0
+LibNameSAGA2:
+    dc.b       "APUSystem/AmosProUnitySAGA.library",0
+LibNameSAGA3:
+    dc.b       "libs/AmosProUnitySAGA.library",0
+
 		even
 Head_Sprite	dc.b	"Sprites ",0
 Head_Icon	dc.b	"Icons   ",0

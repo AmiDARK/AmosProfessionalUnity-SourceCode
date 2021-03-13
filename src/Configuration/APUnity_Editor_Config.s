@@ -1081,7 +1081,7 @@ Ed2
 ; Programmes AUTOLOAD
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	dc.l	Auto2-Auto1
-Auto1	EdT	1,<AMOSProUnity_Accessories:AMOSPro_Help/AMOSPro_Help.AMOS>
+Auto1	EdT	1,<AMOSProUnity_Accessories:AMOSProUnity_Help/AMOSProUnity_Help.AMOS>
 	EdT	2,<HelpMenu>
 	EdT	3,<HelpHelp>
 	EdT	4,<HelpKeyHelp>
@@ -1105,26 +1105,26 @@ Auto1	EdT	1,<AMOSProUnity_Accessories:AMOSPro_Help/AMOSPro_Help.AMOS>
 	EdT	22,<C>
 	EdT	23,<D>
 	EdT	24,<EDIT6>
-	EdT	25,<AMOSProUnity_System:S/UnityInterpreter_Config.AMOS>
-	EdT	26,<AMOSProUnity_System:S/UnityEditor_Config.AMOS>
+	EdT	25,<AMOSProUnity_System:Unity_Configuration/UnityInterpreter_Config.AMOS>
+	EdT	26,<AMOSProUnity_System:Unity_Configuration/UnityEditor_Config.AMOS>
 	EdT	27,<EDIT1>
 	EdT	28,<EDIT2>
 	EdT	29,<EDIT3>
 	EdT	30,<EDIT4>
 	EdT	31,<EDIT5>
-	EdT	32,<AMOSProUnity_Accessories:Object_Editor.AMOS>
+	EdT	32,<AMOSProUnity_Accessories:Classics/Object_Editor.AMOS>
 	EdT	33,<GRABO>
-	EdT	34,<AMOSProUnity_Accessories:Object_Editor.AMOS>
+	EdT	34,<AMOSProUnity_Accessories:Classics/Object_Editor.AMOS>
 	EdT	35,<GRABI>
-	EdT	36,<AMOSProUnity_Accessories:Sample_Bank_Maker.AMOS>
+	EdT	36,<AMOSProUnity_Accessories:Classics/Sample_Bank_Maker.AMOS>
 	EdT	37,<GRAB>
-	EdT	38,<AMOSProUnity_Accessories:Resource_Bank_Maker.AMOS>
+	EdT	38,<AMOSProUnity_Accessories:Classics/Resource_Bank_Maker.AMOS>
 	EdT	39,<GRAB>
-	EdT	40,<AMOSProUnity_Accessories:Disc_Manager.AMOS>
-	EdT	41,<AMOSProUnity_Accessories:Object_Editor.AMOS>
-	EdT	42,<AMOSProUnity_Accessories:Sample_Bank_Maker.AMOS>
-	EdT	43,<AMOSProUnity_Accessories:Resource_Bank_Maker.AMOS>
-	EdT	44,<AMOSProUnity_Tutorial:ReTokenise.AMOS>
+	EdT	40,<AMOSProUnity_Accessories:Classics/Disc_Manager.AMOS>
+	EdT	41,<AMOSProUnity_Accessories:Classics/Object_Editor.AMOS>
+	EdT	42,<AMOSProUnity_Accessories:Classics/Sample_Bank_Maker.AMOS>
+	EdT	43,<AMOSProUnity_Accessories:Classics/Resource_Bank_Maker.AMOS>
+	EdT	44,<AMOSProUnity_Tutorial:Classics/ReTokenise.AMOS>
 	EdT	45,<AMOSProUnity_Compiler:Compiler_Shell.AMOS>
 	EdT	46,<AMOSProUnity_Compiler:Tiny_Shell.AMOS>
 	dc.b	0,$ff
