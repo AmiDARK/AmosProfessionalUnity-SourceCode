@@ -67,6 +67,10 @@ amosprolib_functions:
     bra        AMP_SPalAGA_CurrentScreen    ;  45 A_SPalAGA_CurrentScreen
     bra        AMP_SPalAGA_ScreenA0         ;  46 A_SPalAGA_ScreenA0
     bra        AMP_SPalAGAFull              ;  47 A_SPalAGAFull
+; ******** 2021.03.13 Imported from AmosProX/AmosPro_AGASupport.lib - START
+    bra        APX_NewFADE1                 ;  48 A_NewFADE1 not extracted from AmosPro.lib but from AmosProX/AmosPro_AGASupport.lib
+    bra        APX_NewFADE2                 ;  48 A_NewFADE2 not extracted from AmosPro.lib but from AmosProX/AmosPro_AGASupport.lib
+; ******** 2021.03.13 Imported from AmosProX/AmosPro_AGASupport.lib - END
 
 ;   bra        .........
     dc.l       0
@@ -3169,6 +3173,162 @@ uclAGA1:
 uclAGAEndCPY:
     rts
 
+APX_NewFADE1:
+    movem.l    d0-d7/a0-a2,-(sp)       ; Save Regsxm
+    lea        T_FadeCol(a5),a0        ; A0 = List of colors to update
+    move.l     T_FadePal(a5),a1        ; A1 = Screen Palette (used to update color palette) = EcPal(T_FadeScreen(a5))
+    move.w     T_FadeNb(a5),d0         ; D0 = Amount of colors in the list.
+    move.w     T_FadeStep(a5),d2       ; D2 = Step to fade color
+    ext.l      d2                      ; eXtends D2 sign to .l
+    moveq      #0,d1                   ; D1 = Counter for colour amount that will be updated during this pass.
+    clr.l      d5
+    clr.l      d6
+fadeMainLoop:
+; ***** Check if the current color reach the fade or must be updated
+    tst.b      (a0)+
+    bne.s      updateColor             ; If (a0).b =/= 0 then updateColor
+; ******** (a0) = 0 mean this color reached the limit of fading, no update, next color please.
+noUpdateColor:
+    add.l      #3,a0                   ; Next Color
+    add.w      #2,a1                   ; Jump this color register in EcPal RGB12H & EcPalL RGB12L screen color palette 
+    bra.s      nextColor               ; Jump -> nextColor
+updateColor:
+    moveq      #2,d7                   ; Counter to handle R,G then B and go to next color
+    clr.l      d5                      ; D5 will store RGB12 High bits
+    clr.l      d6                      ; D6 will store RGB12 Low bits
+; ******** Handle R8 Color component in D3, Save : D3 = ....Rh.. and D4 = ....Rl..
+rgbFadeLoop:
+    moveq      #0,d3
+    move.b     (a0)+,d3                ; D3 = R8/G8 or B8 Color Component
+    and.l      #$FF,d3
+    tst.b      d3
+    beq.s      continueFadeAGA         ; if Color component = 0, we do not increase counter
+    addq       #1,d1                   ; Increase updated colours counter
+    sub.w      d2,d3                   ; D3 = D3 + D2 = Fade de la couleur vers le noir ou le blanc ********************************
+    cmp.w      #$FF,d3
+    blt.s      .ctX
+    move.w     #$FF,d3
+.ctX:
+    tst.w      d3
+    bpl.s      continueFadeAGA         ; If D3 > -1 -> Jump continueFadeAGA
+    moveq      #0,d3
+continueFadeAGA:
+    move.b     d3,-1(a0)               ; Save the new color value in the Fade color list
+    move.l     d3,d4                   ; D3 = D4 = R8
+    lsr.w      #4,d3                   ; D3 = ......Rh or ......Gh or ......Bh
+    and.w      #$F,d4                  ; D4 = ......Rl or ......Gl or ......Bl
+    and.w      #$F,d3
+; ******** Shift D6 & D7 by 4 bytes to insert the R4,GB or B4 component
+    lsl.w      #4,d5                   ; D5 = ???????? = ??????..
+    lsl.w      #4,d6                   ; D6 = ???????? = ??????..
+    or.w       d3,d5                   ; D5 = ??????Ch = Store the current High bits component inserted after the previous one
+    or.w       d4,d6                   ; D6 = ??????Cl = sdtore the current low bit component inserted after the previous one
+    dbra d7,rgbFadeLoop                ; Decrease D7 and continue color extraction.
+; ******** Now, we update the screen color palette
+    move.w     d6,EcPalL-EcPal(a1)     ; Save RGB12L to EcPalL color palette
+    move.w     d5,(a1)+                ; Save RGB12H to EcPal color palette
+; Now we continue the loop or finish it.
+nextColor:
+    tst.w      (a0)
+    bmi        listOver
+    dbra       d0,fadeMainLoop
+; Now that the full color palette was updated, we finish the job
+listOver:
+    add.w      #2,d1
+    divu       #3,d1
+    move.w     d1,T_FadeFlag(a5)       ; Update Fade Flag with current amount of colours that were updated
+; ******** Now we will push the colors register 032-255 from Screen to T_globAgaPal
+    move.l     T_FadeScreen(a5),a0
+    lea        EcScreenAGAPal(a0),a1   ; A1 = Color 32 High bits
+    lea        T_globAgaPal(a5),a2     ; A2 = Color 32 High Bits Global Aga Palette
+    move.l     #223,d0                 ; 224 Colors to copy in the T_globAgaPal(L)
+llp1:
+    move.w     EcScreenAGAPalL-EcScreenAGAPal(a1),T_globAgaPalL-T_globAgaPal(a2) ; Copy 1 color register from Screen AGA Palette to Global Aga Palette
+    move.w     (a1)+,(a2)+         ; Copy 1 color register from Screen AGA Palette to Global Aga Palette
+    dbra       d0,llp1         
+;  2020.09.29 The screen color palette update is called directly inside the AmosProAGA.library.
+; Leave clean
+    movem.l    (sp)+,d0-d7/a0-a2       ; LoadRegs.
+    rts
+; ************************************* 2020.09.16 New method to handle AGA color palette fading system - End
+
+; ************************************* 2020.09.29 New method to fade from current color used to a chosen AGA Color palette - Start
+APX_NewFADE2: 
+    movem.l    d0-d7/a0-a2,-(sp)       ; Save Regsxm
+    lea        T_FadeCol(a5),a0        ; A0 = List of colors to update
+    move.l     T_FadePal(a5),a1        ; A1 = Screen Palette (used to update color palette) = EcPal(T_FadeScreen(a5))
+    move.w     T_FadeNb(a5),d0         ; D0 = Amount of colors in the list.
+    move.w     T_FadeStep(a5),d2       ; D2 = Step to fade color
+    and.l      #$FF,d2
+    move.l     T_NewPalette(a5),a2     ; A2 = New CMAP Color Palette
+    moveq      #0,d1
+fadeMainLoop2:
+    add.l      #1,a0
+    moveq      #2,d7                   ; Counter to handle R,G then B and go to next color
+    clr.l      d5                      ; D5 will store RGB12 High bits
+    clr.l      d6                      ; D6 will store RGB12 Low bits
+; ******** Handle R8 Color component in D3, Save : D3 = ....Rh.. and D4 = ....Rl..
+rgbFadeLoop2:
+    moveq      #0,d3
+    moveq      #0,d4
+    move.b     (a0)+,d3                ; D3 = R8/G8 or B8 Color Component
+    move.b     (a2)+,d4                ; D1 = R8/G8 or B8 Color component for color to reach
+    and.l      #$FF,d3
+    and.l      #$FF,d4
+    cmp.w      d4,d3                   ; is D3 = R8/G8 or B8 Color Component ? 
+    beq.s      noUpdate                ; Yes -> noUpdate
+    cmp.w      d4,d3                   ; is D3 = R8/G8 or B8 Color Component ? 
+    bgt.s      lower                   ; D3 > D4 -> Decrease d3 JUMP lower
+upper:                                 ; D3 < D4 -> Increase d3 Next Line
+    add.w      d2,d3                   ; Increase D3
+    cmp.w      d4,d3                   ; is D3 > D4 ?
+    bgt.s      forceEqual              ; Yes Force D3 = D4 -> JUMP forceEqual
+    bra.s      updtColor
+lower:
+    sub.w      d2,d3                   ; Decrease D3
+    cmp.w      d4,d3                   ; is D3 < D4 ?
+    bge.s      updtColor               ; NO -> JUMP update Color
+                                       ; Yes Force D3 = D4 -> Next Line
+forceEqual:
+    move.w     d4,d3
+updtColor:
+    move.b     d3,-1(a0)               ; Update the color in the Fade color list
+    addq       #1,d1
+noUpdate:
+    move.l     d3,d4                   ; D3 = D4 = R8
+    lsr.w      #4,d3                   ; D3 = ......Rh or ......Gh or ......Bh
+    and.w      #$F,d4                  ; D4 = ......Rl or ......Gl or ......Bl
+    and.w      #$F,d3
+; ******** Shift D6 & D7 by 4 bytes to insert the R4,GB or B4 component
+    lsl.w      #4,d5                   ; D5 = ???????? = ??????..
+    lsl.w      #4,d6                   ; D6 = ???????? = ??????..
+    or.w       d3,d5                   ; D5 = ??????Ch = Store the current High bits component inserted after the previous one
+    or.w       d4,d6                   ; D6 = ??????Cl = sdtore the current low bit component inserted after the previous one
+    dbra       d7,rgbFadeLoop2         ; Decrease D7 and continue color extraction.
+; ******** Now, we update the screen color palette
+    move.w     d6,EcPalL-EcPal(a1)     ; Save RGB12L to EcPalL color palette
+    move.w     d5,(a1)+                ; Save RGB12H to EcPal color palette
+; Now we continue the loop or finish it.
+    dbra       d0,fadeMainLoop2
+; Now that the full color palette was updated, we finish the job
+listOver2:
+    add.w      #2,d1
+    divu       #3,d1
+    move.w     d1,T_FadeFlag(a5)       ; Update Fade Flag with current amount of colours that were updated
+; ******** Now we will push the colors register 032-255 from Screen to T_globAgaPal
+    move.l     T_FadeScreen(a5),a0
+    lea        EcScreenAGAPal(a0),a1   ; A1 = Color 32 High bits
+    lea        T_globAgaPal(a5),a2     ; A2 = Color 32 High Bits Global Aga Palette
+    move.l     #223,d0                 ; 224 Colors to copy in the T_globAgaPal(L)
+llp1b:
+    move.w     EcScreenAGAPalL-EcScreenAGAPal(a1),T_globAgaPalL-T_globAgaPal(a2) ; Copy 1 color register from Screen AGA Palette to Global Aga Palette
+    move.w     (a1)+,(a2)+         ; Copy 1 color register from Screen AGA Palette to Global Aga Palette
+    dbra       d0,llp1b
+;    2020.09.29 The screen color palette update is called directly inside the AmosProAGA.library.
+; Leave clean
+    movem.l    (sp)+,d0-d7/a0-a2       ; LoadRegs.
+    rts
+; ************************************* 2020.09.29 New method to fade from current color used to a chosen AGA Color palette - End
 
 
 

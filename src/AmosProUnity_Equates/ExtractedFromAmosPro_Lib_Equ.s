@@ -48,8 +48,12 @@ A_UpdateAGAColorsInCopper  equ  42
 A_getAGAPaletteColourRGB12 equ  43
 A_SColAga24Bits            equ  44
 A_SPalAGA_CurrentScreen    equ  45
-A_SPalAGA_ScreenA0         equ  46
-A_SPalAGAFull              equ  47
+A_SPal_ScreenA0            equ  46
+A_SPalFull                 equ  47
+; ******** 2021.03.13 Added methods imported from AmosProX/AmosPro_AgaSupport.lib
+A_NewFADE1                 equ  48
+A_NewFADE2                 equ  49
+; ******** 2021.03.13 Added methods imported from AmosProX/AmosPro_AgaSupport.lib
 ; ******** 2021.02.28 Added to update AGA Save Iff methods.
 ; ************************************************************
 ; Function to use to call the methods.

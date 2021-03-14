@@ -24,6 +24,7 @@ TO DO AFTER :
 - Update Compiler/APComp.s for Sprites & Icons banks with AGAP mode (256 colors)
 - Fixed the issue that prevented Amos Professional Unity compiled program from returning to WorkBench on exit.
 - Update Compiler/Header.s to handle new AmosProUnityXXX.library instead of old AMOS.library 
+--- Pushed to repository
 
 ; ************************************************************************
 ; 2021.03.12

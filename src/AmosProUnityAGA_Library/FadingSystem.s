@@ -90,7 +90,6 @@ DoFx:
 
 
 
-
 ***********************************************************
 *    Fading interrupt
 *    Warning, this method modify A3 (only in the Default ECS fading routine, the new AGA does not modify A3)
@@ -107,7 +106,7 @@ Fad0:
     move.w     T_FadeVit(a5),T_FadeCpt(a5)       ; T_FadeVit(a5) = T_FadeCpt(a5) ; Reup the counter to be sure call is done only once each T_FadeCpt(a5) calls
 ; ***************************** 2020.09.16 Added to call the AGA version of the Fading routine - Start
     tst.b      T_isFadeAGA(a5)
-    bne.w      newFadeAGA
+    bne.w      newFadeSystem
 ; ***************************** 2020.09.16 Added to call the AGA version of the Fading routine - End
     move.l     T_FadeCop(a5),d3        ; D3 = T_CopMark for the specific Screen
     move.l     T_FadePal(a5),a1        ; A1 = Screen Color palette to fade with new color palette
@@ -212,20 +211,19 @@ FadN1:
 
 
 ; ************************************* 2020.09.16 New method to handle AGA color palette fading system - Start
-newFadeAGA:
+newFadeSystem:
     move.b     T_isFadeAGA(a5),d0
     cmp.b      #1,d0
     beq.s      fadeToBlack
     cmp.b      #2,d0
     beq.s      fadeToPalette
 fadeToBlack:
-;    AgaLibCall agaFade
+    AmpLCallR  A_NewFADE1,a0
     move.l     T_FadeScreen(a5),a0
-    AmpLCallR  A_SPalAGA_ScreenA0,a2
+    AmpLCallR  A_SPal_ScreenA0,a2
     rts
 fadeToPalette:
-;    AgaLibCall agaFadeToPalette
+    AmpLCallR  A_NewFADE2,a0
     move.l     T_FadeScreen(a5),a0
-    AmpLCallR  A_SPalAGA_ScreenA0,a2
+    AmpLCallR  A_SPal_ScreenA0,a2
     rts
-

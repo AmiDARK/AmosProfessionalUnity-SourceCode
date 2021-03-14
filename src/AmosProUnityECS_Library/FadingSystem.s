@@ -19,7 +19,9 @@ FaStp    rts
 FadeTOn    movem.l    d1-d7/a1-a3,-(sp)
     move.l    T_EcCourant(a5),a2
 * Params
-DoF1    clr.w    T_FadeFlag(a5)
+DoF1
+    move.b     #0,T_isFadeAGA(a5)      ; 2020.09.16 Update to makes this methods run the default fading routine.
+    clr.w    T_FadeFlag(a5)
     move.w    #1,T_FadeCpt(a5)
     move.w    d1,T_FadeVit(a5)
     move.w    EcNumber(a2),d0
@@ -76,7 +78,12 @@ FadeI    tst.w    T_FadeFlag(a5)
     beq.s    Fad0
 FadX    rts
 * Fade!
-Fad0    move.w    T_FadeVit(a5),T_FadeCpt(a5)
+Fad0
+    move.w    T_FadeVit(a5),T_FadeCpt(a5)
+; ******** 2021.03.13 Added checking to handle the new Unity Fading System - START
+    tst.b      T_isFadeAGA(a5)
+    bne.w      newFadeSystem
+; ******** 2021.03.13 Added checking to handle the new Unity Fading System - END
     move.l    T_FadePal(a5),a1
     move.l    T_FadeCop(a5),d3
     move.w    T_FadeNb(a5),d7
@@ -150,3 +157,19 @@ FadN0    addq.l    #6,a2
 * Plus rien maintenant
 FadN1    move.w    #-1,-8(a2)
     bra.s    FadN
+
+newFadeSystem:
+    move.b     T_isFadeAGA(a5),d0
+    cmp.b      #2,d0
+    beq.s      fadeToPalette
+fadeToBlack:
+    AmpLCallR  A_NewFADE1,a0
+    move.l     T_FadeScreen(a5),a0
+    AmpLCallR  A_SPal_ScreenA0,a2
+    rts
+fadeToPalette:
+    AmpLCallR  A_NewFADE2,a0
+    move.l     T_FadeScreen(a5),a0
+    AmpLCallR  A_SPal_ScreenA0,a2
+    rts
+
