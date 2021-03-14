@@ -1464,7 +1464,7 @@ ScNOp1:
 ; * Return Value :                                            *
 ; *************************************************************
   Lib_Par    CreatePalette1
-    move.L   d3,d4                     ; D4 = Colors Palette Index
+    move.L   d3,d0                     ; D0 = Colors Palette Index
     tst.w    T_isAga(a5)
     beq.s    .ecs
 .aga:
@@ -1485,7 +1485,7 @@ ScNOp1:
 ; * Return Value :                                            *
 ; *************************************************************
   Lib_Par    CreatePalette2            ; D3 = Colour Amount
-    move.l      (a3)+,d4               ; D4 = Color Palette Index
+    move.l      (a3)+,d0               ; D4 = Color Palette Index
     Rbra        L_CreatePalette3
 
 ;
@@ -1500,37 +1500,26 @@ ScNOp1:
 ; * Return Value :                                            *
 ; *************************************************************
   Lib_Def    CreatePalette3
-    cmp.l       #5,d4
+    cmp.l       #5,d0
     Rble        L_Err1                 ; Colors Palette ID < 6 -> Error : Invalid range
-    cmp.l       #65535,d4
+    cmp.l       #65535,d0
     Rbhi        L_Err1                 ; Colors Palette ID > 255 -> Error : Invalid range
     and.l       #$1FE,d3               ;
-    ; We will count the amount of bits sets in d3. if not equal to 1, -> Error
-
    ; We will count the amount of bits sets in d3. if not equal to 1, -> Error
-
-    moveq       #9,d0                  ; Start at bit #9
+    moveq       #9,d2                  ; Start at bit #9
     moveq       #0,d1                  ; counter = 0
 .loop:
-    btst        d0,d3                  ; test bit d0 of d3
+    btst        d2,d3                  ; test bit d0 of d3
     beq.s       .loopct                ; = 0 -> .loopct
     addq        #1,d1                  ; counter = counter + 1 
 .loopct:
-    dbra        d0,.loop
+    dbra        d2,.loop
     cmp.b       #1,d1                  ; if more than 1 bit is set
     Rbne        L_Err2                 ; -> Jump to L_Err2
     btst        #0,d3                  ; if bit #0 is set (mean 1 color or odd color amount)
     Rbne        L_Err2                 ; -> Jump to L_Err2
 .isOK:
-; **************** 2. If bank already exists, we delete it before.
-    movem.l     d3-d4,-(sp)            ; Save D3,D4
-    move.l      d4,d0                  ; D0 = Bank ID
-    Rjsr        L_Bnk.GetAdr           ; Get Bank D0 Adress
-    beq.s       .nodel                 ; No bank = -> Jump .no deletion
-    Rjsr        L_Bnk.Eff              ; Erase previous bank if it was not a Memblock
-.nodel:
-    movem.l     (sp)+,d3-d4            ; Restore D3,D4
-    moveq       #(1<<Bnk_BitPalette+1<<Bnk_BitData),d1   D1 = Flags ; Memblock,DATA, FAST
+    moveq       #(1<<Bnk_BitPalette)+(1<<Bnk_BitData),d1   D1 = Flags ; Memblock,DATA, FAST
     move.l      d3,d2                  ; D2 = Colour Amount
     mulu        #3,d2                  ; D2 = Memory size used to define each color ( 3 bytes per color R8+G8+B8 )
     add.l       #def_WithoutPalSize,d2 ; D2 = Memory size used for IFF/ILBM color palette (containing palette), without DPI Block.

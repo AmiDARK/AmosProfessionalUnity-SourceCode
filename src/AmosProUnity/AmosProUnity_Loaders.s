@@ -1993,9 +1993,6 @@ AutoAssigns
     lea    Ass7(pc),a0        Extras (Unity)
     bsr.s    DoAssign
     add.w    d0,d2
-    lea    Ass8(pc),a0        Examples (Classics)
-    bsr.s    DoAssign
-    add.w    d0,d2
     beq.s    .Skip            sur les accessoires,
     lea    Ass0(pc),a0        On assigne AMOSProUnity_System:
     bsr.s    DoAssign
@@ -2996,9 +2993,6 @@ Ass6:
 Ass7:
     dc.b       "AMOSProUnity_Extras:",0
     dc.b       "Unity_Extras",0
-Ass8:
-    dc.b       "AMOSProUnity_ClassicsExamples:",0
-    dc.b       "Classics_Examples",0
 AssCon:
     dc.b       "NIL:",0
 

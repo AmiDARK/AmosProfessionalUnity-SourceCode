@@ -618,28 +618,20 @@ CurrentFIconBank:    dc.l 0
 ; *               block                                       *
 ; *                                                           *
 ; * Parameters : (a3)+ = Memblock ID                          *
-; *              d0 = Memblock size in bytes                  *
+; *              d3 = Memblock size in bytes                  *
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
   Lib_Par      CreateMemblock
 ; **************** 1. Check if MemblockID and Size mets the requirements
-    move.l      (a3)+,d4               ; D4 = Memblock ID, D3 = Memblock Size
-    cmp.l       #5,d4
+    move.l      (a3)+,d0               ; D0 = Memblock ID, D3 = Memblock Size
+    cmp.l       #5,d0
     Rble        L_Err10                ; Memblock ID < 6 -> Error : Invalid range
-    cmp.l       #255,d4
+    cmp.l       #255,d0
     Rbhi        L_Err10                ; Memblock ID > 255 -> Error : Invalid range
     cmp.l       #16,d3                 ; 
     Rblt        L_Err12                ; Memblock size < 16 -> Error : Memblock size is invalid
-; **************** 2. If bank already exists, we delete it before.
-    movem.l     d3-d4,-(sp)            ; Save D3,D4
-    move.l      d4,d0                  ; D0 = Bank ID
-    Rjsr        L_Bnk.GetAdr           ; Get Bank D0 Adress
-    beq.s       .nodel                 ; No bank = -> Jump .no deletion
-    Rjsr        L_Bnk.Eff              ; Erase previous bank if it was not a Memblock
-.nodel:
-    movem.l     (sp)+,d3-d4            ; Restore D3,D4
-    moveq       #(1<<Bnk_BitMemblock+1<<Bnk_BitData),d1    Flags ; Memblock,DATA, FAST
+    moveq       #(1<<Bnk_BitMemblock)+(1<<Bnk_BitData),d1    Flags ; Memblock,DATA, FAST
     move.l      d3,d2                  ; D2 = Memblock Size
     add.l       #4,d2                  ; +4 to save memblock size
     lea         BkMbc(pc),a0           ; A0 = Pointer to BkMbc (Bank Name)
@@ -651,6 +643,8 @@ CurrentFIconBank:    dc.l 0
     rts
 BkMbc:
     dc.b       "MemBlock",0,0
+
+
 
 ;
 ; *****************************************************************************************************************************
@@ -957,34 +951,28 @@ BkMbc:
 ; * Return Value :                                            *
 ; *************************************************************
   Lib_Par      ReserveFIcons
- ; **************** 1. Check if MemblockID and Size mets the requirements
-    move.l      (a3)+,d4               ; D4 = Memory Bank ID, D3 = Amount of F Icons
-    cmp.l       #5,d4
+ ; **************** 1. Check if FIcon ID and Size mets the requirements
+    move.l      (a3)+,d0               ; D0 = Memory Bank ID, D3 = Amount of F Icons (d4->d0)
+    cmp.l       #5,d0
     Rble        L_Err1                 ; ID < 6 -> Error : Invalid range
-    cmp.l       #255,d4
+    cmp.l       #255,d0
     Rbhi        L_Err1                 ; ID > 255 -> Error : Invalid range
     cmp.l       #4,d3                  ; 
     Rblt        L_Err2                 ; FIcons Amount < 4 -> Error : FIcons Amount is invalid
-; **************** 2. If bank already exists, we delete it before.
-    movem.l     d3-d4,-(sp)            ; Save D3,D4
-    move.l      d4,d0                  ; D0 = Bank ID
-    Rjsr        L_Bnk.GetAdr           ; Get Bank D0 Adress
-    beq.s       .nodel                 ; No bank = -> Jump .no deletion
-    Rjsr        L_Bnk.Eff              ; Erase previous bank if it was not a Memblock
-.nodel:
-    movem.l     (sp)+,d3-d4            ; Restore D3,D4
-    moveq       #(1<<Bnk_BitFIcons+1<<Bnk_BitData),d1    Flags ; Fast Icon,DATA, FAST
+; ******** Calculate the length (in bytes) of the bank in D2
     move.l      d3,d2                  ; D2 = Icons Amount
     lsl.l       #5,d2                  ; D2 = Icon Amount * 16 Lines per Icon * 2 bytes per lines (global *32)
     mulu        #9,d2                  ; Maximum 8 Bitplanes + 1 Mask (Makes AGA banks being capable to be used on ECS screens as paste uses screen bpls limit)
     add.l       #FIconsData,d2         ; FullBlockSize.l, Amount.w, Width.w, Height.w, Depth.w
-    Movem.l     d2-d4,-(sp)            ; Save D2,D3,D4 (D2=FullBlockSize,D3=IconsCount,D4=MemoryBank)
-    lea         BkFIco(pc),a0          ; A0 = Pointer to BkMbc (Bank Name)
+    Movem.l     d2-d4,-(a3)            ; Save D2,D3,D4 (D2=FullBlockSize,D3=IconsCount,D4=MemoryBank)
+; ******** Define the bank datatype in D1
+    moveq       #(1<<Bnk_BitFIcons)+(1<<Bnk_BitData),d1    Flags ; Fast Icon,DATA, FAST
+    lea         BkFIco(pc),a0          ; A0 = Pointer to BkFIco (Bank Name)
     Rjsr        L_Bnk.Reserve          ; -> Need D0=BankID, D1=Flags, D2=Size(In bytes)
-    beq         .B_Err3                ; Not Enough Memory to allocation Fast Icon bank
+    Rbeq        L_Err3                 ; Not Enough Memory to allocation Fast Icon bank
     move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
     ; **************** 3. Now that the memory block (bank) is created we save informations in it.
-    Movem.l     (sp)+,d2-d4            ; Load D2,D3,D4 (FullBlockSize,D3=IconsCount,D4=MemoryBank)
+    Movem.l     (a3)+,d2-d4            ; Load D2,D3,D4 (FullBlockSize,D3=IconsCount,D4=MemoryBank)
     move.l      d2,FIconsBlockSize(a0) ; Save Full Block Size
     move.w      d3,FIconsAmount(a0)    ; Save Amount of Icons Available
     move.w      #16,FIconsWidth(a0)    ; Save Icons Width
@@ -1002,9 +990,6 @@ BkMbc:
     move.l      d4,(a0)                ; Save CurrentFIconBank as the one freshly created
     Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update) (a1 use)
     rts
-.B_Err3:
-    movem.l     (sp)+,d2-d4
-    Rbra        L_Err3
 BkFIco:
     dc.b       "F Icons ",0,0
 

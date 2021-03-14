@@ -1,0 +1,3 @@
+echo " "
+echo "******** Execute scripts to build AmosProAGA extensions Libraries (.lib)"
+execute lib_PersonalUnity.batch

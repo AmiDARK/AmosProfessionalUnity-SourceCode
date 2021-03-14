@@ -82,6 +82,14 @@ AmpLCallR:        MACRO
         jsr       \1*4(\2)
         ENDM
 
+AmpLCallSV:       MACRO
+        move.l    \2,T_SaveReg(a5)
+        move.l    T_AmpLVect(a5),\2
+        jsr       \1*4(\2)
+        move.l    T_SaveReg(a5),\2
+        ENDM
+
+
 AmpLCallSC      MACRO
     move.l     T_AmpLVect(a5),\2    ; This pointer is populated when the AgaSupport.lib is started
     cmp.l      #0,a2               ; was the Plugin initialized ?

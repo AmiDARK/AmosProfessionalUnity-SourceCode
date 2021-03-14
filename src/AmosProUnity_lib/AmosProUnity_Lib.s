@@ -6964,7 +6964,6 @@ FsApp3:    cmp.w    d4,d6
     move.l     a1,a0               ; A0 = 0
     rts                            ; Return (not found)
 .Fnd
-;    move.l     a1,a2               ; *****************  2020.04.30 Backup Bank into A2
     move.w     8+4(a1),d0          ; D0 = Current Bank Adress + 12
     lea        8*3(a1),a0          ; A0 = Current Bank Adress + 24
     move.l     a0,a1               ; A1 = A0
@@ -7020,7 +7019,7 @@ FsApp3:    cmp.w    d4,d6
 ;                     EFFACEMENT BANQUE A0=Adresse
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.EffA0
-    AmpLCallR  A_BnkEffA0,a2 ; 2021.02.16 Updated and ReTested OK
+    AmpLCallSV A_BnkEffA0,a1 ; 2021.03.14 Re-Updated to save/use/reload A1 and ReTested OK
     rts
 ; - - - - - - - - - - - - -
 
@@ -7363,42 +7362,46 @@ FsApp3:    cmp.w    d4,d6
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    Bnk.Reserve
 ; - - - - - - - - - - - - -
-    movem.l    a2/d2-d5,-(sp)
-    moveq    #0,d4
+    movem.l   a2/d2-d5,-(sp)
+    moveq     #0,d4
     move.w    d0,d4
     move.l    d1,d5
     move.l    a0,a2
 ; Efface la banque si déja définie
     move.l    d4,d0
-    Rbsr    L_Bnk.GetAdr
-    beq.s    .Pares
-    Rbsr    L_Bnk.EffA0
+    Rbsr      L_Bnk.GetAdr
+    beq.s     .Pares
+    Rbsr      L_Bnk.EffA0
 .Pares
 ; Reserve
-    add.l    #16,d2            Flags + Nom
+    add.l     #16,d2            Flags + Nom
     move.l    d2,d0
     move.l    #Public|Clear,d1
-    btst    #Bnk_BitChip,d5
-    beq.s    .SkipC
+    btst      #Bnk_BitChip,d5
+    beq.s     .SkipC
     move.l    #Public|Clear|Chip,d1
-.SkipC    move.l    Cur_Banks(a5),a0
-    Rjsr    L_Lst.Cree
-    beq.s    .Err
+.SkipC:
+    move.l    Cur_Banks(a5),a0
+    Rjsr      L_Lst.Cree
+    beq.s     .Err
 ; Poke les entetes
     addq.l    #8,a1
     move.l    d4,(a1)+
     move.w    d5,(a1)+
-    clr.w    (a1)+
+    clr.w     (a1)+
 ; Poke le nom
-    moveq    #7,d0
-.Loo    move.b    (a2)+,(a1)+
-    dbra    d0,.Loo
+    moveq     #7,d0
+.Loo:
+    move.b    (a2)+,(a1)+
+    dbra      d0,.Loo
 ; Ok!
     move.l    a1,a0
     move.l    a0,d0
-    bra.s    .Out
-.Err    moveq    #0,d0
-.Out    movem.l    (sp)+,a2/d2-d5
+    bra.s     .Out
+.Err:
+    moveq    #0,d0
+.Out:
+    movem.l  (sp)+,a2/d2-d5
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
