@@ -20,6 +20,7 @@ TO DO AFTER :
 ; ************************************************************************
 ; 2021.03.15
 - Fixed a bug in AmosProUnity_Lib.s/IffFormPlay that didn't returned to caller and cause I/O Error.
+- Fixed a bug in the command Load Cmap To Palette
 
 
 ; ************************************************************************

@@ -681,6 +681,8 @@ BkCheck:
 UnityDatas:
 AgaCMAPColorFile:
     dc.l    0               ; Used to store the pointer to the temporary IFF/CMAP loaded file.
+AgaCurrentColorPalette:
+    dc.l    0               ; Saved by Create Palette to be used directly by methods that may call it
 
 ;
 ; *****************************************************************************************************************************
@@ -1468,10 +1470,10 @@ ScNOp1:
     tst.w    T_isAga(a5)
     beq.s    .ecs
 .aga:
-    move.l   #256,d3                   ; D3 = Create Colors Palette with 256 colors
+    move.l   #256,d0                   ; D3 = Create Colors Palette with 256 colors
     Rbra     L_CreatePalette3
 .ecs:
-    move.l   #32,d3                    ; D3 = Create Colors Palette with 32 colors
+    move.l   #32,d0                    ; D3 = Create Colors Palette with 32 colors
     Rbra     L_CreatePalette3
 ;
 ; *****************************************************************************************************************************
@@ -1485,7 +1487,7 @@ ScNOp1:
 ; * Return Value :                                            *
 ; *************************************************************
   Lib_Par    CreatePalette2            ; D3 = Colour Amount
-    move.l      (a3)+,d0               ; D4 = Color Palette Index
+    move.l      (a3)+,d0               ; D0 = Color Palette Index
     Rbra        L_CreatePalette3
 
 ;
@@ -1526,13 +1528,15 @@ ScNOp1:
     Add.l       #12,d2                 ; D2 = D2 + DPI Block = Full IFF/ILBM Color Palette
     add.l       #4,d2                  ; +4 to save memblock size
     lea         BkPal(pc),a0           ; A0 = Pointer to BkPal (Bank Name)
-    movem.l     d3,-(sp)               ; Save Colour Amount
+    movem.l     d3,T_SaveReg(a5)       ; Save Colour Amount
     Rjsr        L_Bnk.Reserve
     Rbeq        L_Err3                 ; Not Enough Memory to allocation memblock.
 
+    Dlea        AgaCurrentColorPalette,a1
+    move.l      a0,(a1)                ; Save color palette as current for Load Cmap To Palette method.
     move.l      a0,a1                  ; A1 = Memory Bank pointer (required for L_Bnk_Change)
-    move.l      d2,(a0)+               ; Save full color palette
-    movem.l     (sp)+,d3               ; Restore Colors Amount
+    move.l      #def_WithoutPalSize,(a0)+  ; Save full color palette
+    movem.l     T_SaveReg(a5),d3       ; Restore Colors Amount
     Rbsr        L_PopulateIFFCmapBlock
     Rjsr        L_Bnk.Change           ; Tell Amos Professional Unity Extensions that Memory Banks changed (to update)
     rts
@@ -1576,7 +1580,7 @@ BkPal:
     move.l     #"CMAP",def_CMAP(a0)              ; Insert "CMAP" header
     move.l     d3,d0
     mulu       #3,d0
-    move.l     d0,def_CMAP_size(a0)              ; Save the Amount of colors of the colour palette block
+    move.l     d0,def_CMAP_size(a0)              ; Save the Amount of colors of the colour palette block * 3 (R8G8B8 for each)
     ; The forced update of the IFF/ILBM Color map block stop here.
     ; Because Color size may vary depending on the amount of colors of the screen (bitplanes depth), 
     ; the position of the DPI block may vary and, due to that, the block is inserted at end of palette integration.
@@ -1625,23 +1629,23 @@ BkPal:
 ; *************************************************************
 ;
   Lib_Def      CreateIFFCmapBlock
-    movem.l    d0/a0/a1,-(sp)
+    movem.l    d0-d2/a0-a2,-(sp)
     ; ******** First, we check if the block was already created in memory
     Dlea       AgaCMAPColorFile,a0
     move.l     (a0),d0
     tst.l      d0
     bne.s      .end
     ; ******** Secondly we create the block in memory
-    move.l     #aga_iffPalSize,d0      ; Reserve a block enough large to handle a full 256 color palette in IFF/ILBM format
+    move.l     #$400,d0      ; Reserve a block enough large to handle a full 256 color palette in IFF/ILBM format
     SyCall     MemFastClear
     cmpa.l     #0,a0
     Rbeq       L_Err7                 ; Error 15 : Not enough memory
     ; ******** And then, we check block was created otherwise we cast an error
     Dlea       AgaCMAPColorFile,a1
     move.l     a0,(a1)                 ; Save the new block in Memory
-    cmpa.l     #0,a0
+    cmp.l      #0,a0
 .end:
-    movem.l    (sp)+,d0/a0/a1
+    movem.l    (sp)+,d0-d2/a0-a2
     rts
 
 ;
@@ -1657,97 +1661,91 @@ BkPal:
 ; *************************************************************
 ;
   Lib_Par     LoadIFFPalette           ; D3 = Colors Palette ID
-    move.l     (a3)+,a4                ; A4 = FileName
-    movem.l    d3,-(sp)                ; Save D3 = Colors Palette ID
+    move.l     (a3)+,a2                ; A2 = FileName
+    move.l     d3,T_SaveReg(a5)        ; Save D3 = Colors Palette ID
     ; ******** We check if the Color Palette index is in the correct range
     cmp.l      #5,d3
     Rble       L_Err1                  ; Colors Palette ID < 6 -> Error : Invalid range
-    cmp.l      #255,d3
+    cmp.l      #65535,d3
     Rbhi       L_Err1                  ; Colors Palette ID > 255 -> Error : Invalid range
     move.l     d3,d4                   ; D4 = Current Color Palette (Save)
     ; ******** We check if the block to load the file was created or not.
     Rbsr       L_CreateIFFCmapBlock    ; Verify if the memory block for CMAP File is created
-    ; ******** Secondly, we check if the filename contain a path. To do that we check for a ":"
-    move.l     a4,a2                   ; a2 = a4 = FileName
+    ; ******** Secondly, we check if the filename contain a path. To do that we check for a ":" (a2=filename)
     Rbsr       L_NomDisc2              ; This method will update the filename to be full Path+FileName
     move.l     #1005,d2                ; D2 = READ ONLY dos file mode
     Rbsr       L_OpenFile              ; Dos->Open
     Rbeq       L_DiskFileError         ; -> Error when trying to open the file.
     Rbsr       L_SaveRegsD6D7           ; Save AMOS System registers
+
     move.l     Handle(a5),d1           ; D1 = File Handle
     Dlea       AgaCMAPColorFile,a0
     move.l     (a0),a0                 ; Load buffer in A0
     Move.l     a0,d2                   ; D2 = A0 (Save)
-    move.l     #12,d3                  ; D3 = 12 bytes to read
+    move.l     #8,d3                   ; D3 = FORM + Size.l = 8 Bytes to read
     Rbsr       L_IffReadFile2          ; Dos->Read
+
     Dlea       AgaCMAPColorFile,a0
     move.l     (a0),a0                 ; Load buffer in A0
     move.l     (a0),d3
-    cmp.l      #"FORM",d3              ; Does the file start with "FORM" ?
-    Rbne       L_notCMAPFile           ; No -> Jump L_notCMAPFile
-    move.l     4(a0),d3                ; D3 = Get the file size
-    ; ******** Check if FORM size is in a correct range ( 0 < size < 400 bytes )
-    cmp.l      #0,d3
-    Rbmi       L_notCMAPFileSizeKO
+    cmp.l      #"FORM",d3              ; Does the file start with "BMHD" ?
+    bne        B_Err6                  ; Error : The specified file is not an IFF/ILBM Color Map (CMAP) file.
+    move.l     4(a0),d3                ; D3 = Remaining bytes to read
     cmp.l      #$400,d3
-    Rbge       L_notCMAPFileSizeKO
-    ; ******** Continue
-    adda.l     #12,a0                  ; A0 = A0 + 12 -> A0 Point just after the 12 already read bytes
-    move.l     a0,d2                   ; D2 = Buffer
+    bge        B_Err6
+
     move.l     Handle(a5),d1           ; D1 = File Handle
-    Rbsr       L_IffReadFile2          ; Read the remaining bytes
+    Dlea       AgaCMAPColorFile,a0
+    move.l     (a0),a0                 ; Load buffer in A0
+    Move.l     a0,d2                   ; D2 = A0 (Save)
+    Rbsr       L_IffReadFile2          ; Dos->Read
+
+    ; ******** Continue
+    move.l     Handle(a5),d1           ; D1 = File Handle
     Rbsr       L_LoadRegsD6D7          ; Load Amos System registers
     Rbsr       L_CloseFile             ; Doc -> Close
-    ; ******** Now that we have loaded the IFF/ILBM CMAP File in the temporary buffer, we can create the new Color Palette Bank
-    movem.l    (sp),d4                 ; Restore D4 = Colors Palette ID (saved from D3)
+
+
     Dlea       AgaCMAPColorFile,a0
-    Move.l     (a0),a0
-    Move.l     def_CMAP_size(a0),d3    ; D3 = Colour Amount * 3
-    divu       #3,d3                   ; D3 = Colour Amount
-    Rbsr       L_CreatePalette3        ; D3 = Colour Amount, D4 = Colour Palette ID
-    movem.l    (sp)+,d4                ; Restore D4 = Colors Palette ID (saved from D3)
-    move.l      d4,d0                  ; D0 = Bank ID
-    Rjsr        L_Bnk.GetAdr           ; Get Bank D0 Adress
-    bne.s       .cty                   ; No bank = -> Jump .no deletion
-    Rbra        L_Err4                 ; No Colors Palette Bank at this location
-.cty:
-    btst        #Bnk_BitPalette,d0     ; No Bnk_BitPalette flag = not a memblock
-    Rbeq        L_Err5                 ; Not a Color Palette bank -> Error
-    Move.l      (a0)+,d0               ; D0 = Palette bank Size, A0 = Pointer to Palette byte #0 
-    Dlea        AgaCMAPColorFile,a1
-    Move.l      (a1),a1                ; A1 = Loaded IFF/ILBM Color Palette file
-    Add.l       #def_CMAP_size,a0      ; A0 point to CMAP Size
-    Add.l       #def_CMAP,a1           ; A1 point to "CMAP" header in the loaded file.
-    cmp.l       #"CMAP",(a1)
-    beq.s       .loadedCMAPisOk
-    Rbra        L_Err8                ; CMAP not found at its logical location
-.loadedCMAPisOk:
-    add.l       #4,a1                  ; A1 point to CMAP Size
-    move.l      (a1)+,d0               ; D0 = CMAP size
-    move.l      d0,(a0)+               ; Save CMAP Size in Colors Palette Bank
-    sub.w       #2,d0
-; ******** Copy Color Palette from loaded file to 
-.ctCopy:
-    move.w      (a1)+,(a0)+            ; Copy components 2 per 2
-    sub.w       #2,d0
-    bpl.s       .ctCopy
-; ******** Once CMAP copy is completed, we push de DPI bloc
-    move.l     #"DPI ",(a0)+
-    move.l     #0,(a0)+
+    move.l     (a0),a0                 ; Load buffer in A0
+    move.l     (a0)+,d3                ; D3 = get the ILBM Header
+    cmp.l      #"ILBM",d3              ; Right ?
+    Rbne       L_Err6                  ; No -> Not an Iff/Ilbm file
+    move.l     (a0)+,d3                ; D3 = get the BMHD Header
+    cmp.l      #"BMHD",d3              ; Right ?
+    Rbne       L_Err6                  ; No -> Not an Iff/Ilbm file
+    move.l     (a0)+,d3                ; Get BMHD block size
+    adda.l     d3,a0                   ; Reach next block
+
+    move.l     (a0)+,d3                ; D3 = Get the CMAP Header
+    cmp.l      #"CMAP",d3              ; Right ?
+    Rbne       L_Err6                  ; No -> Not an Iff/Ilbm file
+
+    move.l     a0,T_SaveReg2(a5)       ; Save A0 = CMAP Size in Loaded IFF/ILBM color palette
+    move.l     T_SaveReg(a5),d0        ; D0 = Color Palette ID
+    move.l     (a0),d3                 ; D3 = Color Amount * 3
+    Divu       #3,d3                   ; D3 = Color Amount
+
+    Rbsr       L_CreatePalette3        ; Create The Color Palette
+
+
+    Move.l     T_SaveReg2(a5),a0       ; Load A0 = CMAP Size in loaded IFF/ILBM color palette
+    move.l     (a0)+,d0                ; D0 = Cmap Size = Color Amount * 3 (RGB24 datas for each color)
+    subq       #1,d0                   ; dbra close copy loop
+    Dlea       AgaCurrentColorPalette,a1
+    move.l     (a1),a1                 ; A1 = CMAP Color Palette
+    add.l      #4,a1                   ; Pass CMAP Color Palette full size.
+    add.l      #def_CMAP_Colors,a1     ; A1 = Pointer to the 1st color inside the color palette
+.sCopy:
+    move.b     (a0)+,(a1)+
+    dbra       d0,.sCopy
     rts
 
-    ; **************** Send an error if a content of the file is not compliant with IFF/ILBM CMAP File
-  Lib_Def    notCMAPFile
+B_Err6:
+    move.l     Handle(a5),d1           ; D1 = File Handle
     Rbsr       L_LoadRegsD6D7          ; Load Amos System registers
-    Rbsr       L_CloseFile
-    Rbra       L_Err6                 ; Error : The specified file is not an IFF/ILBM Color Map (CMAP) file.
-
-  Lib_Def    notCMAPFileSizeKO
-    Rbsr       L_LoadRegsD6D7          ; Load Amos System registers
-    Rbsr       L_CloseFile
-    Rbra       L_Err9                 ; Error : The IFF/FORM file size is incorrect.
-
-
+    Rbsr       L_CloseFile             ; Doc -> Close
+    Rbra       L_Err6
 
 
 ;

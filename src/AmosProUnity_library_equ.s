@@ -300,6 +300,7 @@ HsLong:        equ     20
         Rl    IntBase,1
         Rl    IntScreen,1              ; 2021.02.19 Reinserted
         Rl    SaveReg,1                ; 2021.03.14 Inserted for some special calls.
+        Rl    SaveReg2,1               ; 2021.03.15 Inserted for some special calls.
         Rl    ViewPort,1
         Rl    GfxBase,1
         Rl    LayBase,1

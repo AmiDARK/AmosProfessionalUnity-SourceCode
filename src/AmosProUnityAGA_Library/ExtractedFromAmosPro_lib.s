@@ -69,8 +69,9 @@ amosprolib_functions:
     bra        AMP_SPalAGAFull              ;  47 A_SPalAGAFull
 ; ******** 2021.03.13 Imported from AmosProX/AmosPro_AGASupport.lib - START
     bra        APX_NewFADE1                 ;  48 A_NewFADE1 not extracted from AmosPro.lib but from AmosProX/AmosPro_AGASupport.lib
-    bra        APX_NewFADE2                 ;  48 A_NewFADE2 not extracted from AmosPro.lib but from AmosProX/AmosPro_AGASupport.lib
+    bra        APX_NewFADE2                 ;  49 A_NewFADE2 not extracted from AmosPro.lib but from AmosProX/AmosPro_AGASupport.lib
 ; ******** 2021.03.13 Imported from AmosProX/AmosPro_AGASupport.lib - END
+    bra        AMP_IffFormFake              ;  50 A_IffForm_FakePlay 2021.03.15
 
 ;   bra        .........
     dc.l       0
@@ -246,6 +247,71 @@ IffOk:
 IffEnd:
     rts
 
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;                     Interpretation des formes chargees
+;    D7=    Amount of form to play.
+;    Bit #30 >>> Sauter tout
+;    D6=     Buffer where the IFF was loaded
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AMP_IffFormFakePlay:
+; - - - - - - - - - - - - -
+    movem.l    a0-a2/d0-d5/d7,-(sp)
+    clr.l      IffFlag(a5)
+    clr.l      IffReturn(a5)
+    bclr       #31,d7
+.FLoop2:
+    move.l     d6,a0                   ; A0 = IFf/ILBM buffer start
+    cmp.l      #"FORM",(a0)            ; are ware in an ILBM/FORM buffer ?
+    beq.s      .Form2                   ; YES -> We are seeing a new FORM -> Jump .Form to get it.
+    cmp.l      #"AenD",(a0)            ; Are we at the end of the ILBM/FORM buffer ?
+    beq.s      .End2                    ; YES -> End of the play.
+    btst       #31,d7                  ; Bit #31 clear ?
+    beq        IffFor                  ; YES -> Interpret current buffer form.
+* a new chunk to read
+    lea        Chunks(pc),a1           ; A1 lea list of existing IFF/ILBM chunks
+    bsr        GetIff                  ; Get the current CHUNK to read from the buffer
+    bmi.s      .SauteFake                  ; Current Chunk = -1 -> Jump to end of loop for next chunk loop
+* Setup flags
+    btst       #30,d7                  ; if bit #39 = %1 (simulation mode)
+    bne.s      .SauteFake                  ; YES = -> Jump to end of loop for next chunk loop
+    move.l     IffMask(a5),d1          ; Load IffMask -> d1
+    btst       d0,d1                   ; Is current Chunk is set %1 (active/readable) in IffMask 
+    beq.s      .SauteFake                  ; NO -> ump to end of loop for next chunk loop
+    move.l     IffFlag(a5),d1          ; Load IffFlags -> D1
+    bset       d0,d1                   ; Set current chunk bit to #%1 in D1
+    move.l     d1,IffFlag(a5)          ; Save D1 -> IFfFlags (update with the information of the latest chunk loaded)
+* Call the current chunk method to examine it.
+    lsl.w      #2,d0                   ; D0 = D0 * 4 (IOffJumps list is composed of .l jump pointers )
+    lea        IffJumpsFake(pc),a0     ; Use a jump list of methods to setup all components of an IFF/ILBM file
+    movem.l    d6/d7,-(sp)             ; Save d6/d7 in SP
+    jsr        0(a0,d0.w)              ; Call the current Chunk sub routine
+    movem.l    (sp)+,d6/d7             ; Restore d6/d6 from SP
+    bra.s      .SauteFake                  ; Jump to end of loop for next chunk loop
+* We are seeing a Form
+.Form2:
+    subq.w     #1,d7                   ; Decrease amount of Form to decode
+    bmi.s      .End2                    ; Form =-1 -> The Iff/Ilbm Form reading is finished/Completed
+    bset       #31,d7                  ; Set D7 Bit #31 to #%1 to say "we've just read a Form"
+    addq.l     #8,a0                   ; Add A0, 8 (Jump the Form header to reach the Form itself)
+    lea        Forms(pc),a1 
+    bsr        GetIff
+    bmi.s      .SauteFake
+    add.l      #12,d6
+    bra        .FLoop2
+* Termine!
+.End2:
+    movem.l    (sp)+,a0-a2/d0-d5/d7
+    rts
+*
+* Saute le form/chunk courant
+.SauteFake:
+    move.l     d6,a0
+    move.l     4(a0),d0
+    Pair       d0
+    addq.l     #8,d0
+    add.l      d0,d6
+    bra        .FLoop2
+
 
 ;        FORMES iff
 ; ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -279,6 +345,19 @@ IffJumps:
     bra        A_IffAMSC
     bra        A_IffANHD
     bra        A_IffDLTA
+
+IffJumpsFake:
+    bra        A_NoOperation
+    bra        A_NoOperation
+    bra        A_IffCMAP
+    bra        A_NoOperation
+    bra        A_NoOperation
+    bra        A_NoOperation
+    bra        A_NoOperation
+    bra        A_NoOperation
+
+A_NoOperation:
+    rts
 
 ;    BMHD!
 A_IffBMHD:
@@ -633,7 +712,7 @@ IffSh0:
     beq.s      IffShX
     moveq      #1,d1
     moveq      #1,d6            * Boucle!
-    Bsr        ShStart          ; EcCall Shift
+    EcCall     Shift                   ; Bsr ShStart          ; EcCall Shift
     bne        EcWiErr
 IffShX:
     rts
@@ -929,6 +1008,27 @@ AMP_IffForm:
 .Err:
     moveq    #-1,d0
     rts
+
+AMP_IffFormFake:
+; - - - - - - - - - - - - -
+    bsr        AMP_IffFormSize    Demande la taille
+    add.l      #16,d0
+    bsr        AMP_ResTempBuffer
+    beq        .Err
+    move.l     a0,d6
+    bsr        AMP_IffFormLoad
+    cmp.w      d0,d7
+    bne        DiskError
+    move.l     TempBuffer(a5),d6
+    bsr        AMP_IffFormFakePlay
+    moveq      #0,d0
+    bsr        AMP_ResTempBuffer
+    rts
+.Err:
+    moveq    #-1,d0
+    rts
+
+
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     FORM LOAD
@@ -3169,6 +3269,9 @@ uclAGA1:
 uclAGAEndCPY:
     rts
 
+
+
+
 APX_NewFADE1:
     movem.l    d0-d7/a0-a2,-(sp)       ; Save Regsxm
     lea        T_FadeCol(a5),a0        ; A0 = List of colors to update
@@ -3197,17 +3300,27 @@ rgbFadeLoop:
     moveq      #0,d3
     move.b     (a0)+,d3                ; D3 = R8/G8 or B8 Color Component
     and.l      #$FF,d3
+    cmp.w      #0,d2
+    blt.s      .increase
+.decrease:
     tst.b      d3
     beq.s      continueFadeAGA         ; if Color component = 0, we do not increase counter
     addq       #1,d1                   ; Increase updated colours counter
     sub.w      d2,d3                   ; D3 = D3 + D2 = Fade de la couleur vers le noir ou le blanc ********************************
+    cmp.w      #0,d3
+    bge.s      .ctd
+    move.w     #0,d3
+.ctd:
+    bra.s      continueFadeAGA
+
+.increase:
     cmp.w      #$FF,d3
-    blt.s      .ctX
+    beq.s      continueFadeAGA
+    addq       #1,d1
+    sub.w      d2,d3                   ; D3 = D3 + D2 = Fade de la couleur vers le noir ou le blanc ********************************
+    cmp.w      #$FF,d3
+    blt.s      continueFadeAGA
     move.w     #$FF,d3
-.ctX:
-    tst.w      d3
-    bpl.s      continueFadeAGA         ; If D3 > -1 -> Jump continueFadeAGA
-    moveq      #0,d3
 continueFadeAGA:
     move.b     d3,-1(a0)               ; Save the new color value in the Fade color list
     move.l     d3,d4                   ; D3 = D4 = R8

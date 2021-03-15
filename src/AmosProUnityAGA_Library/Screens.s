@@ -27,7 +27,7 @@
 ; EcSPalAGA =               Set Palette A1(256ColorsRGB24PalettePointer) (Apply color palette to  current screen)
 ; EcSHam8BPLS =             Apply HAM8 conversion from BPLs 0-1-2-3-4-5-6-7 to be 2-3-4-5-6-7-0-1 in BitMap to makes AMOS Professional being able to draw graphics correctly
 ; EcMarch =                 Set Current Screen D1(ScreenID)
-; EcGet =                   Get Current Screen( D1(ScreenID) )
+; EcGet =                   Get Current Screen( D1(ScreenID) )A_InScreenDisplay
 ; EcLibre =                 D1(ScreenID) = Next Free Screen()
 ; EcUpdateAGAColorsInCopper = Puh T_globAgaPal directly inside the Copper Lists (Logic & Physic)
 
@@ -1006,7 +1006,8 @@ Ec_Pull    movem.l    a0-a2/d0-d3,-(sp)
 *    D3= WY    ; Define the Y coordinate of the Screen in the current copper list display
 *    D4= WTx   ; Define the 'Width' in pixels, ot the screen view in the current copper list display
 *     D5= WTy   ; Define the 'Height' in pixels, ot the screen view in the current copper list display
-EcView:    movem.l    d1-d7/a1-a6,-(sp)
+EcView:
+    movem.l    d1-d7/a1-a6,-(sp)
     bsr    EcGet    ; Get Screen structure pointer into -> D0
     beq    EcE3     ; If screen does not exist -> Jump to screen error E3
     move.l    d0,a4         ; A4 = D0 = current screen structure.

@@ -54,6 +54,8 @@ A_SPalFull                 equ  47
 A_NewFADE1                 equ  48
 A_NewFADE2                 equ  49
 ; ******** 2021.03.13 Added methods imported from AmosProX/AmosPro_AgaSupport.lib
+A_IffForm_FakePlay         equ  50 ; Load Iff but does not unpack it on screen. Just get palette
+
 ; ******** 2021.02.28 Added to update AGA Save Iff methods.
 ; ************************************************************
 ; Function to use to call the methods.
