@@ -179,12 +179,10 @@ AMP_IffFormPlay:
     beq.s      .End                    ; YES -> End of the play.
     btst       #31,d7                  ; Bit #31 clear ?
     beq        IffFor                  ; YES -> Interpret current buffer form.
-
 * a new chunk to read
     lea        Chunks(pc),a1           ; A1 lea list of existing IFF/ILBM chunks
     bsr        GetIff                  ; Get the current CHUNK to read from the buffer
     bmi.s      .Saute                  ; Current Chunk = -1 -> Jump to end of loop for next chunk loop
-
 * Setup flags
     btst       #30,d7                  ; if bit #39 = %1 (simulation mode)
     bne.s      .Saute                  ; YES = -> Jump to end of loop for next chunk loop
@@ -194,7 +192,6 @@ AMP_IffFormPlay:
     move.l     IffFlag(a5),d1          ; Load IffFlags -> D1
     bset       d0,d1                   ; Set current chunk bit to #%1 in D1
     move.l     d1,IffFlag(a5)          ; Save D1 -> IFfFlags (update with the information of the latest chunk loaded)
-
 * Call the current chunk method to examine it.
     lsl.w      #2,d0                   ; D0 = D0 * 4 (IOffJumps list is composed of .l jump pointers )
     lea        IffJumps(pc),a0         ; Use a jump list of methods to setup all components of an IFF/ILBM file
@@ -202,7 +199,6 @@ AMP_IffFormPlay:
     jsr        0(a0,d0.w)              ; Call the current Chunk sub routine
     movem.l    (sp)+,d6/d7             ; Restore d6/d6 from SP
     bra.s      .Saute                  ; Jump to end of loop for next chunk loop
-*
 * We are seeing a Form
 .Form:
     subq.w     #1,d7                   ; Decrease amount of Form to decode

@@ -4522,7 +4522,6 @@ GetH    move.l    Buffer(a5),d2
     cmp.l      #"ILBM",8(a0)           ; Verify we are in a picture as te 1st frame of an animation is the full frame image (reference).
     Rbne       L_IffFor2               ; If not -> Jump to error not an Iff Form.
     move.l     a0,d6                   ; D6 = FORM/ILBM Buffer
-
 ********************* First image
     moveq      #1,d7                   ; Iff Form -1
     Rbsr       L_IffFormPlay           ; Call +Lib.S/IffFormPlay L7001
@@ -4552,6 +4551,7 @@ GetH    move.l    Buffer(a5),d2
     move.l     (sp),d6
     subq.l     #1,4(sp)
     bne.s      .Loop
+.end2:
     moveq      #0,d0
     Rjsr       L_ResTempBuffer
     Rbsr       L_LoadRegs
@@ -6855,7 +6855,8 @@ FsApp3:    cmp.w    d4,d6
 ;    D6=     Adresse à voir
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Lib_Def    IffFormPlay
-    AmpLCallR  A_IffFormPlay,a2 ; 2021.02.16 ReTested OK
+    AmpLCallSV  A_IffFormPlay,a1 ; 2021.02.16 ReTested OK 2021.03.15 Replace a2 with a1
+    rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Sauvegarde d''ecran IFF
