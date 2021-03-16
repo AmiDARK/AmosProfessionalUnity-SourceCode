@@ -37,36 +37,40 @@
 *
 ******* ACTUALISATION DES ECRANS
 EcForceCop:                * Entree en forcant le calcul 
-    addq.w    #1,T_EcYAct(a5)
+    addq.w     #1,T_EcYAct(a5)
 EcCopper:                * Entree normale
     movem.l    d1-d7/a1-a6,-(sp)
 
 * Suite actualisation
-    move.w    T_EcYAct(a5),d7
-    lea    T_EcPri(a5),a0
-    move.l    (a0)+,d0
-    beq    EcA6
-    bmi    EcActX
-EcAct0:    move.l    d0,a1
+    move.w     T_EcYAct(a5),d7
+    lea        T_EcPri(a5),a0
+    move.l     (a0)+,d0
+    beq        EcA6
+    bmi        EcActX
+EcAct0:
+    move.l     d0,a1
 * Changement en WY
-    move.b    EcAW(a1),d0
-    beq.s    EcA2
-    btst    #2,d0
-    beq.s    EcAct1
-    move.w    EcAWY(a1),d1
-    add.w    #EcYBase,d1
-    bpl.s    EcAa
-    moveq    #0,d1
-EcAa:    move.w    d1,EcWY(a1)
-    addq.w    #1,d7
+    move.b     EcAW(a1),d0
+    beq.s      EcA2
+    btst       #2,d0
+    beq.s      EcAct1
+    move.w     EcAWY(a1),d1
+    add.w      #EcYBase,d1
+    bpl.s      EcAa
+    moveq      #0,d1
+EcAa:
+    move.w     d1,EcWY(a1)
+    addq.w     #1,d7
 * Changement en WX
-EcAct1:    btst    #1,d0
-    beq.s    EcAct2
-    move.w    EcAWX(a1),d1
-    and.w    #$FFF0,d1
-    move.w    d1,EcWX(a1)
+EcAct1:
+    btst       #1,d0
+    beq.s      EcAct2
+    move.w     EcAWX(a1),d1
+    and.w      #$FFF0,d1
+    move.w     d1,EcWX(a1)
 * Changement en WTY
-EcAct2:    clr.w    EcAW(a1)
+EcAct2:
+    clr.w      EcAW(a1)
 EcA2:    move.b    EcAWT(a1),d0
     beq.s    EcA4
     btst    #2,d0
@@ -707,7 +711,7 @@ MkC5:    move.w    d2,(a1)+
     IFEQ    EZFlag
 * Dual playfield???
     move.w    EcDual(a0),d2
-    bne    CreeDual
+    bne       CreeDual
 PluDual:
     ENDC
 
@@ -724,7 +728,8 @@ PluDual:
     move.w    EcNPlan(a0),d6
     subq.w    #1,d6
     move.w    #Bpl1PtH,d7
-MkC0:    move.l    0(a0,d2.w),d5
+MkC0:
+    move.l    0(a0,d2.w),d5
     add.l    d1,d5
     move.w    d7,(a1)+
     addq.w    #2,d7

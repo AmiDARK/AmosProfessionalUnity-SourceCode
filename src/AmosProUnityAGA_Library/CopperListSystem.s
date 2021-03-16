@@ -753,6 +753,12 @@ MkC4a
 * Prepare view
     move.w     #DmaCon,(a1)+           ; Send data to DMACON register
     move.w     #$0100,(a1)+            ; Stop All DMA except Bit Plane DMA
+
+; **************** 2021.03.16 Fix for 64 colors scrambled screen
+    move.w     #BplCon0,(a1)+
+    or.w       T_InterInter(a5),d1
+    move.w     d1,(a1)+
+; **************** 2021.03.16 Fix for 64 colors scrambled screen
 * Beginning of the color palette
     move.l     a1,-(sp)
     moveq      #PalMax-1,d3            ; D3 = Amount of colors to copy to the copper list ( the colors 00-15 only as PalMax=16 )

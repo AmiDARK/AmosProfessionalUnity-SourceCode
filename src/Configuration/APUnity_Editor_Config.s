@@ -551,7 +551,7 @@ Ed1	EdT	1,<Link cursor movement: please click on the window to link...>
 	EdT	21,<AMOS Professional Unity>                                                           ; * Line 1
 ; **************** 20210218 Update the content of the "About Amos Professional" box - Start
 	EdT	22,<Unity version by : Frederic Cordier (AmiDARK)>                                     ; * Line 2
-	EdT	23,<github.com/AmiDARK/Amos-Professional-Unity-Releases>                               ; * Line 3
+	EdT	23,<github.com/AmiDARK/Amos-Professional-Unity-Official-Releases>                               ; * Line 3
 ; **************** 20210218 Update the content of the "About Amos Professional" box - End
 	EdT	24,< extensions loaded.>
 	EdT	25,<New all hidden programs. Are you sure?>

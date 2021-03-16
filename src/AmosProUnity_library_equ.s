@@ -105,6 +105,7 @@ EcMax:  equ   12
         Rw    EcYMax,1
         Rw    Actualise,1
         Rl    ChipBuf,1
+        Rw    Save64c,1
 
 ***************    Buffer de calculs des ecrans
         Rw    EcBuf,128

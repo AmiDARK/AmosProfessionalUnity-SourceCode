@@ -1413,6 +1413,15 @@ ScOo0:
     bra.s      ScOo2
 ScOo0b:
 ; **************** 2020.07.31 Test for HAM8 mode - END
+; **************** 2021.03.16 Test for True 64 Color non EHB - START
+    cmp.l      #-64,d6
+    bne.s      ScOo1b
+    Neg.l      d6                      ; D6 go back to 64 colors
+    bset       #20,d5                  ; Enable True 64 colors.
+    moveq      #6,d4
+    bra.s      ScOo2
+ScOo1b:
+; **************** 2021.03.16 Test for True 64 Color non EHB - END
     ; ***** Loop to define the amount of colours depending on the amount of bitplanes requested
     moveq      #1,d4                   ; = Bitplane amount
     moveq      #2,d1                   ; = Colour amount

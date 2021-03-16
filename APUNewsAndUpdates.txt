@@ -5,9 +5,13 @@ TO DO :
   To do this, I must do some tests in WinUAE to see where the CPU+Ram start to be faster than Blitter
 - Add color palette save in F Icons bank with get/set colors for it and interactions with color palette banks.
 - Support for true 64 colors on AGA Computers (for example a value True64 equ 65)
+- #BitEcrans,T_Actualise(a5) ; Force Screen refreshing on screen show X
 
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
+
+BUG :
+Save Iff on 32 colors, IFF file cannot be loaded by PPaint. (compression format not recognized)
 
 TO DO AFTER :
 - Update ECS EcCree to allocate bitmaps like AGA version (Alignment)
@@ -18,9 +22,14 @@ TO DO AFTER :
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
 ; ************************************************************************
+; 2021.03.16
+- Added support for true 64 colors AGA screens
+
+; ************************************************************************
 ; 2021.03.15
 - Fixed a bug in AmosProUnity_Lib.s/IffFormPlay that didn't returned to caller and cause I/O Error.
 - Fixed a bug in the command Load Cmap To Palette
+- Added support for dual playfield for Unity Fade methods.
 
 
 ; ************************************************************************

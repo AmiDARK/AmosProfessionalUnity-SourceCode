@@ -44,9 +44,9 @@ amosprolib_functions:
     bra        AMP_Bnk.SaveA0               ;  22 A_Bnk.SaveA0
     bra        AMP_SHunk                    ;  23 A_SHunk
     bra        AMP_BnkUnRev                 ;  24 A_BnkUnRev
-    bra        AMP_BnkReserveIC2            ;  25 A_BnkReserveIC2
-    bra        AMP_BnkEffA0                 ;  26 A_BnkEffA0
-    bra        AMP_BnkEffBobA0              ;  27 A_BnkEffBobA0
+    bra        AMP_Bnk.Ric2                 ;  25 A_BnkReserveIC2
+    bra        AMP_Bnk.EffA0                ;  26 A_Bnk.EffA0
+    bra        AMP_Bnk.EffBobA0             ;  27 A_Bnk.EffBobA0
     bra        AMP_InPen                    ;  28 A_InPen
     bra        AMP_WnPp                     ;  29 A_WnPp
     bra        AMP_GoWn                     ;  30 A_GoWn
@@ -1674,7 +1674,6 @@ AMP_BnkUnRev:
 
 
 ; *************************************************************************
-AMP_BnkReserveIC2:
 AMP_Bnk.Ric2:
 ; - - - - - - - - - - - - -
     move.w     d2,d4
@@ -1767,7 +1766,7 @@ AMP_Bnk.Ric2:
     move.l     a3,d0
     beq.s      .Paeff
     move.l     d0,a0
-    bsr        AMP_BnkEffA0
+    bsr        AMP_Bnk.EffA0
 .Paeff:
 ; Pas d''erreur
 ; ~~~~~~~~~~~~
@@ -1797,7 +1796,7 @@ BkIco:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     EFFACEMENT BANQUE A0=Adresse
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-AMP_BnkEffA0:
+AMP_Bnk.EffA0:
     move.w     -16+4(a0),d0
     btst       #Bnk_BitIcon,d0
     bne.s      .Spr
@@ -1814,7 +1813,7 @@ AMP_BnkEffA0:
     bmi.s      .Skip
 .Loop:
     move.l     a2,a0            Va effacer la definition
-    bsr        AMP_BnkEffBobA0
+    bsr        AMP_Bnk.EffBobA0
     addq.l     #8,a2
     dbra       d2,.Loop
 .Skip:
@@ -1832,7 +1831,7 @@ AMP_BnkEffA0:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     EFFACEMENT BOBS/ICONS A0=Adresse
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-AMP_BnkEffBobA0:
+AMP_Bnk.EffBobA0:
     movem.l    a0/a1/a2/d0/d1,-(sp)
     move.l     a0,a2
 ; Efface le bob
@@ -2333,7 +2332,7 @@ AMP_BnkReserve:
     move.l      d4,d0
     bsr         AMP_BnkGetAdr
     beq.s       .Pares
-    bsr         AMP_BnkEffA0
+    bsr         AMP_Bnk.EffA0
 .Pares:
 ; Reserve
     add.l       #16,d2            Flags + Nom

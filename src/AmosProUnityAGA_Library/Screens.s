@@ -528,6 +528,14 @@ EcCr0:
     bclr       #19,d5                  ; Clear the bit as it is now useless.
 .noHam8:
 ; ************************************* 2020.07.31 Add support for HAM8 in Screens - END
+; ************************************* 2021.03.16 Get Flag for true 64 colors - START
+    move.b     #0,True64Color(a4)      ; Clear TRue64Colors Mode for this screen
+    btst       #20,d5                  ; Do we request HAM8 Mode ?
+    beq.s      .noTrue64
+    move.b     #1,True64Color(a4)      ; Save TRue64Colors Mode for this screen
+    bclr       #20,d5                  ; Clear the bit as it is now useless.
+.noTrue64:
+; ************************************* 2021.03.16 Get Flag for true 64 colors - END
 
 ; 
 ; *********************** 2019.11.18 Preset the Fetch Mode depending on graphical resolution
@@ -630,7 +638,17 @@ continue:                              ; 2019.11.05 End of upgrade to handle BPU
     or.w       d0,d1                   ; D1 = BplCon0 filtered || BPU0-3
     or.w       d1,d5                   ; D5 = D1 || D5 (Mode (Hires, Lace))
     move.w     d5,EcCon0(a4)           ; Save BplCon0 value for this screen
-    move.w     #%00100100,EcCon2(a4)   ; Save BplCon2 value for this screen
+
+; **************** 2021.03.16 Add support for true 64 colors on AGA - START
+    move.w     #%00100100,d0
+    cmp.b      #0,True64Color(a4)
+    beq.s      .continue
+.KillEHB:
+    Bset       #9,d0
+.continue:
+    move.w     d0,EcCon2(a4)           ; Save BplCon2 value for this screen
+;    move.w     #%00100100,EcCon2(a4)   ; Save BplCon2 value for this screen [Initial]
+; **************** 2021.03.16 Add support for true 64 colors on AGA - END
 
 ;    Create/Initialize the BitMap Structure
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

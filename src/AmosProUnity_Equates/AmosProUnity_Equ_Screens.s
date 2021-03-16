@@ -109,6 +109,8 @@ EcOriginalBPL  rs.l 8                  ; 2019.11.18 Original Bitplanes Memory Al
 EcDBOriginalBPL rs.l 8                 ; 2019.11.18 Original Bitplanes Memory Allocation for double buffer
 Ham8Mode       rs.w 1                  ; 2020.07.31 Flag to check if current screen uses HAM8 mode
 EcH8Logic:     rs.l 8                  ; Define the non displayed bitmaps for IFF/ILBM operations, support HAM8 Mode.
+True64Color    rs.b 1                  ; 2021.03.16 To allow tru 64 colors
+Useless        rs.b 1
 
 ; Length of a screen
 EcLong        equ __RS

@@ -254,6 +254,9 @@ C_Tk:
     dc.w    L_fadeUnitytoPalette,L_Nul
     dc.b    "unity fade to palett", "e"+$80,"I0,0",-1
 
+    dc.w    L_Nul,L_true64Colors
+    dc.b    "true6","4"+$80,"0",-1
+
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
@@ -1277,7 +1280,10 @@ ScNOp1:
     Move.l     #4096,d3
     Ret_Int
 
-
+    ; ****************************************** Return True64 value for screen open (true 64 colors non EHB)
+  Lib_Par      true64Colors
+    Move.l     #-64,d3
+    Ret_Int
 
 
 
@@ -1801,12 +1807,12 @@ B_Err6:
 ; * Return Value :                                            *
 ; *************************************************************
   Lib_Par   SetPaletteColourID
-    move.l      d3,d2                 ; D2 = RGB24Value
+    move.l      d3,T_SaveReg(a5)      ; D2 = RGB24Value
     move.l      (a3)+,d4              ; D4 = ColorID
     move.l      (a3)+,d0              ; D0 = Color Palette BankID
     cmp.l       #5,d0
     Rble        L_Err1                ; Colors Palette ID < 6 -> Error : Invalid range
-    cmp.l       #255,d0
+    cmp.l       #65535,d0
     Rbhi        L_Err1                ; Colors Palette ID > 255 -> Error : Invalid range
     clr.l       d3
     Rjsr        L_Bnk.GetAdr
@@ -1823,6 +1829,7 @@ B_Err6:
     mulu        #3,d4                 ; Each Color component uses 3 bytes
     Add.l       #def_CMAP_Colors,d4   ; d4 can point to chosen color in color palette bank A0
     add.l       d4,a0
+    move.l      T_SaveReg(a5),d2
     ForceToRGB24 d2,d2                ; Force color value to be RGB24 bits
     move.l      d2,d0
     swap        d0
@@ -1830,7 +1837,7 @@ B_Err6:
     move.l      d2,d0
     lsr.l       #8,d0
     move.b      d0,(a0)+              ; Push G8 in (a0)+
-    move.b      d4,(a0)+              ; Push B8 in (a0)+
+    move.b      d2,(a0)+              ; Push B8 in (a0)+
     rts
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
@@ -1969,6 +1976,14 @@ FD_Errors:
     move.l     a2,T_FadePal(a5)        ; T_FadePal(a5) = A2 = Current Screen color palette
     lea        T_FadeCol(a5),a0        ; A0 = T_FadeCol(a5) = Target color palette memory block
     move.w     EcNbCol(a1),d0          ; D0 = Amount of colours available in the Screen
+    cmp.w      #0,EcDual(a1)           ; Is screen dual playfield ?
+    ble.s      .nodpf                  ; No -> Jump .nodpf
+    move.w     #16,d0                  ; 16 colors ECS Mode for 2 screens.
+    cmp.w      #0,T_isAga(a5)          ; Are we on AGA or ECS ?
+    beq.s      .noAga
+    lsl.w      #1,d0                   ; 32 colors AGA Mode for 2 screens.
+.noAga:
+.nodpf:
     move.w     d0,T_FadeFlag(a5)       ; T_FadeFlag(a5) = D0 = Colour amount to Update
     sub.w      #1,d0                   ; D0 = D0 -1 (to use -1 as end of color handling loop)
     Move.w     d0,T_FadeNb(a5)         ; T_FadeNb(a5) = Amount of colors of the Screen -1
