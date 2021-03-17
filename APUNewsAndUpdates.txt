@@ -6,6 +6,7 @@ TO DO :
 - Add color palette save in F Icons bank with get/set colors for it and interactions with color palette banks.
 - Support for true 64 colors on AGA Computers (for example a value True64 equ 65)
 - #BitEcrans,T_Actualise(a5) ; Force Screen refreshing on screen show X
+- Get File Size : https://www.facebook.com/groups/240977536103226/permalink/1665912660276366
 
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
@@ -20,6 +21,10 @@ TO DO AFTER :
 - check how APUCMP parameters are used to create Cli/Workbench/nogfx, etc. configurations to see if I can integrate a window mode.
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
+
+; ************************************************************************
+; 2021.03.17
+- Added AmosPro_PersonalUnity.lib method : Get File Size(FILENAME$)
 
 ; ************************************************************************
 ; 2021.03.16

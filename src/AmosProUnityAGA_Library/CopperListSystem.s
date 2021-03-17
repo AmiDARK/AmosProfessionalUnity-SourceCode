@@ -755,9 +755,13 @@ MkC4a
     move.w     #$0100,(a1)+            ; Stop All DMA except Bit Plane DMA
 
 ; **************** 2021.03.16 Fix for 64 colors scrambled screen
+    cmp.w      #6,EcNPlan(a0)
+    bne.s      .noBplConHere
     move.w     #BplCon0,(a1)+
-    or.w       T_InterInter(a5),d1
-    move.w     d1,(a1)+
+    move.w     #1,(a1)+
+.noBplConHere:
+;    move.w     T_InterInter(a5),d1
+;    move.w     d1,(a1)+
 ; **************** 2021.03.16 Fix for 64 colors scrambled screen
 * Beginning of the color palette
     move.l     a1,-(sp)

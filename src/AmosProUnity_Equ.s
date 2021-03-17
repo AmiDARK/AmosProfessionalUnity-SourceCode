@@ -208,10 +208,10 @@ CoCopy        MACRO
         bne.s    .Loop\@
         ENDM
 *************** DOS
-DosCall        MACRO
+DosCall MACRO
         move.l    a6,-(sp)
         move.l    DosBase(a5),a6
-        jsr    \1(a6)
+        jsr       \1(a6)
         move.l    (sp)+,a6
         ENDM
 DosOpen:    equ -30

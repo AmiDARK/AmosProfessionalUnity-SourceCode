@@ -30,6 +30,11 @@ ExtNb            Equ    13-1         ; Extension number #13
 ; +++ This one is only for the current version number.
     Include    "src/AmosProUnity_Version.s"
 
+
+; **************** 2021.03.17 Dos.h required content
+    Include    "Includes/dos/dos.i"
+; DOS_FIB    equ 2
+
 ; *** 2020.10.05-11 Includes AmigaOS libraries
     IncDir  "includes/"
     Include "exec/types.i"
@@ -158,6 +163,9 @@ C_Tk:
         dc.b    "!paste f ico","n"+$80,"I0,0,0",-2            ; Paste F Icon ICONID,XPOS,YPOS
         dc.w    L_PasteFIcon2,L_Nul
         dc.b    $80,"I0,0,0,0",-2
+
+        dc.w    L_Nul,L_GetFileSize
+        dc.b    "get file siz","e"+$80,"02",-1
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
@@ -1385,6 +1393,30 @@ BkFIco:
     rts
 
 
+;                                                                                                                      ************************
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                          *                                                  *
+;                                                                                          * AREA NAME :                                      *
+;                                                                                          *                                                  *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
+
+
+;                                                                                                                      ************************
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                          *                                                  *
+;                                                                                          * AREA NAME : Miscellaneous methods                *
+;                                                                                          *                                                  *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
 
 ;
 ; *****************************************************************************************************************************
@@ -1397,7 +1429,46 @@ BkFIco:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
+  Lib_Par      GetFileSize
+    move.l      d3,a2                   ; A2.l = FileName to load.
+    ; ******** Firstly, we check if the filename contain a path. To do that we check for a ":" (a2=filename)
+    Rbsr       L_NomDisc2               ; This method will update the filename to be full Path+FileName
+    ; ******** Then we open the file
+    move.l     #1005,d2                 ; D2 = READ ONLY dos file mode
+    Rbsr       L_OpenFile               ; Dos->Open
+    Rbeq       L_DiskFileError          ; -> Error when trying to open the file.
+    Rbsr       L_SaveRegsD6D7           ; Save AMOS System registers
+    ; ******** Thirdly we create the File Info Block
+    move.l     #DOS_FIB,d1              ; D1 = FileInfoBlock type
+    lea        Tags(pc),a0
+    move.l     a0,d2
+    DosCall    _LVOAllocDosObject       ; D0 = File Info Block
+    Rbeq       L_DiskFileError          ; -> Error if Dos Object was not allocated
+    move.l     d0,T_SaveReg(a5)         ; Save FIB / File Info Block for future use
+    ; ******** Fourthly we use ExamineFH to get the File Size
+    move.l     Handle(a5),d1            ; D1 = File Handle
+    move.l     d0,d2                    ; D2 = FIB / File Info Block
+    DosCall    _LVOExamineFH
+    Rbeq       L_DiskFileError          ; D0 = Success in file examineFH method
+    ; ******** Now we get the file size and save it
+    move.l     T_SaveReg(a5),a0         ; A0 = FIB / File Info Block
+    move.l     fib_Size(a0),T_SaveReg2(a5) ; Output File Size
+    ; ******** And finally we close the Dos Object FIB
+    move.l     #DOS_FIB,d1              ; D1 = FileInfoBlock type
+    move.l     T_SaveReg(a5),d2
+    DosCall    _LVOFreeDosObject
+    ; ******** We close the file handle
 
+    move.l     Handle(a5),d1           ; D1 = File Handle
+    Rbsr       L_LoadRegsD6D7          ; Load Amos System registers
+    Rbsr       L_CloseFile             ; Doc -> Close
+    ; ********
+    clr.l      T_SaveReg(a5)
+    move.l     T_SaveReg2(a5),d3
+    clr.l      T_SaveReg2(a5)
+    Ret_Int
+Tags:
+    dc.l      TAG_DONE
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
