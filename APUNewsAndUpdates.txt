@@ -25,6 +25,7 @@ TO DO AFTER :
 ; ************************************************************************
 ; 2021.03.17
 - Added AmosPro_PersonalUnity.lib method : Get File Size(FILENAME$)
+- Added AmosPro_UnitySupport.lib method : Grab Screen Palette BANKID
 
 ; ************************************************************************
 ; 2021.03.16

@@ -257,6 +257,8 @@ C_Tk:
     dc.w    L_Nul,L_true64Colors
     dc.b    "true6","4"+$80,"0",-1
 
+    dc.w    L_GrabPaletteFromScreen,L_Nul
+    dc.b    "grab screen palett","e"+$80,"I0",-1
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
@@ -1734,7 +1736,6 @@ BkPal:
 
     Rbsr       L_CreatePalette3        ; Create The Color Palette
 
-
     Move.l     T_SaveReg2(a5),a0       ; Load A0 = CMAP Size in loaded IFF/ILBM color palette
     move.l     (a0)+,d0                ; D0 = Cmap Size = Color Amount * 3 (RGB24 datas for each color)
     subq       #1,d0                   ; dbra close copy loop
@@ -1839,6 +1840,56 @@ B_Err6:
     move.b      d0,(a0)+              ; Push G8 in (a0)+
     move.b      d2,(a0)+              ; Push B8 in (a0)+
     rts
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : BankID                                       *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par   GrabPaletteFromScreen
+    move.l      d3,d0                 ; D0 = Bank ID
+    ; ******** Get Current Screen colors and create palette
+    move.l      ScOnAd(a5),d1         ; D1 = Get Current Screen Pointer
+    Rbeq        L_Err6
+    move.l      d1,a0                 ; a0 = Screen Structure Pointer
+    move.w      EcNbCol(a0),d3        ; D3 = Screen Amount of colorSupport_Functions
+    ext.l       d3
+    Rbsr        L_CreatePalette3      ; D3 = Color Amount, Create The Color Palette
+    ; ******** Load current color palette, and jump to Color #00 inside to populate
+    Dlea        AgaCurrentColorPalette,a1
+    move.l      (a1),a1               ; A1 = CMAP Color Palette
+    add.l      #4,a1                  ; Pass CMAP Color Palette full size.
+    add.l      #def_CMAP_Colors,a1    ; A1 = Pointer to the 1st color inside the color palette
+    ; ******** Load current screen color pointer
+    move.l     ScOnAd(a5),a0          ; A0 = Get Current Screen Pointer
+    move.w     EcNbCol(a0),d0         ; D0 = Amount of color to copy
+    ext.l      d0
+    lea        EcPal(a0),a0           ; A0 = Pointer to Color #0 on screen
+    subq       #1,d0                  ; To makes dbra do the job
+.sCopy:
+    move.w     EcPalL-EcPal(a0),d2    ; D2 = Color Low Bits
+    move.w     (a0)+,d1                ; D1 = Color High Bits
+    PushToRGB24 d1,d2,d1              ; D1 = $01R8G8B8 = RGB24 Color, we do not save RGB24 flag $01
+    move.l     d1,d2                  ; D2 = $01R8G8B8
+    swap       d2                     ; D2 = $G8B801R8
+    move.b     d2,(a1)+               ; Save R8
+    rol.l      #8,d2                  ; D2 = $B801R8G8
+;    swap       d2
+;    lsr.l      #8,d2
+    move.b     d2,(a1)+               ; Save G8
+    move.b     d1,(a1)+               ; Save B8
+    dbra       d0,.sCopy
+    moveq      #0,d0                  ; Everything is Ok.
+    rts
+
+
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
