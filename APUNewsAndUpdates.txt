@@ -23,6 +23,11 @@ TO DO AFTER :
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
 ; ************************************************************************
+; 2021.03.18
+- AmosPro_PersonalUnity.lib method : Get File Size(FILENAME$) is now compatible OS1.3 (before it was 2.0+)
+
+
+; ************************************************************************
 ; 2021.03.17
 - Added AmosPro_PersonalUnity.lib method : Get File Size(FILENAME$)
 - Added AmosPro_UnitySupport.lib method : Grab Screen Palette BANKID

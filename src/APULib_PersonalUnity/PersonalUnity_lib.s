@@ -114,7 +114,7 @@ C_Tk:
     dc.b     $80,-1
 
 ; Now the real tokens...
-; **************** Color palette support
+; ********************************************************************
         Dc.w    L_SNTSC,L_Nul
         Dc.b    "set nts","c"+$80,"I",-1
         Dc.w    L_SPAL,L_Nul
@@ -125,11 +125,12 @@ C_Tk:
         Dc.b    "fire(1,2",")"+$80,"0",-1
         Dc.w    L_Nul,L_FIRE3
         Dc.b    "fire(1,3",")"+$80,"0",-1
+; ********************************************************************
         Dc.w    L_Nul,L_EHB
         Dc.b    "eh","b"+$80,"0",-1
         dc.w    L_Nul,L_getHam6Value
         dc.b    "ham","6"+$80,"0",-1
-
+; ********************************************************************
         dc.w    L_CreateMemblock,L_Nul
         dc.b    "create membloc","k"+$80,"I0,0",-1
         dc.w    L_Nul,L_MemblockExists
@@ -150,7 +151,7 @@ C_Tk:
         dc.b    "memblock byt","e"+$80,"00,0",-1
         dc.w    L_CreateMemblockFromFile,L_Nul
         dc.b    "create memblock from fil","e"+$80,"I2,0",-1
-
+; ********************************************************************
         dc.w    L_ReserveFIcons,L_Nul
         dc.b    "reserve f ico","n"+$80,"I0,0",-1
         dc.w    L_UseFIconBank,L_Nul
@@ -163,7 +164,7 @@ C_Tk:
         dc.b    "!paste f ico","n"+$80,"I0,0,0",-2            ; Paste F Icon ICONID,XPOS,YPOS
         dc.w    L_PasteFIcon2,L_Nul
         dc.b    $80,"I0,0,0,0",-2
-
+; ********************************************************************
         dc.w    L_Nul,L_GetFileSize
         dc.b    "get file siz","e"+$80,"02",-1
 
@@ -1430,12 +1431,13 @@ BkFIco:
 ; * Return Value :                                            *
 ; *************************************************************
   Lib_Par      GetFileSize
-    move.l      d3,a2                   ; A2.l = FileName to load.
+    clr.l      T_SaveReg(a5)
+    move.l     d3,a2                    ; A2.l = FileName to load.
     ; ******** Firstly, we check if the filename contain a path. To do that we check for a ":" (a2=filename)
     Rbsr       L_NomDisc2               ; This method will update the filename to be full Path+FileName
     ; ******** Then we open the file
-    move.l     #1005,d2                 ; D2 = READ ONLY dos file mode
-    Rbsr       L_OpenFile               ; Dos->Open
+    move.l     #ACCESS_READ,d2          ; D2 = READ ONLY dos file mode
+    Rbsr       L_LockFile               ; Dos->Lock
     Rbeq       L_DiskFileError          ; -> Error when trying to open the file.
     Rbsr       L_SaveRegsD6D7           ; Save AMOS System registers
     ; ******** Thirdly we create the File Info Block
@@ -1443,13 +1445,13 @@ BkFIco:
     lea        Tags(pc),a0
     move.l     a0,d2
     DosCall    _LVOAllocDosObject       ; D0 = File Info Block
-    Rbeq       L_DiskFileError          ; -> Error if Dos Object was not allocated
+    beq        iDiskFileError           ; -> Error if Dos Object was not allocated
     move.l     d0,T_SaveReg(a5)         ; Save FIB / File Info Block for future use
     ; ******** Fourthly we use ExamineFH to get the File Size
     move.l     Handle(a5),d1            ; D1 = File Handle
     move.l     d0,d2                    ; D2 = FIB / File Info Block
-    DosCall    _LVOExamineFH
-    Rbeq       L_DiskFileError          ; D0 = Success in file examineFH method
+    DosCall    _LVOExamine
+    beq        iDiskFileError2          ; D0 = Success in file examineFH method
     ; ******** Now we get the file size and save it
     move.l     T_SaveReg(a5),a0         ; A0 = FIB / File Info Block
     move.l     fib_Size(a0),T_SaveReg2(a5) ; Output File Size
@@ -1461,7 +1463,7 @@ BkFIco:
 
     move.l     Handle(a5),d1           ; D1 = File Handle
     Rbsr       L_LoadRegsD6D7          ; Load Amos System registers
-    Rbsr       L_CloseFile             ; Doc -> Close
+    Rbsr       L_UnlockFile            ; Doc -> Unlock
     ; ********
     clr.l      T_SaveReg(a5)
     move.l     T_SaveReg2(a5),d3
@@ -1469,6 +1471,19 @@ BkFIco:
     Ret_Int
 Tags:
     dc.l      TAG_DONE
+
+iDiskFileError2:
+    move.l     #DOS_FIB,d1              ; D1 = FileInfoBlock type
+    move.l     T_SaveReg(a5),d2
+    DosCall    _LVOFreeDosObject
+iDiskFileError:
+    move.l     Handle(a5),d1           ; D1 = File Handle
+    Rbsr       L_LoadRegsD6D7          ; Load Amos System registers
+    Rbsr       L_UnlockFile            ; Doc -> Unlock
+    Rbra       L_DiskFileError          ; D0 = Success in file examineFH method
+
+
+
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
@@ -1787,6 +1802,87 @@ ErDisk:
     movem.l    ErrorSave(a5),d6-d7
     clr.b      ErrorRegs(a5)
     rts
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : L_OpenFile                                  *
+; *-----------------------------------------------------------*
+; * Description : This method is imported from AmosProAGA.lib *
+; * To makes files I/O easier. It open a file on a disk       *
+; *                                                           *
+; * Parameters : Name1(a5) = The full file name with absolute *
+;*                           path to access it.               *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+  Lib_Def      LockFile
+    move.l     Name1(a5),d1
+    Rbra       L_LockFileD1
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : L_OpenFileD1                                *
+; *-----------------------------------------------------------*
+; * Description : This method is imported from AmosProAGA.lib *
+; * To makes files I/O easier. It open a file on a disk       *
+; *                                                           *
+; * Parameters : D1 = The full file name with absolute path to*
+;*                    access it.                              *
+; *                                                           *
+; * Return Value : Handle(a5) = Handler to the opened file    *
+; *************************************************************
+  Lib_Def      LockFileD1
+    move.l     a6,-(sp)
+    move.l     DosBase(a5),a6
+    jsr        _LVOLock(a6)
+    move.l     (sp)+,a6
+    move.l     d0,Handle(a5)
+; Branche la routine de nettoyage en cas d''erreur
+    move.l     a2,-(sp)
+    lea        .Struc(pc),a1
+    lea        Sys_ErrorRoutines(a5),a2
+    SyCall     AddRoutine
+    lea        .Struc2(pc),a1
+    lea        Sys_ClearRoutines(a5),a2
+    SyCall     AddRoutine
+    move.l     (sp)+,a2
+    move.l     Handle(a5),d0
+    rts
+.Struc:
+    dc.l       0
+    Rbra       L_UnlockFile
+.Struc2:
+    dc.l       0
+    Rbra       L_UnlockFile
+;
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : L_CloseFile                                 *
+; *-----------------------------------------------------------*
+; * Description : This method is imported from AmosProAGA.lib *
+; * To makes files I/O easier. It closes a file on a disk that*
+; * was previously opened using methods OpenFile or OpenFileD1*
+; *                                                           *
+; * Parameters : Handle(a5) = Handler to the opened file      *
+; *                                                           *
+; * Return Value : Handle(a5) = 0                             *
+; *************************************************************
+  Lib_Def      UnlockFile
+    movem.l    d0/d1/a0/a1/a6,-(sp)
+    move.l     Handle(a5),d1
+    beq.s      .Skip
+    clr.l      Handle(a5)
+    move.l     DosBase(a5),a6
+    jsr        _LVOUnLock(a6)
+.Skip:
+    movem.l    (sp)+,d0/d1/a0/a1/a6
+    rts
+
 
 ;
 ; *****************************************************************************************************************************
