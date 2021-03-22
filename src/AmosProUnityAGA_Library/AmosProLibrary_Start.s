@@ -244,7 +244,6 @@ StartAll:
     bsr        CpInit                  ; Setup Copper
     bsr        EcInit                  ; Setup Screens
     bsr        ampLib_Init             ; 2020.11.22 Setup AmosProLib_ExtractedMethods branchment list
-;    bsr        colorSupport_Init       ; 2021.02.12 Removed // 2020.12.05 Setup for Advanced Color Support for Colors Datas Format Conversions
     bsr        SyInit                  ; System Setup
     bsr        VBLInit                 ; VBL Interrupts Setup 
     bsr        WiInit                  ; Windows Setup
@@ -329,9 +328,6 @@ dcLoop:
     cmp.b     #$F8,d1         ; if D1 =$F8 -> AGA
     bne.s     cEcs             ; Else -> ECS
     move.w     #1,T_isAga(a5)
-    movem.l    (sp)+,a0/d1-d3
-    rts
 cEcs:
-    move.w     #0,T_isAga(a5)
     movem.l    (sp)+,a0/d1-d3              ; 2020.08.10 Restore registers after AGA Checking completed : Fix the AMOS Switcher AMOS/WB
     rts

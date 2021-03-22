@@ -469,7 +469,7 @@ EcCree:
     tst.l      d3
     beq        EcE4
     cmp.l      #2048,d3                ; 2019.11.18 : If Screen Height > 2048 -> Error
-    bcc        EcE4
+    b;cc        EcE4
     tst.l      d4                      ; If Screen Depth = 0 -> Error
     beq        EcE4
     cmp.l      #EcMaxPlans,d4          ; If Screen Depth > ExMAxPlans -> Error
@@ -680,7 +680,7 @@ EcCra:
     bsr        ChipMm
     beq        EcMdd
     move.l     d0,(a0)+                ; Save Original Bitmap Position
-    And.l      #$FFFFFFC0,d0           ; Align D0 to 64bits address in range 0 <= Start of memory allocation <= 8
+    And.l      #$FFFFFFF8,d0           ; Align D0 to 64bits address in range 0 <= Start of memory allocation <= 8
     Add.l      #8,d0                   ; ADD + 8 to d0 to be at the higher limit of its memory allocation without bytes over
     move.l     d0,bm_Planes(a1,d2.w)   ; Save bitmap in previously initialized bitmap structure
     move.l     d0,EcCurrent(a4,d2.w)   ; Save bitmaps to EcCurrent
@@ -1245,7 +1245,6 @@ EcFr0:
     Add.l   #8,d0 ; 2019.11.19 For memory alignment
     bsr    FreeMm
 EcFr1: 
-
     dbra    d7,EcFr0
 
 ; ******** 2. We delete double buffer bitmaps

@@ -329,11 +329,11 @@ EcCree:
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     and.l   #$FFFFFFF0,d2
     beq EcE4
-    cmp.l   #1024,d2
+    cmp.l   #2048,d2
     bcc EcE4
     tst.l   d3
     beq EcE4
-    cmp.l   #1024,d3
+    cmp.l   #2048,d3
     bcc EcE4
     tst.l   d4
     beq EcE4

@@ -128,7 +128,7 @@ Adh1:
     bcs.s      Adh2                    ; if D0 < 0 Then Jump Adh2
     cmp.b      #10,d0                  ; Is D0 > 10 ?
     bcc.s      Adh2                    ; if D0 > 10 Then Jump Adh2
-    ; **************** Here, AMOS Do a Mulu #10,d1 using 4 lines - Sthttps://www.facebook.com/hunts.zombiez#art
+    ; **************** Here, AMOS Do a Mulu #10,d1 using 4 lines - Start
     add.l      d1,d1                   ; D1 = D1 * 2                   | D1 = PrevNum * 2
     move.l     d1,d2                   ; D2 = D1                       | D2 = PrevNum * 2
     lsl.l      #2,d1                   ; D1 = D1 * 4                   | D1 = PrevNum * 2 * 4 = PrevNum * 8

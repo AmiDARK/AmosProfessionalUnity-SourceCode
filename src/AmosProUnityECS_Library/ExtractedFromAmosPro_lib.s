@@ -2404,7 +2404,8 @@ AMP_BnkGetAdr:
 AMP_InRain:
     EcCall     RainVar
     bne        EcWiErr
-    ForceToRGB12 d3,d3
+;    ForceToRGB12 d3,d3
+    and.w      #$0FFF,d3
     move.w     d3,(a0)
     rts
 
@@ -2414,12 +2415,11 @@ AMP_InRain:
 ; Return D3 = Rainbow RGB24 Color
 AMP_FnRain:
     EcCall    RainVar
-    Rbne    L_EcWiErr
+      bne    EcWiErr
     moveq    #0,d3
     move.w    (a0),d3
-    ForceToRGB24 d3,d3
+;    ForceToRGB24 d3,d3
     rts
-
 
 
 
