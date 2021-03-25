@@ -1,3 +1,0 @@
-echo "Assembling AMOSPro_Compiler.Lib"
-c/Library_Digest +Compext.s
-c/Genam FROM +Compext.s TO AMOS/APSystem/AMOSPro_Compiler.Lib

@@ -230,18 +230,19 @@ HsNb        equ     64
         Rl    MouDes,1
         Rw    MouTy,1
 
-        Rl    SprBank,1
+        Rl    SprBank,1            ; Amos Bank containing sprites
         Rl    HsTBuf,1
-        Rl    HsBuffer,1
-        Rl    HsLogic,1
-        Rl    HsPhysic,1
-        Rl    HsInter,1
+        Rl    HsBuffer,1           ; Buffer containing all sprites data used to being displayed (3 buffers in)
+        Rl    HsLogic,1            ; Buffer containing all sprites Logic (non displayed)
+        Rl    HsPhysic,1           ; Buffer containing all sprites Physic (to be displayed)
+        Rl    HsInter,1            ; Buffer containing all sprites (intermediate ?)
         Rl    HsChange,1
-        Rl    HsTable,1
-        Rw    HsPMax,1
-        Rw    HsTCol,1
+        Rl    HsTable,1            ; Hardware Sprites table (Pointer)
+        Rw    HsPMax,1             ; Sprite buffer size -2 (=Last position offset in each buffer)
+        Rw    HsTCol,1             ; Sprites columns (size) = 1 Sprite data buffer size.
         Rw    HsNLine,1
         Rl    HsPosition,2*8+1
+        Rw    AgaSprWidth,1        ; 2021.03.25 Aga Sprites Width 0 = 16 pixels, 1 = 32 Pixels, 2 = 64 Pixels.
 
 * Actualisation sprites
 HsYAct:        equ     4
@@ -251,14 +252,14 @@ HsPAct:        equ     6
 * Structure SPrites
 HsPrev:        equ     0
 HsNext:        equ     2
-HsX:        equ     4
-HsY:        equ     6
-HsYr:        equ     8
+HsX:           equ     4
+HsY:           equ     6
+HsYr:          equ     8
 HsLien:        equ     10
-HsImage:    equ     12
-HsControl:    equ     16
+HsImage:       equ     12
+HsControl:     equ     16
 HsLong:        equ     20        
-        Rb    SpBase,HsLong+4
+        Rb     SpBase,HsLong+4
 
 ***************************************************************
 *        BOBS
@@ -396,9 +397,6 @@ agaPalCnt      equ 8                   ; Define the maximum of Aga color palette
         Rw     globAgaPalL,224         ; 2020.08.13 Adding low registers of AGA Palette. Storing 24 bit
         Rw     Separator2,1
         Rb     agaPalLoad,1024         ; 2020.09.17 Load Aga Palette Here
-*************** Global Aga Rainbow systems
-agaRainCnt     equ 4                   ; 2020.10.02 Define the maximum of AGA Rainbows that can be created.
-        Rl     AgaRainbows,agaRainCnt  ; 2020.10.02 Pointers for the AGA Rainbows buffers
 *************** Longueur de la structure W.S
         Rb     L_Trp,4
 L_Trappe    equ    -Count

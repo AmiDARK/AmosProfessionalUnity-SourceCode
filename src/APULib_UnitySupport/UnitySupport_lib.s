@@ -260,6 +260,13 @@ C_Tk:
     dc.w    L_GrabPaletteFromScreen,L_Nul
     dc.b    "grab screen palett","e"+$80,"I0",-1
 
+    dc.w    L_SetAGASpritesWidth,L_Nul
+    dc.b    "set sprite widt","h"+$80,"I0",-1
+    dc.w    L_Nul,L_GetAgaSpritesMaxHeight
+    dc.b    "get sprite buffe","r"+$80,"0",-1
+
+
+
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
 
@@ -2015,7 +2022,7 @@ FD_Errors:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
-  Lib_Def      fadeUnityinside
+  Lib_Def    fadeUnityinside
     move.l     T_EcCourant(a5),a1      ; A1 = Current Screen pointer
     move.l     a1,T_FadeScreen(a5)     ; T_FadeScreen(a5) = Screen required for fading calculation.
     move.w     EcNumber(a1),d0         ; d0 = Current screen number
@@ -2083,6 +2090,85 @@ fap1:
     rts
     ; ****************************************** 2020.09.16 New Method : Prepare the AGA fading system - End
 
+
+
+
+
+;                                                                                                                      ************************
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                           *                                                 *
+;                                                                                           * AREA NAME : New UNITY AGA Sprites Methods       *
+;                                                                                           *                                                 *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    SetAGASpritesWidth
+    ; ******** 1. We check if width is compatible with ECS
+    cmp.l      #16,d3
+    beq.s      .set16pix
+    ; ******** 2. Check if AGA is Enabled or not
+    tst.w      T_isAga(a5)
+    Rbeq       L_Err8                   ; ECS Allow only 16 pixels width for sprites
+    ; ******** 3. If AGA Is Enabled, then we check for aga compatibles width 32 and 64 pixels.
+    cmp.l      #32,d3
+    beq.s      .set32pix
+    cmp.l      #64,d3
+    Rbne       L_Err5                   ; Aga Allow only 16,32 or 64 pixels width for sprites
+    ; ******** 4. Push the values in d3 for 64, 32 and 16 pixels width sprites
+.set64pix:
+    moveq.l    #3,d3
+    bra.s      .set
+.set32pix:
+    moveq.l    #1,d3
+    bra.s      .set
+.set16pix:
+    moveq.l    #0,d3
+.set:
+    ; ******** 5. Save the value in the register
+    cmp.w      T_AgaSprWidth(a5),d3
+    beq.s      .noSet
+    move.w     d3,T_AgaSprWidth(a5)
+    ; ******** 6. We force Amos Professional to reset buffers.
+    move.w     T_HsNLine(a5),d1         ; Load the current lines max size
+    ext.l      d1
+    subq.l     #2,d1                    ; To get the original height, as because it automatically add +2 to the sent height.
+    clr.w      T_HsNLine(a5)            ; Clear to force the refresh of buffers
+    SyCall     SBufHs                   ; Call the method to force sprites buffers refreshing (re-create them)
+.noSet:
+    moveq      #0,d0                    ; Everything is OK;
+    rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    GetAgaSpritesMaxHeight
+    move.w     T_HsNLine(a5),d3
+    ext.l      d3
+    subq.l     #2,d3
+    Ret_Int
 
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
@@ -2527,23 +2613,23 @@ ErDisk:
     moveq   #4,d0
     Rbra    L_Errors
 
-  Lib_Def Err5             ; 
+  Lib_Def Err5             ; Width value is invalid. AGA Sprites Width can be 16,32 or 64
     moveq   #5,d0
     Rbra    L_Errors
 
-  Lib_Def Err6            ; The specified file is not an IFF/ILBM Color Map (CMAP) file.
+  Lib_Def Err6             ; The specified file is not an IFF/ILBM Color Map (CMAP) file.
     moveq   #6,d0
     Rbra    L_Errors
 
-  Lib_Def Err7            ; Cannot allocate memory to store the IFF/ILBM CMAP file.
+  Lib_Def Err7             ; Cannot allocate memory to store the IFF/ILBM CMAP file.
     moveq   #7,d0
     Rbra    L_Errors
 
-  Lib_Def Err8            ; The loaded IFF/ILBM, CMAP header is not found at normal location.
+  Lib_Def Err8             ; Sprites Width value is invalid. ECS Sprites Width can only be 16
     moveq   #8,d0
     Rbra    L_Errors
 
-  Lib_Def Err9            ; The IFF/FORM file size is incorrect
+  Lib_Def Err9            ;  
     moveq   #9,d0
     Rbra    L_Errors
 
@@ -2570,15 +2656,20 @@ ErrMess:
     dc.b    "Colors amount is incorrect (Valids values are 2,4,8,16,32,64,128,256)", 0             * Error #2 USED
     dc.b    "Not enough free memory to allocate the requested colors palette",0                    * Error #3 USED
     dc.b    "There is no colors palette bank at this slot",0                                       * Error #4 USED
-    dc.b    "This bank is not a Color Palette bank.",0                                             * Error #5 USED
+    dc.b    "Sprites Width value is invalid. AGA Sprites Width can be 16,32 or 64.",0              * Error #5 USED
 ; *******
     dc.b    "The specified file is not an IFF/ILBM Color Map (CMAP) file.",0                       * Error #6 USED -> (#14)
     dc.b    "Cannot allocate memory to store the IFF/ILBM CMAP file.",0                            * Error #7 USED -> (#15)
-    dc.b    "The loaded IFF/ILBM, CMAP header is not found at normal location.",0                  * Error #8 USED -> (#16)
-    dc.b    "The IFF/FORM file size is incorrect.",0                                               * Error #9 USED -> (#20)
+
+    dc.b    "Sprites Width value is invalid. ECS Sprites Width can only be 16.",0                  * Error #8 USED
+    dc.b    "",0                                                                                   * Error #8 UNUSED -> (#16)
+    dc.b    "",0                                                                                   * Error #9 UNUSED -> (#20)
 ; *******
     dc.b    "The input RGB format is not recognized."                                              * Error #10
     dc.b    "The requested color index is out of the color palette range."                         * Error #11
+
+
+
 
     dc.b    "Starting color palette position is invalid (Valid range 0-255).", 0                   * Error #5 UNUSED
     dc.b    "Color palette range cannot exceed value 255.", 0                                      * Error #6 UNUSED
@@ -2586,6 +2677,7 @@ ErrMess:
     dc.b    "Chosen screen color range for copy is out of screen colors range.", 0                 * Error #8 UNUSED
     dc.b    "Invalid amount of colors to copy (Valid range is 1-255 for AGA and 1-31 for ECS).",0  * Error #9 UNUSED
     dc.b    "The IFF CMAP Color palette is corrupted.",0                                          * Error #19 UNUSED
+    dc.b    "This bank is not a Color Palette bank.",0                                             * Error #5 UNUSED
 * IMPORTANT! Always EVEN!
     even
 

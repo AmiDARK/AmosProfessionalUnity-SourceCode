@@ -469,7 +469,7 @@ EcCree:
     tst.l      d3
     beq        EcE4
     cmp.l      #2048,d3                ; 2019.11.18 : If Screen Height > 2048 -> Error
-    b;cc        EcE4
+    bcc        EcE4
     tst.l      d4                      ; If Screen Depth = 0 -> Error
     beq        EcE4
     cmp.l      #EcMaxPlans,d4          ; If Screen Depth > ExMAxPlans -> Error

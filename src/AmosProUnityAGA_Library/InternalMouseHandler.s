@@ -115,10 +115,10 @@ SSwp4:    lea    SwapL-4(a0),a0
 SSwpX:
 
 * Change l''adresses des sprites hard
-    move.l    T_HsChange(a5),d0
-    beq.s    VblPaHs
-    clr.l    T_HsChange(a5)
-    bsr    HsPCop
+    move.l   T_HsChange(a5),d0     ; d0 = Hardware sprites update list pointer
+    beq.s    VblPaHs               ; d0 = null ? Yes -> VblPaHs
+    clr.l    T_HsChange(a5)        ; Clear Hardware sprites update list pointer backup
+    bsr      HsPCop                ; Sprites.s / Updates sprites pointers inside copper list
 VblPaHs:
 
 * Marque le VBL
@@ -431,10 +431,13 @@ EcToD4:    addq.l    #4,sp
     rts
 
 *******    XYMOUSE 
-MXy:    moveq    #0,d1
+; ********************************************************
+; ******** Return Mouse coordinaes in d1,d2
+MXy:
+    moveq    #0,d1
     moveq    #0,d2
-    move.w    T_XMouse(a5),d1
-    move.w    T_YMouse(a5),d2
+    move.w   T_XMouse(a5),d1
+    move.w   T_YMouse(a5),d2
     moveq    #0,d3
     rts
 
@@ -442,7 +445,8 @@ MXy:    moveq    #0,d1
 *    D3-> Ecran
 *    D1-> X
 *    D2-> Y
-CXyScr    bsr    EcToD1
+CXyScr:
+    bsr    EcToD1
 * Coordonnee en Y
     add.w    #EcYBase,d2
     sub.w    EcWy(a0),d2

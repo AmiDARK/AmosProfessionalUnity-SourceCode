@@ -1,3 +1,0 @@
-echo "Assembling AMOSPro_Compact.Lib"
-c/Library_Digest +Compact.s
-c/Genam FROM +Compact.s TO AMOS/APSystem/AMOSPro_Compact.Lib

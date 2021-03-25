@@ -1,3 +1,0 @@
-echo "Assembling AMOSPro_Music.Lib"
-c/Library_Digest +Music.s
-c/Genam FROM +Music.s TO AMOS/APSystem/AMOSPro_Music.Lib

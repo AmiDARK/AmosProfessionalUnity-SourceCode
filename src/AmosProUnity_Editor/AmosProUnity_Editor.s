@@ -32,7 +32,8 @@
 
 ; Branchements internes à l'editeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-EDebut        dc.l    Ed_Cold-EDebut
+EDebut:
+        dc.l    Ed_Cold-EDebut
         dc.l    Ed_Title-EDebut
         dc.l    Ed_End-EDebut
         dc.l    Ed_Loop-EDebut
@@ -56,72 +57,73 @@ Ed_AutoMarksNb    equ    4
 Ed_SlHDeltaG    equ    -2
 Ed_SlHDeltaD    equ    1
 Ed_SlHDeltaH    equ    2
-Ed_SlHSy    equ    2
+Ed_SlHSy        equ    2
 Ed_SlVDeltaG    equ    6
 Ed_SlVDeltaH    equ    11
-Ed_SlVSx    equ    4
+Ed_SlVSx        equ    4
 Ed_SlVDeltaB    equ    -1
-Ed_SlHDy    equ    2
-Ed_SlVDx    equ    4
+Ed_SlHDy        equ    2
+Ed_SlVDx        equ    4
 
-Ed_ZBoutons    equ    1000
-Ed_XScrollG    equ    20
-Ed_XScrollD    equ    10
-Ed_YScrollH    equ    4
-Ed_YScrollB    equ    4
+Ed_ZBoutons     equ    1000
+Ed_XScrollG     equ    20
+Ed_XScrollD     equ    10
+Ed_YScrollH     equ    4
+Ed_YScrollB     equ    4
 
-Ed_YTop        equ    0
-Ed_TitreSy    equ    16
-Edt_EtatSy    equ    11
-Edt_BasSy    equ    5
-Edt_BtSx    equ    24
+Ed_YTop         equ    0
+Ed_TitreSy      equ    16
+Edt_EtatSy      equ    11
+Edt_BasSy       equ    5
+Edt_BtSx        equ    24
 
 ; Images dans la banque
 ; ~~~~~~~~~~~~~~~~~~~~~
-Ed_Pics        equ    1    
-Ed_BtPics    equ    Ed_Pics+4
-Ed_BoutonsPics    equ    Ed_BtPics+2*3
-Ed_MemoryPics    equ    Ed_BoutonsPics+2*12
-Es_Pics        equ    Ed_MemoryPics+3
-Es_BoutonsPics    equ    Es_Pics+3
+Ed_Pics         equ    1    
+Ed_BtPics       equ    Ed_Pics+4
+Ed_BoutonsPics  equ    Ed_BtPics+2*3
+Ed_MemoryPics   equ    Ed_BoutonsPics+2*12
+Es_Pics         equ    Ed_MemoryPics+3
+Es_BoutonsPics  equ    Es_Pics+3
 
-Ed_LogoSx    equ    32*5
-Ed_MemorySy    equ    2
-Ed_MemoryY1    equ    Ed_YTop+3
-Ed_MemoryY2    equ    Ed_YTop+10
+Ed_LogoSx       equ    32*5
+Ed_MemorySy     equ    2
+Ed_MemoryY1     equ    Ed_YTop+3
+Ed_MemoryY2     equ    Ed_YTop+10
 ; Gros boutons
 ; ~~~~~~~~~~~~
 Ed_BoutonsSx    equ    32
 Ed_BoutonsSy    equ    16
-Ed_TitleSx    equ    Ed_BoutonsSx*5
-Ed_BoutonsX    equ    Ed_BoutonsSx+Ed_TitleSx
-Ed_BoutonsY    equ    Ed_YTop
-Ed_BoutonsZones    equ    128
+Ed_TitleSx      equ    Ed_BoutonsSx*5
+Ed_BoutonsX     equ    Ed_BoutonsSx+Ed_TitleSx
+Ed_BoutonsY     equ    Ed_YTop
+Ed_BoutonsZones equ    128
 
 ; Boutons Escape
 ; ~~~~~~~~~~~~~~
 Es_BoutonsSx    equ    32
 Es_BoutonsSy    equ    16
-Es_BoutonsZones    equ    1
-Es_TitleSx    equ    Es_BoutonsSx*4
-Es_TitleSy    equ    16
-Es_BoutonsX    equ    Es_BoutonsSx+Es_TitleSx
-Es_BoutonsY    equ    0
-Es_MiniSy    equ    Es_TitleSy+8
+Es_BoutonsZones equ    1
+Es_TitleSx      equ    Es_BoutonsSx*4
+Es_TitleSy      equ    16
+Es_BoutonsX     equ    Es_BoutonsSx+Es_TitleSx
+Es_BoutonsY     equ    0
+Es_MiniSy       equ    Es_TitleSy+8
 
 ; Nombre maximum de programme hidden dans le menu
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-EdM_HiddenMax    equ    12
+EdM_HiddenMax   equ    12
 
 ; Numero du bouton ESCAPE
 ; ~~~~~~~~~~~~~~~~~~~~~~~
-Bt_Insert    equ    10
+Bt_Insert       equ    10
 
 ; Messages
 ; ~~~~~~~~
-Ed_Mes        equ    0        Debut des messages editeur
+Ed_Mes          equ    0        Debut des messages editeur
 
 Ed_DiaImages    equ    66        Debut des images dialogue dans la banque
+
 ;    IfEQ    ROnly
 
 ;______________________________________________________________________________

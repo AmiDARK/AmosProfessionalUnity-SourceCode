@@ -1,3 +1,0 @@
-echo "Assembling AMOSPro"
-c/Genam FROM +b.s TO AMOS/AMOSPro
-echo "Editor installed to AMOS/AMOSPro"

@@ -23,11 +23,16 @@ TO DO AFTER :
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
 ; ************************************************************************
+; 2021.03.25 :
+- Added method "Set Sprite Width WIDTH" (can handle 16, 32 and 64 ) to setup AGA width mode
+- Updated AmosProUnityAGA.library/Sprites.s/HsRBuf to handle the allocation of AGA sprites with Width = 16, 32 and 64
+- Set Sprite Buffer is automatically updated as it call the updated methods.
+- Added method "= Get Sprite Buffer" to return the value set with the original Amos Professional Command "Set Sprite Buffer"
+
+; ************************************************************************
 ; 2021.03.22 :
 - Fixed Rainbow compilation (.exe) issue in AGA Unity & ECS Unity
 - Restored ResTempBuffer in AmosProLoader.s
-
-
 
 ; ************************************************************************
 ; 2021.03.18
