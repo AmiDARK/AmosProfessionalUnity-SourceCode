@@ -72,6 +72,7 @@ amosprolib_functions:
     bra        APX_NewFADE2                 ;  49 A_NewFADE2 not extracted from AmosPro.lib but from AmosProX/AmosPro_AGASupport.lib
 ; ******** 2021.03.13 Imported from AmosProX/AmosPro_AGASupport.lib - END
     bra        AMP_IffFormFake              ;  50 A_IffForm_FakePlay 2021.03.15
+    bra        AMP_Dia_RScOpen              ;  51 Dialogue Resource Screen Open
 
 ;   bra        .........
     dc.l       0
@@ -1394,10 +1395,10 @@ AMP_InScreenOpen:
     cmp.l      #4096,d6                ; If HAM Mode is requested ?
     bne.s      ScOo0                   ; If not -> Jump to ScOo0
 ; **************** 2020.07.31 Remove Lowres limitation and allow Ham in HIRES - START
-;    tst.w      d5                      ; Check if HAM Mode is requested in HiRes
-;    bmi        FonCall                 ; If yes, -> Jump to error L_FonCall
+;    tst.w      d5                     ; Check if HAM Mode is requested in HiRes
+;    bmi        FonCall                ; If yes, -> Jump to error L_FonCall
 ; **************** 2020.07.31 Remove Lowres limitation and allow Ham in HIRES - END
-    moveq      #6,d4                    ; HAM used 6 bitplanes.
+    moveq      #6,d4                   ; HAM used 6 bitplanes.
     or.w       #$0800,d5
     moveq      #64,d6
     bra.s      ScOo2
@@ -3455,6 +3456,81 @@ llp1b:
 
 
 
+AMP_Dia_RScOpen:
+; - - - - - - - - - - - - -
+    movem.l    a2/d2-d7,-(sp)
+    subq.l    #8,sp
+    move.l    d3,(sp)
+    move.l    d2,d3            TY
+    move.l    d1,d2            TX
+    move.l    d0,d1            Numero
+    move.l    a0,a1
+    move.w    (a1),d0
+    lsl.w    #2,d0
+    lea    2(a1,d0.w),a1
+    move.w    (a1)+,d6        Nombre couleurs
+    ext.l    d6
+    move.w    (a1)+,d5        Mode
+
+    and.l      #$8004,d5               ; D5 = Display Mode (Hires, Laced, etc. ) && Bits : Hires || Laced
+    tst.w      d4            Force l''interlaced?
+    bmi.s      .Skm
+    bclr       #2,d5
+    tst.w      d4
+    beq.s      .Skm
+    bset       #2,d5
+.Skm:
+    cmp.l      #4096,d6                ; If HAM Mode is requested ?
+    bne.s      .ScOo0                  ; If not -> Jump to ScOo0
+    moveq      #6,d4                   ; HAM used 6 bitplanes.
+    or.w       #$0800,d5
+    moveq      #64,d6
+    bra.s      .ScOo2
+* Nombre de couleurs-> plans
+.ScOo0:
+    moveq      #1,d4            * Nb de plans
+    moveq      #2,d0
+.ScOo1:
+    cmp.l      d0,d6
+    beq.s      .ScOo2
+    lsl.w      #1,d0
+    addq.w     #1,d4
+    cmp.w      #EcMaxPlans-1,d4        ; 2021.03.27 Updated to handle directly max amount of planes allowed (original was = #7)
+    bcs.s      .ScOo1
+.ScOo2:
+    EcCall   Cree
+    bne.s    .Err
+    move.l   a0,4(sp)
+* Fait flasher la couleur
+    move.l    (sp),d1            Efface le curseur
+    bne.s    .Fl
+    lea    .Cu0(pc),a1
+    bra.s    .Prn
+.Fl
+    moveq    #1,d0            Met le curseur
+    cmp.w    EcNbCol(a0),d1
+    bcc.s    .Err
+    moveq    #46,d0
+    bsr      Sys_GetMessage
+    move.l    a0,a1
+    EcCall    Flash
+    bne.s    .Err
+    move.l    (sp),d1
+    lea    .Cu1(pc),a1
+    add.b    #"0",d1
+    move.b    d1,2(a1)
+.Prn:
+    WiCall    Print
+    moveq    #0,d0
+;* Erreur
+.Err:
+    tst.l    (sp)+
+    move.l    (sp)+,a0
+    movem.l    (sp)+,a2/d2-d7
+    tst.w    d0
+    rts
+.Cu0    dc.b    27,"C0",0
+.Cu1    dc.b    27,"D0",0
 
 
 

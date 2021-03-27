@@ -5,7 +5,7 @@
 ;    *  *  *  *    *    ******************************************
 ; ****  *  **** ****
 ;-----------------------------------------------------------------
-
+chipBufferSize     equ 1024
 ***********************************************************
 *    DEMARRAGE A FROID DES ECRANS
 *    D0= taille memoire pour liste copper
@@ -17,7 +17,7 @@ EcInit:
     beq    GFatal
     move.l    d0,T_EcCop(a5)
 * Petit buffer en CHIP pour les operations graphiques
-    move.l    #256,d0
+    move.l    #chipBufferSize,d0
     bsr    ChipMm
     beq    GFatal
     move.l    d0,T_ChipBuf(a5)
@@ -57,7 +57,7 @@ EcEnd:    moveq    #0,d1
     move.l    T_ChipBuf(a5),d0
     beq.s    .skip
     move.l    d0,a1
-    move.l    #256,d0
+    move.l    #chipBufferSize,d0
     bsr    FreeMm
 .skip
 * Efface la memoire liste copper

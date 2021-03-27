@@ -19707,6 +19707,10 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
 ; - - - - - - - - - - - - -
     Lib_Def    Dia_RScOpen
 ; - - - - - - - - - - - - -
+    AmpLCallSV A_Dia_RScOpen,a1 ; 2021.03.27 ReTested OK
+    tst.w    d0
+    rts
+;
     movem.l    a2/d2-d7,-(sp)
     subq.l    #8,sp
     move.l    d3,(sp)
@@ -19734,23 +19738,27 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     moveq    #64,d6
     bra.s    .ScOo2
 * Nombre de couleurs-> plans
-.ScOo0    moveq    #1,d4            * Nb de plans
+.ScOo0:
+    moveq    #1,d4            * Nb de plans
     moveq    #2,d0
-.ScOo1    cmp.l    d0,d6
+.ScOo1:
+    cmp.l    d0,d6
     beq.s    .ScOo2
     lsl.w    #1,d0
     addq.w    #1,d4
     cmp.w    #7,d4
     bcs.s    .ScOo1
-.ScOo2    EcCall    Cree
+.ScOo2:
+    EcCall   Cree
     bne.s    .Err
-    move.l    a0,4(sp)
+    move.l   a0,4(sp)
 * Fait flasher la couleur
     move.l    (sp),d1            Efface le curseur
     bne.s    .Fl
     lea    .Cu0(pc),a1
     bra.s    .Prn
-.Fl    moveq    #1,d0            Met le curseur
+.Fl
+    moveq    #1,d0            Met le curseur
     cmp.w    EcNbCol(a0),d1
     bcc.s    .Err
     moveq    #46,d0
@@ -19762,10 +19770,12 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     lea    .Cu1(pc),a1
     add.b    #"0",d1
     move.b    d1,2(a1)
-.Prn    WiCall    Print
+.Prn:
+    WiCall    Print
     moveq    #0,d0
 * Erreur
-.Err    tst.l    (sp)+
+.Err:
+    tst.l    (sp)+
     move.l    (sp)+,a0
     movem.l    (sp)+,a2/d2-d7
     tst.w    d0

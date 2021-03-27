@@ -228,10 +228,12 @@ MkD4:
     move.w    d1,(a3)+
     bra.s     MkD4
 ; Remonte la limite
-MkD4a:        move.w    d3,d2
+MkD4a:
+    move.w    d3,d2
     bra       MkD0
 ; Fin de la liste
-MkD5:         move.w    #-1,(a3)+
+MkD5:
+    move.w    #-1,(a3)+
 
 PaDecoup:
 ;-----> Analyse de la table / creation de la liste
@@ -392,18 +394,14 @@ CLPopulate:                                ; // 2019.11.05 Useless Reference add
 
     ; **************** The Logic copper already contains sprites datas & 2020.01.01 AGA Palette addon is on AGA chipset
     move.l    T_CopLogic(a5),a1        ; send LOGIC copper addres into -> A1 (Work is always donc on logic version, not physic one.)
-    ; ******************************* 2020.01.01 Add detection for AGA support.
-    add.l     #68,a1                   ; 2020.01.01 Restored default Sprites adding : Move further in the copper list to not modify the Sprites ((64+4)=68)
-    cmp.w     #0,T_isAga(a5)           ; 2020.01.01 is Chipset = ECS ?
-    beq.s     CpNxt                    ; YES -> Jump CpNxt
-    add.l     #928,a1                  ; 2020.01.01 Move further in the copper list to not modify the Aga Colors palette (4(CopLineWait)+(((1(BplCon3)+32(Registers))*4(Reg+Value))*7(PalettesCount))=928 
-    add.l     #924,a1                  ; 2020.09.01 For the 2nd RGB12 components of the 032-255 color palette
-    add.l     #4,a1                    ; 2020.09.01 For the BplCon3 reset
+    ; ******************************* 2021.03.27 Reinserted copper auto-adjustment
+    add.l     T_CopEditStartShift(a5),a1
+    ; ******************************* 2021.03.27 Reinserted copper auto-adjustment
 CpNxt:
     ; ******************************* 2020.01.01 End of : Add detection for AGA support.
 * Rainbow?
     tst.w     T_RainBow(a5)
-    bne.s     CopBow                   ; If a RAINBOW is created/active, then jump to Rainbow update
+    bne       CopBow                   ; If a RAINBOW is created/active, then jump to Rainbow update
     ; **************** Normal COPPER creation
 MCop0:
     move.l    T_EcCop(a5),a2           ; Send screen list adress into ->A2
@@ -428,7 +426,7 @@ MCopX:
     move.w    T_EcYMax(a5),d0
     subq.w    #1,d0
     bsr       EcCopBa    
-.Skip
+.Skip:
     move.l    #$FFFFFFFE,(a1)+         ; Insert the last line of the Copper List.
 *******    Swappe les listes
 MCopSw:
@@ -598,7 +596,12 @@ Rain3:
     bsr        Rain                    ; Call Rain (push rain up to last screen line)
     bsr        EcCopBa                 ; Call EcCopBa (Insert screen bottom closure)
 .Skip:
-    move.l     #$FFFFFFFE,(a1)+        ; Finish/Close copper list
+
+; ******** 2021.03.27 Prevent screen glitched
+    move.w    #DmaCon,(a1)+            ; Send data to DMACON register
+    move.w    #$0000,(a1)+             ; Stop All DMA except Bit Plane DMA
+; ******** 2021.03.27 Prevent screen glitched
+    move.l    #$FFFFFFFE,(a1)+         ; Insert the last line of the Copper List.
     bra        MCopSw                  ; Jump MCopSw ( Swap copper list and finish copper update job)
 
 
@@ -787,7 +790,7 @@ MkC5b:                                 ; Loop to put then entire screen palette 
     move.w     (a4)+,(a1)+             ; Copy color data from screen palette inside copper list
     dbra       d3,MkC5b                ; End of color copy into copper list loop.
     move.w     #BplCon3,(a1)+
-    move.w     #%1000000000000,(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
+    move.w     #%0000000000000,(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
 ; ********************************************* 2020.08.14 Add support for RGB24 bits colors 000-015 - END
 
     IFEQ    EZFlag
@@ -814,7 +817,6 @@ PluDual:
     add.w      d2,d1
     move.l     a1,d3
 * Poke les adresses des bitplanes
-
     moveq      #EcPhysic,d2
     move.w     EcNPlan(a0),d6
     subq.w     #1,d6
@@ -995,7 +997,7 @@ noFetchChanges2:
     move.w     #BplCon2,(a1)+
     move.w     EcCon2(a0),(a1)+
     move.w     #BplCon3,(a1)+          ; 2019.11.04 Added BplCon3 to support dual playfield 2x16 colors
-    move.w     #%1000000000000,(a1)+   ; 2019.11.04
+    move.w     #%0000000000000,(a1)+   ; 2019.11.04
     move.w     #FMode,(a1)+            ; 2019.11.04 And FMode Support too
     Move.w     EcFMode(a0),(a1)+       ; 2019.11.04
 * Reactive le DMA au debut de la fenetre
@@ -1026,6 +1028,11 @@ MkC7:
     move.w     (a4)+,(a1)+             ; Next Copper Data (A1) = Color Data (A4) 
     dbra       d1,MkC7                 ; D1 > -1 Continue inserting color registers -> Jump MkC7
 
+; ******** 2021.03.27 Fixe screen glitches on ressource screen (real time mode) - START
+    move.w     EcNumber(a0),d2
+    cmp.w      #7,d2
+    bgt.s      _noAlternateColors
+; ******** 2021.03.27 Fixe screen glitches on ressource screen (real time mode) - END
 ; ********************************************* 2020.08.14 Add support for RGB24 bits colors 016-031 - START
     move.w     #BplCon3,(a1)+          ; 2019.11.04 Added BplCon3 to support dual playfield 2x16 colors
     move.w     #%1001000000000,(a1)+   ; 2020.08.14 Makes LOCT = 1, PF2OF2 = 1
@@ -1038,9 +1045,11 @@ MkC7b:
     move.w     (a4)+,(a1)+             ; Next Copper Data (A1) = Color Data (A4) 
     dbra       d1,MkC7b                ; D1 > -1 Continue inserting color registers -> Jump MkC7
     move.w     #BplCon3,(a1)+
-    move.w     #%1000000000000,(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
+    move.w     #%0000000000000,(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
 ; ********************************************* 2020.08.14 Add support for RGB24 bits colors 016-031 - END
-
+; ******** 2021.03.27 Fixe screen glitches on ressource screen (real time mode) - START
+_noAlternateColors:
+; ******** 2021.03.27 Fixe screen glitches on ressource screen (real time mode) - END
 * Adresse de la 2ieme palette
     move.w     EcNumber(a0),d2
     lsl.w      #7,d2
@@ -1362,8 +1371,6 @@ MkdC3:    lsl.w    #4,d7
 ; * Return Value :                                            *
 ; *************************************************************
 EcCopBa:
-;    move.w     #BplCon3,(a1)+          ; 2019.11.05 Update BplCon3 when closing screen
-;    move.w     #0,(a1)+                ; Reset everything concerning BplCon3.
     move.w     d0,d2
     sub.w      #EcYBase,d2
     bsr        WaitD2
@@ -1371,6 +1378,9 @@ EcCopBa:
     move.w     #$0100,(a1)+
     move.w     #Color00,(a1)+
     move.w     T_EcFond(a5),(a1)+
+    move.w     #FMode,(a1)+
+    move.w     #0,(a1)+
+
     rts
 
 ;
@@ -1422,6 +1432,9 @@ CpInit:
 * Copper en ROUTE!
     move.w     #-1,T_CopON(a5)
 ; ********************************************* Insert SPRITES inside the Copper List
+    ; ******************************* 2021.03.27 Reinserted copper auto-adjustment
+    move.l     a0,T_SaveReg(a5)        ; Save Copper 1 Start Adress
+    ; ******************************* 2021.03.27 Reinserted copper auto-adjustment
 HsCop:
     move.l     #$1003FFFE,(a0)         ; Copper 1 : Wait to line raster line 16 (out of screen as screen start near line 50)
     move.l     (a0)+,(a1)+             ; Copper 2 : Copy Wait line from copper 1
@@ -1441,6 +1454,11 @@ CpI1:
     beq.s      CpIx
     bsr        insertAGAColorsInCopper ; 2019.11.13 Insert the AGA color palette at the end of the screen definition.
 CpIx:
+    ; ******************************* 2021.03.27 Reinserted copper auto-adjustment - START
+    move.l     a0,d0                   ; D0 = Copper List 1 End
+    sub.l      T_SaveReg(a5),d0        ; D0 = Copper List Size (Copper List 1 End - Copper List 1 Start)
+    move.l     d0,T_CopEditStartShift(a5) ; Save Shifting for Copperlist start editing
+    ; ******************************* 2021.03.27 Reinserted copper auto-adjustment - END
 ; ************************************************************* 2019.11.13 Insert the AGA color palette at the end of the screen definition - END
     moveq    #0,d0
     rts
@@ -1464,7 +1482,7 @@ insertAGAColorsInCopper:
     move.w  #BplCon3,(a0)+             ; uses BplCon3 bits 13-15 to set other color palettes in copper list 0
     move.w  #%1000000000000,(a0)+
     move.w  #BplCon3,(a1)+             ; uses BplCon3 bits 13-15 to set other color palettes in copper list 1
-    move.w  #%1000000000000,(a1)+
+    move.w  #%0000000000000,(a1)+
     rts
 
 insertAGACIC:

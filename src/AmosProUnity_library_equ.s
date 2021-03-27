@@ -33,14 +33,11 @@ GfxA5        MACRO
         Rl    SyVect,1
         Rl    EcVect,1
         Rl    WiVect,1
-;        Rl    AgaVect,1
         Rl    AmpLVect,1               ; 2020.12    Added for methods (graphics dependant) extracted from AmosPro.lib
         Rl    ColorSupport,1           ; 2020.12.05 Added for advanced color support (conversions)
         Rl    ErrorVectCall,1          ; 2021.02.22 To call RJmp L_Error from everywhere in AMOS Professional Unity.
 **************** 2021.01.18 Support for UnitySupport.lib
-        Rl     UnityVct,1              ; Vectors for UnitySupport.lib methods lists
-;        Rw     gfxChipsetID,1          ; 0 = ECS/OCS , 1 = AGA, 2 = SAGA
-;        Rw     audioChipsetID,1        ; 0 = ECS/OCS/AGA, 2 = SAGA
+        Rl    UnityVct,1               ; Vectors for UnitySupport.lib methods lists
 
 ***************************************************************
 *        ADRESSES AMOS / COMPILER
@@ -182,6 +179,7 @@ RainLong    rs.w    1
         Rw    RainBow,1
         Rw    OldRain,1
 
+***************************************************************
 * Marques copper liste
 CopL1   equ    16*4*2                  ; CopL1 = 128
 CopL2   equ    16*4                    ; CopL2 = 64
@@ -198,6 +196,8 @@ SwapL        equ     32+4+4            ; 2020.09.11 Updated to handle BPLCount(1
         Rw    InterInter,1
         Rw    InterBit,1
         Rl    InterList,EcMax*2
+
+        Rl    CopEditStartShift,1        
     
 ***************************************************************
 *        SPRITES HARD
