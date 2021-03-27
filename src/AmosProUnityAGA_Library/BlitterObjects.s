@@ -64,8 +64,9 @@ GtBb3:
     move.w     d4,(a2)+                ; Save (a2,0.w) = Bob Width
     move.w     d5,(a2)+                ; Save (A2,2.w) = Bob Height
     move.w     d7,(a2)+                ; Save (A2,4.w) = Bob Depth
-    clr.w      (a2)+                   ; Save (A2,6.w) = 0
-    clr.w      (a2)+                   ; Save (A2,8.w) = 0
+    clr.w      (a2)+                   ; Save (A2,6.w) = Flipped X
+    clr.w      (a2)+                   ; Save (A2,8.w) = Flipped Y
+                                       ; (A2,10...)    = Image Datas
 
 ;
 

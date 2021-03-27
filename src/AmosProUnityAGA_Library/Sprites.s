@@ -12,6 +12,10 @@
 ; End Loop
 ; The end of each Sprite list ends 0,0
 
+; Update HsBlit to handle 32 and 64 pixels width blitting (blit 4 or 6 bytes instead of only 2)
+; Update HsAff and decline it in 3 version. The original, one for 32 pixels witdh and one for 64 pixels width (or merge all in 1 adaptative if it''s not too complex)
+;                Check from label HsA5 and +
+
 ; **********************************************************************
 ; HsInit : Called y AmosProfessionalUnityXXX.library/AmosProLibrary_Start.s/StartAll method to setup
 ;          T_HsTable that contains sprites definitions ( HsPrev.w(0), HsNext.w(2), HsX.w(4), HsY.w(6), HsYr.w(8), HsLien.w(10), HsImage(12).l, HsControl(16).l = 20 bytes)
@@ -400,38 +404,38 @@ HsAct3:
 ; ******** Position an Hardware Sprite
 *    D1 = Hardware Sprite ID, D2 = XPos, D3 = YPos, D4 = Flipping, A1 = Sprite Image Pointer
 HsSet:
-    movem.l  d1-d7,-(sp)                    ; Save d1 to d7 -> Stack Pile
-    movem.l  a1/a3/a4,-(sp)                 ; Save a1,a3,a4 -> Stack Pile
-    move.w   d1,d0                          ; D0 = D1 = Hardware Sprite
-    mulu     #HsLong,d1                     ; D1 = D1 * HsLong (to point in the good hardware sprite structure in the table)
-    move.l   T_HsTable(a5),a3               ; a3 = HsTable (pointer to the sprite 0 in the table)
-    lea      0(a3,d1.w),a4                  ; a4 = HsTable/SpriteD1 (point to the sprite d1 in the table)
+    movem.l   d1-d7,-(sp)                    ; Save d1 to d7 -> Stack Pile
+    movem.l   a1/a3/a4,-(sp)                 ; Save a1,a3,a4 -> Stack Pile
+    move.w    d1,d0                          ; D0 = D1 = Hardware Sprite
+    mulu      #HsLong,d1                     ; D1 = D1 * HsLong (to point in the good hardware sprite structure in the table)
+    move.l    T_HsTable(a5),a3               ; a3 = HsTable (pointer to the sprite 0 in the table)
+    lea       0(a3,d1.w),a4                  ; a4 = HsTable/SpriteD1 (point to the sprite d1 in the table)
 ; ******** Direct Sprite    
-    cmp.w    #8,d0                          ; Is Sprite ID > 8 ?
-    bcc      Hss4                           ; -> Hss4
+    cmp.w     #8,d0                          ; Is Sprite ID > 8 ?
+    bcc       Hss4                           ; -> Hss4
 ; ******** If SpriteID = 0, Check if mouse is displayed or hidden
-    tst.w    d0                             ; Is Sprite ID = 0 ?
-    bne.s    HsDm                           ; No -> HsDm
-    tst.w    T_MouShow(a5)                  ; If SpriteID = 0, is mouse shown/hiddent ?
-    bpl      Hss30                          ; Mouse is visible -> Hss30
+    tst.w     d0                             ; Is Sprite ID = 0 ?
+    bne.s     HsDm                           ; No -> HsDm
+    tst.w     T_MouShow(a5)                  ; If SpriteID = 0, is mouse shown/hiddent ?
+    bpl       Hss30                          ; Mouse is visible -> Hss30
 ; ******** Should a copy of the image being done ?
 HsDm:
-    cmp.l    HsImage(a4),a1                 ; A1 = Pointer to Sprite ImageID
-    beq.s    HsD0                           ; a1=0 -> HsD0 (no image)
-    move.w   2(a1),d0                       ; d0 = Image Height (in pixels)
-    addq.w   #1,d0                          ; d0 = d0 + 1
-    cmp.w    T_HsPMax(a5),d0                ; if D0 > HsPMax (Max Height Sprites ?)
-    bcc      Hss30                          ; Yes -> Hss30
-    move.l   a1,HsImage(a4)                 ; HsImage(Sprite) = a1 = Pointer to Sprite ImageID HsImage(a4)
-    move.w   #3,HsNext(a4)                  ; 2021.03.26 Replaced 2 by HsNext in the Structure. HsNext = 3 
+    cmp.l     HsImage(a4),a1                 ; A1 = Pointer to Sprite ImageID
+    beq.s     HsD0                           ; a1=0 -> HsD0 (no image)
+    move.w    2(a1),d0                       ; d0 = Image Height (in pixels)
+    addq.w    #1,d0                          ; d0 = d0 + 1
+    cmp.w     T_HsPMax(a5),d0                ; if D0 > HsPMax (Max Height Sprites ?)
+    bcc       Hss30                          ; Yes -> Hss30
+    move.l    a1,HsImage(a4)                 ; HsImage(Sprite) = a1 = Pointer to Sprite ImageID HsImage(a4)
+    move.w    #3,HsNext(a4)                  ; 2021.03.26 Replaced 2 by HsNext in the Structure. HsNext = 3 
 ; ******** Poke Xpos & Ypos
 HsD0:
-    move.w    #1,(a4)                       ; HsPrev(Sprite) = 1
-    move.w    d2,HsX(a4)                    ; HsX(Sprite) = d2 = XPos
-    move.w    d3,HsY(a4)                    ; HsY(Sprite) = d3 = YPos
+    move.w    #1,HsPrev(a4)                  ; HsPrev(Sprite) = 1
+    move.w    d2,HsX(a4)                     ; HsX(Sprite) = d2 = XPos
+    move.w    d3,HsY(a4)                     ; HsY(Sprite) = d3 = YPos
 ; ******** Sprites Control words calculation
 ; ******** Calculate X Shifting for eventual X Flipping
-    move.w    6(a1),d0                       ; No Flipping ?
+    move.w    6(a1),d0                       ; No X Flipping ?
     lsl.w     #2,d0                          ; d0 = d0 * 4
     asr.w     #2,d0                          ; Arithmetic Shift >>
     sub.w     d0,d2                          ; d2 = d2 - d0
@@ -458,7 +462,8 @@ HsD3:    add.w    2(a1),d3
     btst    #8,d3
     beq.s    HsD4
     bset    #1,d0
-HsD4:    btst    #15,d2
+HsD4:
+    btst    #15,d2
     beq.s    HsD5
     bset    #0,d0
 HsD5:
@@ -481,8 +486,8 @@ Hss5:    move.w    (a4),d6
     move.w    d6,0(a3,d7.w)
 Hss6:    
 ******* Poke!
-    move.w    d2,HsX(a4)
-    move.w    d3,HsY(a4)
+    move.w    d2,HsX(a4)        ; HsX = Sprite X Position
+    move.w    d3,HsY(a4)        ; HsY = Sprite Y Position
     move.l    a1,HsImage(a4)
 ******* Calcule les mots de controle
     move.w    6(a1),d0
@@ -491,10 +496,11 @@ Hss6:
     sub.w    d0,d2
     bpl.s    Hss10
     clr.w    d2
-Hss10:    sub.w    8(a1),d3
+Hss10:    sub.w    8(a1),d3    ; d3 = Image Y Reverse mode
     bpl.s    Hss11
     clr.w    d3
-Hss11:    move.w    d3,HsYr(a4)
+Hss11:
+    move.w    d3,HsYr(a4)
     move.w    d3,d5
     ror.w    #1,d2
     move.b    d3,d0
@@ -609,7 +615,7 @@ HsAff:
 ; ******** Test the 8 firsts sprites
 HsAd0:
     tst.w    (a4)                    ; is (a4) content <> 0 ?
-    bne.s    HsAd1                   ; YEs, a sprite must be displayed -> HsAd1
+    bne.s    HsAd1                   ; Yes, a sprite must be displayed -> HsAd1
     move.l   a2,(a3)+                ; HsPosition(CurrentSprite)=HsLogic(CurrentSprite)
     clr.l    (a3)+                   ; HsPosition(Currentsprite).Control!0
     clr.l    (a2)                    ; HsLogic A2 = 0
@@ -628,7 +634,7 @@ HsAd1:
     move.l    HsImage(a4),a1         ; a1 = Pointer to the Image to use to render the sprite
     move.w    (a1),d1                ; D1 = Image Width
     move.w    2(a1),d2               ; d2 = Image Height
-    move.w    d1,d4
+    move.w    d1,d4                  ; d4 = d1 = Image Width
     cmp.w    #4,4(a1)                ; If Image Depth=16colors (4 bitplanes)
     bcc.s    HsAd3                   ; Yes -> Jump HsAd3
     lea    10(a1),a1                 ; A1 = Pointer to the image itself.
@@ -741,23 +747,28 @@ HsAd7:    move.l    #-1,(a3)
     move.l    T_HsTable(a5),a4
     moveq    #-4,d4
 ******* Boucle d''affichage
-HsA3:    lea    T_HsPosition-8(a5),a3    * Passe a la colonne suivante
-HsA4:    lea    8(a3),a3
-HsA4a:    tst.l    (a3)
+HsA3:
+    lea    T_HsPosition-8(a5),a3    * Passe a la colonne suivante
+HsA4:
+    lea    8(a3),a3
+HsA4a:
+    tst.l    (a3)
     bmi.s    HsA3
     beq.s    HsA4
-HsA5:    move.w    HsNext(a4,d4.w),d4    * Prend le sprite
+HsA5:                                
+    move.w    HsNext(a4,d4.w),d4     ; D4 = SpriteID
     beq    HsAFini
-    move.l    HsImage(a4,d4.w),a2
-    lea    10(a2),a1
-    move.w    (a2),d5
-    move.l    HsControl(a4,d4.w),d3
-    moveq    #8,d6
-    move.w    2(a2),d2
-    addq.w    #1,d2
-    cmp.w    #4,4(a2)
-    bcc    HsMAff
-HsA6:    move.w    HsYR(a4,d4.w),d0
+    move.l    HsImage(a4,d4.w),a2    ; a2 = GetImagePointer(SpriteID)
+    lea       10(a2),a1              ; a1 = Pointer to Image graphics datas.
+    move.w    (a2),d5                ; d5 = Image Width
+    move.l    HsControl(a4,d4.w),d3  ; d3 = Sprite Control Word 1
+    moveq     #8,d6                  ; d6 = 8 
+    move.w    2(a2),d2               ; d2 = Image Height
+    addq.w    #1,d2                  ; d2 = Image Height + 1 (to add the empty line at the end of sprites)
+    cmp.w     #4,4(a2)               ; Check for 4 Bitplanes ( 16 Colors ) image
+    bcc       HsMAff                 ; Yes -> Jump HsMAff (Multi-Affichage)
+HsA6:
+    move.w    HsYR(a4,d4.w),d0
     cmp.w    HsYAct(a3),d0
     bcs.s    HsA10
     move.w    HsPAct(a3),d1
@@ -773,16 +784,16 @@ HsA6:    move.w    HsYR(a4,d4.w),d0
     move.l    (a3),a0
     add.w    d0,a0
     move.l    d3,(a0)+
-    move.w    (a2),d1
+    move.w    (a2),d1                ; d1 = Image Width (in bytes)
     subq.w    #1,d2
     move.l    a1,-(sp)
-    bsr    HsBlit
+    bsr    HsBlit                    ; Blits 16 bits columns, Requires A1=Source, A0=Target, D1=TX(words) modulo, D2=TY
     clr.l    (a0)
     move.l    (sp)+,a1
     subq.w    #1,d5            * Encore un plan?
     beq.s    HsA4
     addq.w    #1,d2
-    addq.l    #2,a1
+    addq.l    #2,a1                  ; Next 16 pixels columns to copy
     moveq    #8,d6    
     add.l    #$00080000,d3        * Decale le sprite a droite
     bra.s    HsA11
@@ -896,7 +907,8 @@ HsAffX:    movem.l    (sp)+,d1-d7/a1-a6
 *    A1= Source
 *    D1= Tx (mots)
 *    D2= Ty
-HsBlit:    bsr    BlitWait
+HsBlit:
+    bsr    BlitWait
     move.w    #%0000001110101010,BltCon0(a6)
     clr.w    BltCon1(a6)
     move.w    d1,d0
@@ -916,7 +928,8 @@ HsBlit:    bsr    BlitWait
     move.w    d0,BltSize(a6)
     add.l    d1,a1
     lea    2(a0),a0
-HsBl2:    bsr    BlitWait
+HsBl2:
+    bsr    BlitWait
     move.l    a1,BltAdC(a6)
     move.l    a0,BltAdD(a6)
     move.w    d0,BltSize(a6)

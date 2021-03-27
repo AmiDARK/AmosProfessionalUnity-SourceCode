@@ -250,16 +250,16 @@ HsPAct:        equ     6
         Rw    HsTAct,4*HsNb
 
 * Structure SPrites
-HsPrev:        equ     0
-HsNext:        equ     2
-HsX:           equ     4
-HsY:           equ     6
-HsYr:          equ     8
-HsLien:        equ     10
-HsImage:       equ     12
-HsControl:     equ     16
-HsLong:        equ     20        
-        Rb     SpBase,HsLong+4
+HsPrev:        equ     0           ; Previous Sprite in the list
+HsNext:        equ     2           ; Next Sprite in the list
+HsX:           equ     4           ; Sprite X Pos
+HsY:           equ     6           ; Sprite Y Pos
+HsYr:          equ     8           ; Hardware Sprite Y Reverse mode
+HsLien:        equ     10          ; Linked with previous sprite for 16 colors mode ?
+HsImage:       equ     12          ; Sprite Image ID
+HsControl:     equ     16          ; Sprite Control Word 1 (.w) and Word 2 (.w)
+HsLong:        equ     20          ; Length of the structure.
+        Rb     SpBase,HsLong+4     ; Length of 8 sprites structures
 
 ***************************************************************
 *        BOBS
