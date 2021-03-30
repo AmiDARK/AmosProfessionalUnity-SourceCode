@@ -21,6 +21,10 @@ TO DO AFTER :
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
 ; ************************************************************************
+; 2021.03.30 :
+- AmosProUnityAGA.library/Sprites.s/HsBlit updated to handle blitting of 16,32 and 64 Pixels wide sprites (width)
+
+; ************************************************************************
 ; 2021.03.26 :
 - Update copper list to fix the small graphics bugs on top left corner
 - Update copper list to fix real-time mode graphics glitches when direct mode screen goes low on screen display.

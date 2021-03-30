@@ -787,7 +787,7 @@ HsA6:
     move.w    (a2),d1                ; d1 = Image Width (in bytes)
     subq.w    #1,d2
     move.l    a1,-(sp)
-    bsr    HsBlit                    ; Blits 16 bits columns, Requires A1=Source, A0=Target, D1=TX(words) modulo, D2=TY
+    bsr       HsBlit                 ; Blits 16 bits columns, Requires A1=Source, A0=Target, D1=TX(words) modulo, D2=TY
     clr.l    (a0)
     move.l    (sp)+,a1
     subq.w    #1,d5            * Encore un plan?
@@ -915,7 +915,20 @@ HsBlit:
     subq.w    #1,d0
     lsl.w    #1,d0
     move.w    d0,BltModC(a6)
-    move.w    #2,BltModD(a6)
+; ******** 2021.03.30 Update output modulo depending on Sprites Width T_AgaSprWidth(a5) - START
+    cmp.w     #1,T_AgaSprWidth(a5)
+    blt.s     .blit16pix
+    bge.s     .blit64pix
+.blit32pix:
+    move.w    #4,BltModD(a6)         ; 4 bytes for blit module on each sprite line 4ByteBpl1 + 4ByteBpl2 - 32 pixels width
+    bra.s     .blit
+    .blit64pix:
+    move.w    #8,BltModD(a6)         ; 8 bytes for blit module on each sprite line 8ByteBpl1 + 8ByteBpl2 - 64 pixels width
+    bra.s     .blit
+.blit16pix:
+    move.w    #2,BltModD(a6)         ; 2 bytes for blit module on each sprite line 2ByteBpl1 + 2ByteBpl2 - 16 pixels width (Native ECS/OCS)
+.blit:
+; ******** 2021.03.30 Update output modulo depending on Sprites Width T_AgaSprWidth(a5) - END
     move.w    d2,d0
     lsl.w    #6,d0
     or.w    #1,d0
