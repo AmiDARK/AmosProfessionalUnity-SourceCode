@@ -157,6 +157,8 @@ EcTCop        equ      1024
         Rl    CopPos,1
         Rl    CopLong,1
         Rl    EcStartEdit,1            ; 2020.10.13 Added for auto-calculation of the position to populate Copper Lists
+        Rl    CopLogicTrue,1
+        Rl    CopPhysicTrue,1
 
 ***************************************************************
 *        GESTION RAINBOWS
@@ -236,18 +238,31 @@ HsNb        equ     64
         Rl    HsLogic,1            ; Buffer containing all sprites Logic (non displayed)
         Rl    HsPhysic,1           ; Buffer containing all sprites Physic (to be displayed)
         Rl    HsInter,1            ; Buffer containing all sprites (intermediate ?)
-        Rl    HsChange,1
+        Rl    HsChange,1           ; HsSBuf makes it point to T_CopLong(a5)-4 (last copper line with $FFFFFFFE updated to $00000000)
         Rl    HsTable,1            ; Hardware Sprites table (Pointer)
         Rw    HsPMax,1             ; Sprite buffer size -2 (=Last position offset in each buffer)
-        Rw    HsTCol,1             ; Sprites columns (size) = 1 Sprite data buffer size.
+        Rw    HsTCol,1             ; 1 Sprite data buffer size.
         Rw    HsNLine,1
-        Rl    HsPosition,2*8+1
+        Rl    HsPosition,2*8+1     ; Sprites Pointers inside HsLogic copper
         Rw    AgaSprWidth,1        ; 2021.03.25 Aga Sprites Width 0 = 16 pixels, 1 = 32 Pixels, 2 = 64 Pixels.
+        Rw    AgaSprWordsWidth,1   ; 2021.03.30 Aga Sprites Words width (for faster calculations in sprites rendering)
+        Rw    AgaSprBytesWidth,1   ; 2021.03.30 Aga Sprites Bytes width (for faster calculations in sprites rendering)
+        Rw    AgaSprResol,1        ; 2021.03.30 AGA Sprites Resolutions.
+        Rl    HsTableLen,1         ; 2021.04.01 Save the bytes len of the HsTable for releasing it without recalculating size
+        Rl    SprAttach,1          ; 2021.04.02 Sprites attachment for AGA chipset
+
+; ******** 2021.03.31 Bits set for FMODE AGA Sprites Width - START
+aga16pixSprites equ    0
+aga32pixSprites equ    1
+aga64pixSprites equ    3
+; ******** 2021.03.31 Bits set for FMODE AGA Sprites Width - END
 
 * Actualisation sprites
+HsXAct:        equ     2
 HsYAct:        equ     4
 HsPAct:        equ     6
-        Rw    HsTAct,4*HsNb
+HsActSize:     equ     8
+        Rw    HsTAct,4*HsNb        ; HsTAct = 4*2(Rw=.w)*HsNb(64) = 512
 
 * Structure SPrites
 HsPrev:        equ     0           ; Previous Sprite in the list

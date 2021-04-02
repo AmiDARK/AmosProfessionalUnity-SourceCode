@@ -790,7 +790,7 @@ MkC5b:                                 ; Loop to put then entire screen palette 
     move.w     (a4)+,(a1)+             ; Copy color data from screen palette inside copper list
     dbra       d3,MkC5b                ; End of color copy into copper list loop.
     move.w     #BplCon3,(a1)+
-    move.w     #%0000000000000,(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
+    move.w     T_AgaSprResol(a5),(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
 ; ********************************************* 2020.08.14 Add support for RGB24 bits colors 000-015 - END
 
     IFEQ    EZFlag
@@ -997,9 +997,14 @@ noFetchChanges2:
     move.w     #BplCon2,(a1)+
     move.w     EcCon2(a0),(a1)+
     move.w     #BplCon3,(a1)+          ; 2019.11.04 Added BplCon3 to support dual playfield 2x16 colors
-    move.w     #%0000000000000,(a1)+   ; 2019.11.04
+    move.w     T_AgaSprResol(a5),(a1)+ ; 2019.11.04
+; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64
     move.w     #FMode,(a1)+            ; 2019.11.04 And FMode Support too
-    Move.w     EcFMode(a0),(a1)+       ; 2019.11.04
+    move.w     T_AgaSprWidth(a5),d4
+    lsl.w      #2,d4
+    or.w       EcFMode(a0),d4          ; 2021.03.30 Read FMode datas
+    Move.w     d4,(a1)+                ; 2021.03.30 Push the whole datas
+; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64
 * Reactive le DMA au debut de la fenetre
 FiniCop:
     move.l     (sp)+,d4
@@ -1378,9 +1383,15 @@ EcCopBa:
     move.w     #$0100,(a1)+
     move.w     #Color00,(a1)+
     move.w     T_EcFond(a5),(a1)+
-    move.w     #FMode,(a1)+
-    move.w     #0,(a1)+
-
+; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64
+    move.l     d4,T_SaveReg(a5)
+    move.w     #FMode,(a1)+            ; 2019.11.04 And FMode Support too
+    move.w     T_AgaSprWidth(a5),d4
+    lsl.w      #2,d4
+    or.w       EcFMode(a0),d4          ; 2021.03.30 Read FMode datas
+    Move.w     d4,(a1)+                ; 2021.03.30 Push the whole datas
+    move.l     T_SaveReg(a5),d4
+; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64
     rts
 
 ;
@@ -1418,17 +1429,26 @@ WCop:
 CpInit:    
     move.l     #16384,d0 ; 2019.11.11 Force reserve 16Ko memory for Copper lists instead of default 1Ko
 * Reserve la memoire pour les listes
+; ******** 2021.04.01 Copper list is now 64 bits aligned - START
     move.l     d0,T_CopLong(a5)
     bsr        ChipMm
     beq        GFatal
-    move.l     d0,T_CopLogic(a5)
-;    move.l     d0,a0
+    move.l     d0,T_CopLogicTrue(a5)
+    And.l      #$FFFFFFF8,d0           ; Align D0 to 64bits address in range 0 <= Start of memory allocation <= 8
+    Add.l      #8,d0                   ; ADD + 8 to d0 to be at the higher limit of its memory allocation without bytes over
+    move.l     d0,T_CopLogic(a5)       ; Copper Logic 64 bits aligned
+
     move.l     T_CopLong(a5),d0
     bsr        ChipMm
     beq        GFatal
-    move.l     d0,T_CopPhysic(a5)
+    move.l     d0,T_CopPhysicTrue(a5)
+    And.l      #$FFFFFFF8,d0           ; Align D0 to 64bits address in range 0 <= Start of memory allocation <= 8
+    Add.l      #8,d0                   ; ADD + 8 to d0 to be at the higher limit of its memory allocation without bytes over
+    move.l     d0,T_CopPhysic(a5)       ; Copper Logic 64 bits aligned
+
     move.l     d0,a1                   ; A1 = Copper Physic
     move.l     T_CopLogic(a5),a0       ; A0 = Copper Logic
+; ******** 2021.04.01 Copper list is now 64 bits aligned - END
 * Copper en ROUTE!
     move.w     #-1,T_CopON(a5)
 ; ********************************************* Insert SPRITES inside the Copper List
@@ -1438,6 +1458,16 @@ CpInit:
 HsCop:
     move.l     #$1003FFFE,(a0)         ; Copper 1 : Wait to line raster line 16 (out of screen as screen start near line 50)
     move.l     (a0)+,(a1)+             ; Copper 2 : Copy Wait line from copper 1
+; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64 - START
+    move.w     #FMode,(a0)+            ; 2021.03.30 And FMode Support too
+    move.w     #FMode,(a1)+            ; 2021.03.30 And FMode Support too
+    move.w     T_AgaSprWidth(a5),d4
+    lsl.w      #2,d0
+    or.w       EcFMode(a0),d0          ; 2021.03.30 Read FMode datas
+    Move.w     d0,(a0)+                ; 2021.03.30 Push the whole datas
+    Move.w     d0,(a1)+                ; 2021.03.30 Push the whole datas
+
+; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64 - END
     move.w     #$120,d0                ; D0 = 1st sprite register
 CpI1:
     move.w     d0,(a0)+                ; Write Sprite register in Copper2, Add +2, A0
@@ -1480,9 +1510,9 @@ insertAGAColorsInCopper:
     Move.l     #$200,d4                 ; (09) LOCT=1 ( Low bits )
     bsr        insertAGACIC
     move.w  #BplCon3,(a0)+             ; uses BplCon3 bits 13-15 to set other color palettes in copper list 0
-    move.w  #%1000000000000,(a0)+
+    move.w  T_AgaSprResol(a5),(a0)+
     move.w  #BplCon3,(a1)+             ; uses BplCon3 bits 13-15 to set other color palettes in copper list 1
-    move.w  #%0000000000000,(a1)+
+    move.w  T_AgaSprResol(a5),(a1)+
     rts
 
 insertAGACIC:
@@ -1518,13 +1548,13 @@ insertIsOver:
 ***********************************************************
 *    LIBERATION DES LISTES COPPER
 CpEnd:
-    move.l    T_CopLogic(a5),d0
+    move.l    T_CopLogicTrue(a5),d0
     beq.s    CpE1
     move.l    d0,a1
     move.l    T_CopLong(a5),d0
     bsr    FreeMm
 CpE1:
-    move.l    T_CopPhysic(a5),d0
+    move.l    T_CopPhysicTrue(a5),d0
     beq.s    CpE2
     move.l    d0,a1
     move.l    T_CopLong(a5),d0

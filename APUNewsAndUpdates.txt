@@ -7,7 +7,7 @@ TO DO :
 
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
-
+- Update ECS screen sizes limits to 2048x2048 for next release
 
 BUG :
 Save Iff on 32 colors, IFF file cannot be loaded by PPaint. (compression format not recognized)
@@ -19,6 +19,13 @@ TO DO AFTER :
 - check how APUCMP parameters are used to create Cli/Workbench/nogfx, etc. configurations to see if I can integrate a window mode.
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
+
+; 2021.04.01 :
+- Update clearSpriteEnding to not move a0 forward.
+
+; ************************************************************************
+; 2021.03.31 :
+- Update AmosProUnityAGA.library/InternalMouseHandler.s/MousInt to handle Aga Sprites 16,32,64 control words update
 
 ; ************************************************************************
 ; 2021.03.30 :

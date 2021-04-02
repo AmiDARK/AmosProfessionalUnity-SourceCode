@@ -175,26 +175,32 @@ WVbl_D0    movem.l    d0-d1/a0-a1/a6,-(sp)
     rts    
 
 ******* Traitement de la souris
-MousInt:tst.b    T_AMOSHere(a5)
+MousInt:
+    tst.b    T_AMOSHere(a5)
     beq    MouF
 
     move.w    T_MouseX(a5),d0
     move.w    T_MouseY(a5),d1
 
 ; Limite la souris
-MouV7    cmp.w    T_MouXMin(a5),d0
+MouV7:
+    cmp.w    T_MouXMin(a5),d0
     bge.s    Mou5
     move.w    T_MouXMin(a5),d0
-Mou5:    cmp.w    T_MouXMax(a5),d0
+Mou5:
+    cmp.w    T_MouXMax(a5),d0
     ble.s    Mou6
     move.w    T_MouXMax(a5),d0
-Mou6:    cmp.w    T_MouYMin(a5),d1
+Mou6:
+    cmp.w    T_MouYMin(a5),d1
     bge.s    Mou7
     move.w    T_MouYMin(a5),d1
-Mou7:    cmp.w    T_MouYMax(a5),d1
+Mou7:
+    cmp.w    T_MouYMax(a5),d1
     ble.s    Mou8
     move.w    T_MouYMax(a5),d1
-Mou8:    move.w    d0,T_MouseX(a5)
+Mou8:
+    move.w    d0,T_MouseX(a5)
     move.w    d1,T_MouseY(a5)
     lsr.w    #1,d0
     lsr.w    #1,d1
@@ -203,7 +209,7 @@ Mou8:    move.w    d0,T_MouseX(a5)
 
 ; Poke les mots de control, si SHOW
     move.w    T_MouShow(a5),d2
-    bmi.s    MouF
+    bmi.w    MouF
     sub.w    T_MouHotX(a5),d0
     sub.w    T_MouHotY(a5),d1
     move.l    T_HsPhysic(a5),a0        ;Adresse du dessin
@@ -213,9 +219,9 @@ Mou8:    move.w    d0,T_MouseX(a5)
     move.b    d1,d2
     lsl.w    #8,d2
     move.b    d0,d2
-    move.w    d2,(a0)
-    move.w    d2,(a1)
-    move.w    d2,(a2)
+    move.w    d2,(a0)                  ; Write Mouse X/YPos Control Word in HsPhysic
+    move.w    d2,(a1)                  ; Write Mouse X/YPos Control Word in HsLogic
+    move.w    d2,(a2)                  ; Write Mouse X/YPos Control Word in HsInter
     clr.w    d2
     btst    #8,d1
     beq.s    Mou10
@@ -229,10 +235,38 @@ Mou10:    add.w    T_MouTy(a5),d1
 Mou11:    btst    #15,d0
     beq.s    Mou12
     bset    #0,d2
-Mou12:    move.w    d2,2(a0)
-    move.w    d2,2(a1)
-    move.w    d2,2(a2)
-MouF:    rts
+Mou12:
+
+; ******** 2021.03.31 Update to handle control bit alignments using 16, 32 or 64 bits - Start NEW
+    bsr      insertControlWordsD2A0
+    move.l   a1,a0    
+    bsr      insertControlWordsD2A0
+    move.l   a2,a0
+    bsr      insertControlWordsD2A0
+; ******** 2021.03.31 Update to handle control bit alignments using 16, 32 or 64 bits - Start NEW
+MouF:
+    rts
+
+insertControlWordsD2A0:
+    cmp.w     #aga32pixSprites,T_AgaSprWidth(a5)
+    beq.s     .control32ms
+    bgt.s     .control64ms
+.control16ms:
+    move.w    d2,2(a0)               ; (a0)+ = d3 = 1st control word + 2nd control word
+    rts
+.control32ms:
+    clr.w     2(a0)
+    move.w    d2,4(a0)
+    clr.w     6(a0)
+    rts
+.control64ms:
+    clr.w     2(a0)
+    clr.l     4(a0)
+    move.w    d2,8(a0)
+    clr.w     10(a0)
+    clr.l     12(a0)
+    rts
+
 
 ***********************************************************
 *    BOUTONS DE LA SOURIS
@@ -349,7 +383,8 @@ MChE:    moveq    #0,d1
 **********************************************************
 *    HIDE / HIDE ON: D1= off/on
 **********************************************************
-MHide:    tst.w    T_CopON(a5)
+MHide:
+    tst.w    T_CopON(a5)
     beq.s    HiSho0
     move.w    T_MouShow(a5),d0
     tst.w    d1
@@ -372,7 +407,8 @@ MShow:    tst.w    T_CopON(a5)        * Si COPPER OFF -> NON!!!
 Sho1:    moveq    #0,d0
 
 ******* Routine commune / affiche - eteint
-HiSho:    move.w    d0,T_MouShow(a5)
+HiSho:
+    move.w    d0,T_MouShow(a5)
     beq.s    HiSho1
     cmp.w    #-1,d0
     bne.s    HiSho0
