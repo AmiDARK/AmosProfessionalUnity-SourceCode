@@ -20,22 +20,35 @@ TO DO AFTER :
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
+
+; ************************************************************************
+; 2021.04.02 :
+- Full reintegration of AGA sprite support to fix issues.
+- Added auto update of screens FMODE when changing the sprite width.
+- Fixed FMode Update
+
+
+; ************************************************************************
 ; 2021.04.01 :
 - Update clearSpriteEnding to not move a0 forward.
+
 
 ; ************************************************************************
 ; 2021.03.31 :
 - Update AmosProUnityAGA.library/InternalMouseHandler.s/MousInt to handle Aga Sprites 16,32,64 control words update
 
+
 ; ************************************************************************
 ; 2021.03.30 :
 - AmosProUnityAGA.library/Sprites.s/HsBlit updated to handle blitting of 16,32 and 64 Pixels wide sprites (width)
+
 
 ; ************************************************************************
 ; 2021.03.26 :
 - Update copper list to fix the small graphics bugs on top left corner
 - Update copper list to fix real-time mode graphics glitches when direct mode screen goes low on screen display.
 - Reintegrated copper auto detection for original Sprites + AGA Colors
+
 
 ; ************************************************************************
 ; 2021.03.25 :
@@ -44,10 +57,12 @@ TO DO AFTER :
 - Set Sprite Buffer is automatically updated as it call the updated methods.
 - Added method "= Get Sprite Buffer" to return the value set with the original Amos Professional Command "Set Sprite Buffer"
 
+
 ; ************************************************************************
 ; 2021.03.22 :
 - Fixed Rainbow compilation (.exe) issue in AGA Unity & ECS Unity
 - Restored ResTempBuffer in AmosProLoader.s
+
 
 ; ************************************************************************
 ; 2021.03.18

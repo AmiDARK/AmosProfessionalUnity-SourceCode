@@ -16,8 +16,6 @@
 ; Update HsAff and decline it in 3 version. The original, one for 32 pixels witdh and one for 64 pixels width (or merge all in 1 adaptative if it''s not too complex)
 ;                Check from label HsA5 and +
 
-; Refresh available screens FMode to handle the sprite width 
-
 ; **********************************************************************
 ; HsInit : Called y AmosProfessionalUnityXXX.library/AmosProLibrary_Start.s/StartAll method to setup
 ;          T_HsTable that contains sprites definitions ( HsPrev.w(0), HsNext.w(2), HsX.w(4), HsY.w(6), HsYr.w(8), HsLien.w(10), HsImage(12).l, HsControl(16).l = 20 bytes)
@@ -86,8 +84,12 @@ HsSBuf:
     tst.w     T_CopOn(a5)            * Si COPPER OFF -> RIEN!
     beq.s     HsOk
     addq.w    #2,d1
+    tst.w     T_RefreshForce(a5)       ; 2021.04.02
+    bne.s     .forceRefresh          ; 2021.04.02
     cmp.w     T_HsNLine(a5),d1
     beq.s     HsOK
+.forceRefresh:
+    clr.w     T_RefreshForce(a5)       ; 2021.04.02
     move.w    d1,-(sp)
 * Enleve tous les sprites
     move.w    #-1,T_MouShow(a5)

@@ -2126,9 +2126,9 @@ fap1:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
-  Lib_Def    UpdateFModes
-    movem.l    d0-d2/a0-a1,-(sp)       ; Save registers
-    move.l      #7,d2                  ; D3 = Scren Number
+  Lib_Def    UpdateFModes2
+    movem.l    d0-d3/a0-a2,-(sp)       ; Save registers
+    moveq      #10,d2                  ; D3 = Scren Number
 .loopScreen:
     move.l     d2,d1
     EcCall     AdrEc                   ; Return the adress of the screen
@@ -2136,22 +2136,33 @@ fap1:
     move.l     d0,a0
     move.w     EcNumber(a0),d0         ; Get Back Screen number in D0 for CopMark
     lsl.w      #7,d0                   ; Multiply by 128 for Cop Mark Screen D0
-    lea        T_CopMark(a5),a1        ; Get CopMark 
-    add.w      d0,a1                   ; Move to Screen D0 CoopMark
-    lea        64(a1),a0               ; This point to Color 00, 2 instructions after the FMode.
-    move.l     (a1),d0                 ; D0 = Copper pointer to Color #00
+    lea        T_CopMark(a5),a1
+    add.w      d0,a1
+
+    move.w     T_AgaSprWidth(a5),d1
+    lsl.w      #2,d1
+    or.w       EcFMode(a0),d1          ; 2021.03.30 Read FMode datas
+
+.ml:
+    move.l     (a1)+,d0                ; D0 = Copper pointer to Color #00
     beq.s      .Next                   ; No pointer -> .Next Screen
-    move.l     d0,a1                   ; A0 = Copper pointer to Color #00
-    sub.l      #8,a1                   ; Point to FMode ( write at 2(a0) )
-    move.w     #FMode,(a1)+            ; 2019.11.04 And FMode Support too
-    move.w     T_AgaSprWidth(a5),d0
-    lsl.w      #2,d0
-    or.w       EcFMode(a0),d0          ; 2021.03.30 Read FMode datas
-    Move.w     d0,2(a1)                ; 2021.03.30 Push the whole datas
+    moveq      #16,d3
+    Add.l      #48*4,d0
+    move.l     d0,a2                   ; A0 = Copper pointer to Color #00
+.s1a:
+    cmp.w      #FMode,(a2)
+    beq.s      .s1
+    add.l      #4,a2
+    dbra       d3,.s1a
+    bra.s      .ml
+.s1:
+    Move.w     d1,2(a2)                ; 2021.03.30 Push the whole datas
+    bra.s      .ml
 .Next:
     dbra       d2,.loopScreen          ; Next Screen or ends.
-    movem.l    (sp)+,d0-d2/a0-a1       ; Load registers
+    movem.l    (sp)+,d0-d3/a0-a2       ; Load registers
     Rts
+
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
@@ -2202,41 +2213,17 @@ fap1:
     move.w     T_HsNLine(a5),d1         ; Load the current lines max size
     ext.l      d1
     subq.l     #2,d1                    ; To get the original height, as because it automatically add +2 to the sent height.
-    clr.w      T_HsNLine(a5)            ; Clear to force the refresh of buffers
+    move.w     #1,T_RefreshForce(a5)
     SyCall     SBufHs                   ; Call the method to force sprites buffers refreshing (re-create them)
-    move.w    T_AgaSprWidth(a5),d0
-    move.l    T_CopLogic(a5),a0        ; A0 = Copper Logic
-    lsl.w     #2,d0                    ; D0 uses bits for Sprite Mode
-    move.l    T_CopPhysic(a5),a1       ; A1 = Copper Physic
+    move.w     T_AgaSprWidth(a5),d0
+    move.l     T_CopLogic(a5),a0        ; A0 = Copper Logic
+    lsl.w      #2,d0                    ; D0 uses bits for Sprite Mode
+    move.l     T_CopPhysic(a5),a1       ; A1 = Copper Physic
 ; ******** 2021.03.31 Update copper list FMODE set before Sprites SprXPTH/L list
-    move.w    d0,6(a0)
-    move.w    d0,6(a1)
+    move.w     d0,6(a0)
+    move.w     d0,6(a1)
 ; ******** 2021.03.31 Update copper list FMODE set before Sprites SprXPTH/L list
-
-HsPCop:
-;    movem.l   d0-d2/a0-a1,-(sp)
-    move.w    T_HsTCol(a5),d1          ; D1 = Hardware Sprites Columns Size
-    ext.l     d1                       ; d1.w->.l
-    move.l    T_CopLogic(a5),a0        ; A0 = Copper Logic
-    move.l    T_CopPhysic(a5),a1       ; A1 = Copper Physic
-    addq.l    #4+4,a0                    ; A0 = Pointer to sprite #0 ($0120) //
-    addq.l    #4+4,a1                    ; A0 = Pointer to sprite #0 ($0120) // 
-    moveq     #7,d2                    ; D2 = 8 Sprites to update
-HsPc1:
-    swap    d0                         ; D0 = LowB - HighB
-    move.w    d0,2(a0)                 ; Move d0.w (High Bits) -> $0120High logic copper
-    move.w    d0,2(a1)                 ; Move d0.w (High Bits) -> $0120High physic copper
-    swap    d0                         ; D0 = HighB - LowB
-    move.w    d0,6(a0)                 ; Move d0.w (Low Bits) -> $0122Low Logic copper
-    move.w    d0,6(a1)                 ; Move d0.w (Low Bits) -> $0122Low Physic Copper
-    add.l    d1,d0                     ; D0 = Next Sprite
-    lea    8(a0),a0                    ; A0 = A0 + 8 (Next Sprite)
-    lea    8(a1),a1                    ; A1 = A1 + 8 (Next Sprite)
-    dbra    d2,HsPc1                   ; Loop to HsPc1 until d2 = -1
-;    movem.l   (sp)+,d0-d2/a0-a1
-    Rbsr    L_UpdateFModes
-    rts
-
+    Rbsr       L_UpdateFModes2
 noSet:
     moveq      #0,d0                    ; Everything is OK;
     rts

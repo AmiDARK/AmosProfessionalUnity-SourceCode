@@ -250,6 +250,7 @@ HsNb        equ     64
         Rw    AgaSprResol,1        ; 2021.03.30 AGA Sprites Resolutions.
         Rl    HsTableLen,1         ; 2021.04.01 Save the bytes len of the HsTable for releasing it without recalculating size
         Rl    SprAttach,1          ; 2021.04.02 Sprites attachment for AGA chipset
+        Rw    RefreshForce,1       ;
 
 ; ******** 2021.03.31 Bits set for FMODE AGA Sprites Width - START
 aga16pixSprites equ    0
