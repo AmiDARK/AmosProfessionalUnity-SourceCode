@@ -778,13 +778,6 @@ HsAd2:
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - START
 ;    subq.w   #1,d4            * Encore un plan?
     sub.w    T_AgaSprWordsWidth(a5),d4
-; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - START
-    cmp.w    #0,d4
-    bpl.s    .noFix
-    moveq.w  #0,d4
-    tst      d4
-.noFix:
-; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
     beq.s    HsAd6
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - START
@@ -845,13 +838,6 @@ HsAd4:
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - START
 ;    subq.w   #1,d4            * Encore un plan?
     sub.w    T_AgaSprWordsWidth(a5),d4
-; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - START
-    cmp.w    #0,d4
-    bpl.s    .noFix
-    moveq.w  #0,d4
-    tst      d4
-.noFix:
-; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
     beq    HsAd6
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - START
@@ -873,7 +859,7 @@ HsAdP:
 HsAdP1:
     clr.l    (a3)+            * 4 couleurs
     addq.l   #4,a3
-    move.l   d3,(a2)                            ; ******** Control Words to be adapted ??? 
+    move.l   d3,(a2)
     subq.w   #1,d1
     beq      HsAd6
     lea      HsLong(a4),a4
@@ -886,7 +872,7 @@ HsAdP2:
     bne      HsAdP3
     clr.l    (a3)+
     addq.l   #4,a3
-    clr.l    (a2)                               ; ******** End Of Sprite to be adapted ???
+    clr.l    (a2)
     add.l    d6,a2
     lea      HsLong(a4),a4
     subq.w   #1,d7
@@ -894,15 +880,14 @@ HsAdP2:
 HsAdP3:
     clr.l    (a3)+
     addq.l   #4,a3
-    bset     #7,d3                        ; 2021.04.04 Added to have attachment bit on 1st sprite.
-    move.l   d3,(a2)                            ; ******** Control Words to be adapted ??? 
+    move.l   d3,(a2)
     add.l    d6,a2
     lea      HsLong(a4),a4
     subq.w   #1,d7
     clr.l    (a3)+
     addq.l   #4,a3
-;    bset     #7,d3                       ; 2021.04.04 Updated
-    move.l   d3,(a2)                            ; ******** Control Words to be adapted ??? 
+    bset     #7,d3
+    move.l   d3,(a2)
     bclr     #7,d3
     subq.w   #1,d1
     beq      HsAd6
@@ -918,7 +903,6 @@ HsAd7:
     tst.w    d5
     beq      HsAFini
 
-; ************************************************ Here D4 is not the Remaining Width to copy, but D5.
 ******* 1er sprite
     move.l   T_HsTable(a5),a4
     moveq    #-4,d4
@@ -968,7 +952,7 @@ HsA6:
     move.w   (a2),d1                ; d1 = Image Width (in bytes)
     subq.w   #1,d2                  ; D2 = d2 - 1 (= next line)
     move.l   a1,-(sp)
-    bsr      HsBlitD5               ; Blits 16 bits columns, Requires A1=Source, A0=Target, D1=TX(words) modulo, D2=TY
+    bsr      HsBlit                 ; Blits 16 bits columns, Requires A1=Source, A0=Target, D1=TX(words) modulo, D2=TY
 ; ******** 2021.03.31 Update to handle 16/32/64 sprites width cleared ending requirements - START
 ;    clr.l    (a0)
     bsr      clearSpriteEnding
@@ -976,14 +960,7 @@ HsA6:
     move.l   (sp)+,a1
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - START
 ;    subq.w   #1,d5            * Encore un plan?
-    sub.w    T_AgaSprWordsWidth(a5),d5
-; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - START
-    cmp.w    #0,d5
-    bpl.s    .noFix
-    moveq.w  #0,d5
-    tst      d5
-.noFix:
-; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
+    sub.w    T_AgaSprWordsWidth(a5),d4
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
     beq.w    HsA4
     addq.w   #1,d2
@@ -1051,7 +1028,7 @@ HsMA1:
     move.w   (a2),d1
     subq.w   #1,d2
     move.l   a1,-(sp)
-    bsr      HsBlitD5
+    bsr      HsBlit
 ; ******** 2021.03.31 Update to handle 16/32/64 sprites width cleared ending requirements - START
 ;    clr.l    (a0)
     bsr      clearSpriteEnding
@@ -1065,7 +1042,7 @@ HsMA1:
     bsr      insertControlWordsD3A0
 ; ******** 2021.03.31 Update to handle control bit alignments using 16, 32 or 64 bits - End
     bclr    #7,d3
-    bsr    HsBlitD5
+    bsr    HsBlit
 ; ******** 2021.03.31 Update to handle 16/32/64 sprites width cleared ending requirements - START
 ;    clr.l    (a0)
     bsr      clearSpriteEnding
@@ -1075,13 +1052,6 @@ HsMA1:
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - START
 ;    subq.w    #1,d5            * Encore un plan?
     sub.w    T_AgaSprWordsWidth(a5),d5                                                                NEW CHANGE 2021.04.03 10:28
-; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - START
-    cmp.w    #0,d5
-    bpl.s    .noFix
-    moveq.w  #0,d5
-    tst      d5
-.noFix:
-; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
     beq.s    HsMA2
     bclr     #7,d3
@@ -1095,8 +1065,8 @@ HsMA1:
     bra.w    HsMA1
 * Saute les 2 colonnes
 HsMA2:
-    lea      8(a3),a3                ; Next Sprite Datas pointer
-    bra      HsA4                    ; Loop
+    lea      8(a3),a3
+    bra      HsA4
 * Passe a la colonne suivante!
 HsMA5:
     subq.w   #1,d6            * Arret apres 8 essais negatifs
@@ -1166,55 +1136,17 @@ HsAffX:
 ; *              D1 = Tx (Words) = Image Width in words count *
 ; *              D2 = Ty (Lines) = Height of the image counted*
 ; *                   in lines amount                         *
-; *            * D4/D5 = Remaining columns (words count) to   *
-; *                   copy from the image inside the sprites  *
-; *                   buffer                                  *
+; *            * D4 = Remaining columns (words count) to copy *
+; *                   from the image inside the sprites buffer*
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *                                                           *
 ; *************************************************************
-; ******************************** Original Blitting where Remaining columns to copy is located in D5
-HsBlitD5:
-    move.w   d1,d0                  ; d0 = Image Words Width
-    cmp.w    T_AgaSprWordsWidth(a5),d5
-    bge.s    fullBlitting
-.partialBlittingD5:
-; ******** Calculate Blitter C Modulo
-    sub.w    d5,d0                     ; d0 = d0 - Remaining Width to copy
-    lsl.w    #1,d0                     ; d0 = d0 * 2 
-    move.w   d0,BltModC(a6)
-; ******** Calculate Blitter D Modulo
-    move.w   T_AgaSprWordsWidth(a5),d0
-    sub.w    d5,d0
-    lsl.w    #1,d0
-    add.w    T_AgaSprBytesWidth(a5),d0
-    move.w   d0,BltModD(a6)            ; 2 bytes for blit module on each sprite line 2ByteBpl1 + 2ByteBpl2 - 16 pixels width (Native ECS/OCS)
-; ******** Calculate Blitter Width/Height to copy
-    move.w   d2,d0                     ; D0 = Y lines to copy in view   .. .. .. .. .. .. H9 H8 H7 H6 H5 H4 H3 H2 H1 H0
-    lsl.w    #6,d0                     ; D0 = Y lines to copy pushed to H9 H8 H7 H6 H5 H4 H3 H2 H1 H0 .. .. .. .. .. ..
-    or.w     d5,d0                     ; D0 = Y Lines H9-H0 + Words Width W5-W0
-    bra.s    eXecuteBlitting
 HsBlit:
+    bsr      BlitWait
+    move.w   #%0000001110101010,BltCon0(a6) ; UseC, UseD, LF7, LF5, LF3, LF1
+    clr.w    BltCon1(a6)
     move.w   d1,d0                  ; d0 = Image Words Width
-    cmp.w    T_AgaSprWordsWidth(a5),d4
-    bge.s    fullBlitting
-.partialBlittingD4:
-; ******** Calculate Blitter C Modulo
-    sub.w    d4,d0                     ; d0 = d0 - Remaining Width to copy
-    lsl.w    #1,d0                     ; d0 = d0 * 2 
-    move.w   d0,BltModC(a6)
-; ******** Calculate Blitter D Modulo
-    move.w   T_AgaSprWordsWidth(a5),d0
-    sub.w    d4,d0
-    lsl.w    #1,d0
-    add.w    T_AgaSprBytesWidth(a5),d0
-    move.w   d0,BltModD(a6)            ; 2 bytes for blit module on each sprite line 2ByteBpl1 + 2ByteBpl2 - 16 pixels width (Native ECS/OCS)
-; ******** Calculate Blitter Width/Height to copy
-    move.w   d2,d0                     ; D0 = Y lines to copy in view   .. .. .. .. .. .. H9 H8 H7 H6 H5 H4 H3 H2 H1 H0
-    lsl.w    #6,d0                     ; D0 = Y lines to copy pushed to H9 H8 H7 H6 H5 H4 H3 H2 H1 H0 .. .. .. .. .. ..
-    or.w     d4,d0                     ; D0 = Y Lines H9-H0 + Words Width W5-W0
-    bra.s    eXecuteBlitting
-fullBlitting:
 ; ******** 2021.03.30 Update to handle a copy of 16, 32 and 64 pixels width sprites
 ;    subq.w   #1,d0
     sub.w    T_AgaSprWordsWidth(a5),d0 ; d0 = d0 - AGA Sprite Width use
@@ -1226,11 +1158,6 @@ fullBlitting:
     lsl.w    #6,d0                   ; D0 = Y lines to copy pushed to H9 H8 H7 H6 H5 H4 H3 H2 H1 H0 .. .. .. .. .. ..
 ;    or.w     #1,d0
     or.w     T_AgaSprWordsWidth(a5),d0 ; D0 = Y Lines H9-H0 + Words Width W5-W0
-; ******** Start of common part of blitting:
-eXecuteBlitting:
-    bsr      BlitWait
-    move.w   #%0000001110101010,BltCon0(a6) ; UseC, UseD, LF7, LF5, LF3, LF1
-    clr.w    BltCon1(a6)
 ; ******** 2021.03.30 Update to handle a copy of 16, 32 and 64 pixels width sprites
     move.w   d1,-(sp)               ; Save Bytes width -> -(sp)
     lsl.w    #1,d1                  ; D1 = Bytes Width / 2 = Word Width
@@ -1266,7 +1193,6 @@ HsBl2:
     sub.w    T_AgaSprBytesWidth(a5),a0
     lea      (a0,d0.w),a0
     rts
-
 
 ;
 ; *****************************************************************************************************************************

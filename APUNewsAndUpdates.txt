@@ -4,10 +4,14 @@ TO DO :
 - Detect CPU+FastRam performances to see if blitter is faster than Cpu+FastRam and then select CPU or BLITTER for FIcons paste method.
   To do this, I must do some tests in WinUAE to see where the CPU+Ram start to be faster than Blitter
 - Use ECS Copper list to check what in AGA update makes the screen glitches at bottom.
+- Interleaved Bitmaps for screens (Alper Snomez email 2021.04.04) and interleaved sprites/bobs/images bank.
 
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
 - Update ECS screen sizes limits to 2048x2048 for next release
+- SEEN : if mouse is not shown after rebuilding buffers, no more glitches
+- Update HsBlit method to handles images width smaller than the current Sprite Width.
+
 
 BUG :
 Save Iff on 32 colors, IFF file cannot be loaded by PPaint. (compression format not recognized)
