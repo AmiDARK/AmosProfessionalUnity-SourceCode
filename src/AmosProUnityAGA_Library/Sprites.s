@@ -662,7 +662,8 @@ Hss22:    move.w    d1,HsNext(a3,d7.w)
     move.w    d7,HsPrev(a3,d1.w)
     bra.s    Hss30
 * L''insere au milieu
-Hss23:    move.w    HsPrev(a3,d7.w),d0
+Hss23:
+    move.w    HsPrev(a3,d7.w),d0
     move.w    d0,HsPrev(a3,d1.w)
     move.w    d1,HsPrev(a3,d7.w)
     move.w    d1,HsNext(a3,d0.w)
@@ -737,8 +738,15 @@ HsAd0:
     bne.s    HsAd1                   ; Yes, a sprite must be displayed -> HsAd1
     move.l   a2,(a3)+                ; HsPosition(CurrentSprite)=HsLogic(CurrentSprite)
     clr.l    (a3)+                   ; HsPosition(Currentsprite).Control!0
-    clr.l    (a2)                    ; HsLogic A2 = Current Sprite Control Word 1 = NULL = 0
-    addq.w   #1,d5                   ; Inc D5,1
+; ******** 2021.04.04 - START
+;    clr.l    (a2)                    ; HsLogic A2 = Current Sprite Control Word 1 = NULL = 0
+    bsr      clearSpriteEndingA2
+; ******** 2021.04.04 - END
+; ******** 2021.04.04 - START 
+    addq.w   #1,d5                   ; Inc D5,1                                                                ; Required or not ?
+;    add.w    T_AgaSprWordsWidth(a5),d5
+; ******** 2021.04.04 - END
+
 HsAd6:
     add.l    d6,a2                   ; a2 = a2 + d6 = a2 = Pointer to next Sprite in T_HsLogic
     lea      HsLong(a4),a4           ; Jump to Next sprite pointer in T_HsTable
@@ -782,7 +790,7 @@ HsAd2:
     cmp.w    #0,d4
     bpl.s    .noFix
     moveq.w  #0,d4
-    tst      d4
+    tst.w    d4
 .noFix:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
@@ -792,7 +800,7 @@ HsAd2:
     add.w    T_AgaSprBytesWidth(a5),a1                  ; Next 32 pixels columns to copy                         ; Byte To Word
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
     add.l    d6,a2                   ; = Logic Sprites Buffer to next sprite
-    add.l    T_SprAttach(a5),d3      ; Decale le sprite a droite
+    add.l    T_SprAttach(a5),d3      ; 2021.04.04 Attach sprite depending on Sprite Width
     lea      HsLong(a4),a4             ; a4 = Next Sprites datas
     dbra     d7,HsAd2                 ; Jump HsAd2 to makes HsBlit of next sprite
     bra      HsAd7
@@ -804,7 +812,10 @@ HsAd3:
     bne.s    HsAd4
     clr.l    (a3)+
     addq.l   #4,a3
-    clr.l    (a2)
+; ******** 2021.04.04
+;    clr.l    (a2)                     ; Clear sprite ending ?
+    bsr      clearSpriteEndingA2
+; ******** 2021.04.04
     add.l    d6,a2
     lea      HsLong(a4),a4
     subq.w   #1,d7
@@ -849,7 +860,7 @@ HsAd4:
     cmp.w    #0,d4
     bpl.s    .noFix
     moveq.w  #0,d4
-    tst      d4
+    tst.w    d4
 .noFix:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
@@ -859,10 +870,10 @@ HsAd4:
     add.w    T_AgaSprBytesWidth(a5),a1                  ; Next 32 pixels columns to copy                         ; Byte To Word
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
     add.l    d6,a2
-    add.l    T_SprAttach(a5),d3      ; Decale le sprite a droite
+    add.l    T_SprAttach(a5),d3      ; 2021.04.04 Attach sprite depending on Sprite Width
     lea      HsLong(a4),a4
     dbra     d7,HsAd4
-    bra.s    HsAd7
+    bra.w    HsAd7
 
 * No copy
 HsAdP:
@@ -873,12 +884,23 @@ HsAdP:
 HsAdP1:
     clr.l    (a3)+            * 4 couleurs
     addq.l   #4,a3
-    move.l   d3,(a2)                            ; ******** Control Words to be adapted ??? 
-    subq.w   #1,d1
+; ******** 2021.04.04
+;    move.l   d3,(a2)                            ; ******** Control Words to be adapted ??? 
+    bsr      insertControlWordsD3A2
+; ******** 2021.04.05 Add AGA Sprite width support and limits - START
+;    subq.w   #1,d1
+    sub.w    T_AgaSprWordsWidth(a5),d1          ; 2021.04.05 Reduce width by the width of sprites.
     beq      HsAd6
+    bpl.s    .continue
+    clr.w    d1                                 ; if d1 < 0 then d1 = 0
+    bra      HsAd6
+.continue:
+; ******** 2021.04.05 Add AGA Sprite width support and limits - END
     lea      HsLong(a4),a4
     add.l    d6,a2
-    add.l    T_SprAttach(a5),d3        * Decale le sprite a droite
+; ******** 2021.04.04
+    add.l    T_SprAttach(a5),d3      ; 2021.04.04 Attach sprite depending on Sprite Width
+; ******** 2021.04.04
     dbra     d7,HsAdP1
     bra.s    HsAd7
 HsAdP2:
@@ -886,7 +908,10 @@ HsAdP2:
     bne      HsAdP3
     clr.l    (a3)+
     addq.l   #4,a3
-    clr.l    (a2)                               ; ******** End Of Sprite to be adapted ???
+; ******** 2021.04.04
+;    clr.l    (a2)                               ; ******** End Of Sprite to be adapted ???
+    bsr      clearSpriteEndingA2
+; ******** 2021.04.04
     add.l    d6,a2
     lea      HsLong(a4),a4
     subq.w   #1,d7
@@ -895,20 +920,28 @@ HsAdP3:
     clr.l    (a3)+
     addq.l   #4,a3
     bset     #7,d3                        ; 2021.04.04 Added to have attachment bit on 1st sprite.
-    move.l   d3,(a2)                            ; ******** Control Words to be adapted ??? 
+; ******** 2021.04.04
+;    move.l   d3,(a2)                            ; ******** Control Words to be adapted ??? 
+    bsr      insertControlWordsD3A2
+; ******** 2021.04.04
     add.l    d6,a2
     lea      HsLong(a4),a4
     subq.w   #1,d7
     clr.l    (a3)+
     addq.l   #4,a3
-;    bset     #7,d3                       ; 2021.04.04 Updated
-    move.l   d3,(a2)                            ; ******** Control Words to be adapted ??? 
+    bset     #7,d3                       ; 2021.04.04 Updated
+; ******** 2021.04.04
+;    move.l   d3,(a2)                            ; ******** Control Words to be adapted ??? 
+    bsr      insertControlWordsD3A2
+; ******** 2021.04.04
     bclr     #7,d3
     subq.w   #1,d1
     beq      HsAd6
     lea      HsLong(a4),a4
     add.l    d6,a2
-    add.l    T_SprAttach(a5),d3        * Decale le sprite a droite
+; ******** 2021.04.04
+    add.l    T_SprAttach(a5),d3      ; 2021.04.04 Attach sprite depending on Sprite Width
+; ******** 2021.04.04
     dbra     d7,HsAdP3
 
 ******* FINI! Marque la fin des colonnes
@@ -917,6 +950,7 @@ HsAd7:
 * Encore des colonnes?
     tst.w    d5
     beq      HsAFini
+    blt      HsAFini
 
 ; ************************************************ Here D4 is not the Remaining Width to copy, but D5.
 ******* 1er sprite
@@ -940,7 +974,10 @@ HsA5:
     move.l   HsControl(a4,d4.w),d3  ; d3 = Sprite Control Word 1 & 2
     moveq    #8,d6                  ; d6 = 8 
     move.w   2(a2),d2               ; d2 = Image Height
+; ******** 2021.04.04
     addq.w   #1,d2                  ; d2 = Image Height + 1 (to add the empty line at the end of sprites)
+;    add.w    T_AgaSprWordsWidth(a5),d2
+; ******** 2021.04.04
     cmp.w    #4,4(a2)               ; Check for 4 Bitplanes ( 16 Colors ) image
     bcc      HsMAff                 ; Yes -> Jump HsMAff (Multi-Affichage)
 HsA6:
@@ -981,7 +1018,7 @@ HsA6:
     cmp.w    #0,d5
     bpl.s    .noFix
     moveq.w  #0,d5
-    tst      d5
+    tst.w    d5
 .noFix:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
@@ -992,7 +1029,7 @@ HsA6:
     add.w    T_AgaSprBytesWidth(a5),a1                  ; Next 32 pixels columns to copy                         ; Byte To Word
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
     moveq    #8,d6    
-    add.l    T_SprAttach(a5),d3        * Decale le sprite a droite
+    add.l    T_SprAttach(a5),d3      ; 2021.04.04 Attach sprite depending on Sprite Width
     bra.s    HsA11
 * Next column
 HsA10:
@@ -1079,7 +1116,7 @@ HsMA1:
     cmp.w    #0,d5
     bpl.s    .noFix
     moveq.w  #0,d5
-    tst      d5
+    tst.w    d5
 .noFix:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
@@ -1091,7 +1128,7 @@ HsMA1:
     add.w    T_AgaSprBytesWidth(a5),a1                  ; Next 32 pixels columns to copy                         ; Byte To Word
 ; ******** 2021.03.30 Update to handle AGA sprite width (size) to shift for each copy - END
     moveq    #4,d6    
-    add.l    T_SprAttach(a5),d3        * Decale le sprite a droite
+    add.l    T_SprAttach(a5),d3      ; 2021.04.04 Attach sprite depending on Sprite Width
     bra.w    HsMA1
 * Saute les 2 colonnes
 HsMA2:
@@ -1331,4 +1368,74 @@ insertControlWordsD3A0:
     swap     d3
     move.w   d3,(a0)+
     clr.w    (a0)+
+    rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : clearSpriteEnding                           *
+; *-----------------------------------------------------------*
+; * Description : This method will insert the required empties*
+; *               lines at the end of a sprite, depending on  *
+; *               the current width (16,32 or 64)             *
+; *                                                           *
+; * Parameters : -                                            *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+clearSpriteEndingA2:
+; ******** 2021.03.31 Add sprite clear lines at bottom - START
+    cmp.w    #aga32pixSprites,T_AgaSprWidth(a5)
+    beq.s    .emptyFor32
+    blt.s    .emptyFor16
+.emptyFor64:
+    clr.l    12(a2)            ; Clear 32 bytes = 32 and clear emptyFor32 for 64 bits clearing
+    clr.l    8(a2)             ; Clear 32 bytes = 32 and clear emptyFor32 for 64 bits clearing
+.emptyFor32:
+    clr.l    4(a2)             ; Clear 16 bytes
+.emptyFor16:
+    clr.l    (a2)
+; ******** 2021.03.31 Add sprite clear lines at bottom - END
+    rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : insertControlWordsD3A0                      *
+; *-----------------------------------------------------------*
+; * Description : This method will insert control words at the*
+; *               beginning of a sprite, depending on the cur-*
+; *               -rent width (16,32 or 64)                   *
+; *                                                           *
+; * Parameters : A0 = Pointer where to write the control words*
+; *              d3.l = control Words 1 & 2                   *
+; *                                                           *
+; * Return Value : -                                          *
+; *************************************************************
+insertControlWordsD3A2:
+    cmp.w    #aga32pixSprites,T_AgaSprWidth(a5)
+    beq.s    .control32
+    bgt.s    .control64
+.control16:
+    move.l   d3,(a2)                ; (a0) = d3 = 1st control word + 2nd control word
+    rts
+.control32:
+    swap     d3
+    move.w   d3,(a2)
+    clr.w    2(a2)
+    swap     d3
+    move.w   d3,4(a2)
+    clr.w    6(a2)
+    rts
+.control64:
+    swap     d3
+    move.w   d3,(a2)
+    clr.w    2(a2)
+    clr.l    4(a2)
+    swap     d3
+    move.w   d3,8(a2)
+    clr.w    10(a2)
+    clr.l    12(a2)
+    rts
+.controlB:
     rts

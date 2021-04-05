@@ -24,6 +24,15 @@ TO DO AFTER :
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
+; ************************************************************************
+; 2021.04.05 :
+- Updated AmosProUnityAGA.library/Sprites.s/HsAdP(1) to fix sprite joining in Sprite update method (without blitter copy)
+
+
+; ************************************************************************
+; 2021.04.04 :
+- Updated AmosProUnityAGA.library/Sprites.s/HsBlit to handle images smaller than the current AGA Sprite Width.
+
 
 ; ************************************************************************
 ; 2021.04.02 :
