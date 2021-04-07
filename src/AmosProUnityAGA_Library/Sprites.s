@@ -252,8 +252,8 @@ HsPCop:
     ext.l     d1                       ; d1.w->.l
     move.l    T_CopLogic(a5),a0        ; A0 = Copper Logic
     move.l    T_CopPhysic(a5),a1       ; A1 = Copper Physic
-    addq.l    #4+4,a0                  ; A0 = Pointer to sprite #0 ($0120) //
-    addq.l    #4+4,a1                  ; A0 = Pointer to sprite #0 ($0120) // 
+    add.l     #CopSprSTART,a0          ; A0 = Pointer to sprite #0 ($0120) //
+    add.l     #CopSprSTART,a1          ; A0 = Pointer to sprite #0 ($0120) // 
     moveq     #7,d2                    ; D2 = 8 Sprites to update
 HsPc1:
     swap      d0                       ; D0 = LowB - HighB

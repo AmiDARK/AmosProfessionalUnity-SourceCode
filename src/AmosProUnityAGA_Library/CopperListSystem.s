@@ -20,6 +20,8 @@
 ; TCopMv =                  Copper Move D1(Adress), D2(Value)
 ; TCopMl =                  Double Copper Move D1(Adress), D2.l(Value) Do two copper move with consecutive adress registers 
 
+; Aga Sprites & Dual Playfield : http://eab.abime.net/showthread.php?t=19676
+
 
 ;
 ; *****************************************************************************************************************************
@@ -749,7 +751,6 @@ EcCopHo:
     beq.s      MkC4a
     lsl.w      #1,d1
 MkC4a    
-* Attend jusqu''a la ligne D0
     move.w     d0,d2
     sub.w      #EcYBase,d2
     bsr        WaitD2
@@ -1016,6 +1017,32 @@ FiCp1:
     cmp.w      d0,d1
     beq.s      MkC9
     move.w     d0,d2
+
+
+
+; **************** 2021.04.07 Insert here the sprite positionning routine.
+; Save Y Line from MkC4a: inside a memory variable to know/evaluate the start of screen
+; Then check if flag "UseBackgroundSprites" is set or not.
+; if flag is set, call the loop to insert sprites position in the copper list until line d2 from following lines "waitEndOfScreen"
+; Look at sprites tutorial file TriplePlayfields.s to see how to integrate sprites inside screen
+; From label _copperListSpriteY: to ;Fin.
+; It''s a double loop that must be established from Screen YPos to Screen YPos+YSize-1
+; And from left to right. XPos can be shifted for additional scrollings effects.
+; It is important to store the start adress of sprites layer for additional scrollings updates.
+; **************** 2021.04.07 Insert here the sprite positionning routine.
+
+
+
+
+
+
+
+
+
+
+
+
+waitEndOfScreen:
     sub.w      #EcYBase,d2
     bsr        WaitD2
     move.w     #DmaCon,(a1)+
@@ -1466,8 +1493,14 @@ HsCop:
     or.w       EcFMode(a0),d0          ; 2021.03.30 Read FMode datas
     Move.w     d0,(a0)+                ; 2021.03.30 Push the whole datas
     Move.w     d0,(a1)+                ; 2021.03.30 Push the whole datas
-
 ; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64 - END
+; ******** 2021.04.07 Add BplCon4 to define Sprites Color Palette Selection - START
+    move.w     #BplCon4,(a0)+
+    move.w     #BplCon4,(a1)+
+    move.w     #1,T_AgaSprColorPal(a5) ; Setup default color palette here when create the copper list banks.
+    move.w     #$11,(a0)+              ; Set default color palette 15-31 like ECS
+    move.w     #$11,(a1)+              ; Set default color palette 15-31 like ECS
+; ******** 2021.04.07 Add BplCon4 to define Sprites Color Palette Selection - END
     move.w     #$120,d0                ; D0 = 1st sprite register
 CpI1:
     move.w     d0,(a0)+                ; Write Sprite register in Copper2, Add +2, A0

@@ -250,13 +250,21 @@ HsNb        equ     64
         Rw    AgaSprResol,1        ; 2021.03.30 AGA Sprites Resolutions.
         Rl    HsTableLen,1         ; 2021.04.01 Save the bytes len of the HsTable for releasing it without recalculating size
         Rl    SprAttach,1          ; 2021.04.02 Sprites attachment for AGA chipset
-        Rw    RefreshForce,1       ;
+        Rw    RefreshForce,1       ; 2021.04.02 Force refresh of sprite buffer when changing the Sprite Width
+        Rw    AgaSprColorPal,1     ; 2021.04.03 Define which color palette will be used for sprites.
 
 ; ******** 2021.03.31 Bits set for FMODE AGA Sprites Width - START
 aga16pixSprites equ    0
 aga32pixSprites equ    1
 aga64pixSprites equ    3
 ; ******** 2021.03.31 Bits set for FMODE AGA Sprites Width - END
+
+; ******** 2021.04.07 Relative adress of sprites data inside the copper lists, from start - START
+CopSprFMODE     equ    4
+CopSprPAL       equ    8
+CopSprSTART     equ   12
+; ******** 2021.04.07 Relative adress of sprites data inside the copper lists, from start - END
+
 
 * Actualisation sprites
 HsXAct:        equ     2

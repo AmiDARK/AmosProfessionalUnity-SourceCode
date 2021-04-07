@@ -264,6 +264,10 @@ C_Tk:
     dc.b    "set sprite widt","h"+$80,"I0",-1
     dc.w    L_Nul,L_GetAgaSpritesMaxHeight
     dc.b    "get sprite buffe","r"+$80,"0",-1
+    dc.w    L_SetSpritePalette,L_Nul
+    dc.b    "set sprite palett","e"+$80,"I0",-1
+    dc.w    L_Nul,L_GetSpritePalette
+    dc.b    "get sprite palett","e"+$80,"0",-1
 
 
 
@@ -2220,8 +2224,8 @@ fap1:
     lsl.w      #2,d0                    ; D0 uses bits for Sprite Mode
     move.l     T_CopPhysic(a5),a1       ; A1 = Copper Physic
 ; ******** 2021.03.31 Update copper list FMODE set before Sprites SprXPTH/L list
-    move.w     d0,6(a0)
-    move.w     d0,6(a1)
+    move.w     d0,CopSprFMODE+2(a0)
+    move.w     d0,CopSprFMODE+2(a1)
 ; ******** 2021.03.31 Update copper list FMODE set before Sprites SprXPTH/L list
     Rbsr       L_UpdateFModes2
 noSet:
@@ -2245,6 +2249,37 @@ noSet:
     subq.l     #2,d3
     Ret_Int
 
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    SetSpritePalette
+    and.l      #$F,d3
+    move.w     d3,T_AgaSprColorPal(a5)
+    move.w     d3,d2
+    lsl.w      #4,d2
+    or.w       d2,d3
+    move.l     T_CopLogic(a5),a0        ; A0 = Copper Logic
+    move.l     T_CopPhysic(a5),a1       ; A1 = Copper Physic
+; ******** 2021.04.07 Update copper list SPRITES Color Palette - START
+    move.w     d3,CopSprPAL+2(a0)
+    move.w     d3,CopSprPAL+2(a1)
+; ******** 2021.04.07 Update copper list SPRITES Color Palette - END
+    moveq      #0,d0
+    rts
+
+  Lib_Par    GetSpritePalette
+    clr.l      d3
+    move.w     T_AgaSprColorPal(a5),d3
+    Ret_Int
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***

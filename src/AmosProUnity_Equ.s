@@ -72,6 +72,7 @@ BplCon0:    equ $100
 BplCon1:    equ $102
 BplCon2:    equ $104
 BplCon3:    equ $106 ; // 2019.11.04 Added for Dual Playfield 2nd field color palette shifting + Sprites Res + Color palette
+BplCon4:    equ $10C ; // 2021.04.07 Added for AGA Sprites Color Palette Selection.
 Bpl1PtH:    equ $0e0
 Bpl1PtL:    equ $0e2
 Bpl1Mod:    equ $108

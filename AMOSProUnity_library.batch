@@ -15,7 +15,6 @@ Copy AmosProfessionalUnity/APUSystem/AMOSProUnityECS.library AmosProfessionalUni
 echo "****************************************************** "
 echo "* Compile LIBS:AMOSProUnityAGA.library :"
 c/genim2 src/AMOSProUnity_libraryAGA.s -oAmosProfessionalUnity/APUSystem/AMOSProUnityAGA.library -C
-
 echo "* Compilation DONE Successfully"
 
 echo "* ------> Installing AMOSProUnityAGA.Library to LIBS:"

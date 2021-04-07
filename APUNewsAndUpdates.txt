@@ -9,8 +9,6 @@ TO DO :
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
 - Update ECS screen sizes limits to 2048x2048 for next release
-- SEEN : if mouse is not shown after rebuilding buffers, no more glitches
-- Update HsBlit method to handles images width smaller than the current Sprite Width.
 
 
 BUG :
@@ -23,6 +21,13 @@ TO DO AFTER :
 - check how APUCMP parameters are used to create Cli/Workbench/nogfx, etc. configurations to see if I can integrate a window mode.
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
+
+; ************************************************************************
+; 2021.04.07 :
+- Updated AmosProUnityAGA.library/CopperListSystem.s to handle AGA Sprites color palette selection in copper lists with default ECS/OCS compatible settings
+- Added UnitySupport.lib/SetSpritePalette method to define AGA Sprites color palette
+- Added UnitySupport.lib/GetSpritePalette method to return the AGA Sprites color palette
+- Tests Sprite Color Palette Selection : OK
 
 ; ************************************************************************
 ; 2021.04.05 :
