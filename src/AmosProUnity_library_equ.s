@@ -159,6 +159,8 @@ EcTCop        equ      1024
         Rl    EcStartEdit,1            ; 2020.10.13 Added for auto-calculation of the position to populate Copper Lists
         Rl    CopLogicTrue,1
         Rl    CopPhysicTrue,1
+        Rl    lastScreenAdded,1        ; 2021.04.08 Added to handle Layered/Playfield Sprites
+        Rw    lastYLinePosition,1      ; 2021.04.08 Last Y line copper position called by WaitD2
 
 ***************************************************************
 *        GESTION RAINBOWS

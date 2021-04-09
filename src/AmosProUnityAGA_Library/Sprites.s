@@ -1,4 +1,5 @@
 ; Documentations about how to use sprites :
+; http://jvaltane.kapsi.fi/amiga/howtocode/aga.html#sprites
 
 ; **************************************************************************************** ECS Sprites informations
 ; https://www.chibiakumas.com/68000/platform3.php#LessonP28

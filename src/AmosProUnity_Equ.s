@@ -100,6 +100,16 @@ BltDatB:    equ $072
 BltDatC:    equ $070
 BltDatD:    equ $000
 
+; Sprites
+Spr0Pos     equ $140
+Spr1Pos     equ $148
+Spr2Pos     equ $150
+Spr3Pos     equ $158
+Spr4Pos     equ $160
+Spr5Pos     equ $168
+Spr6Pos     equ $170
+Spr7Pos     equ $178
+
 ; From Aga.Guide : The patterns in these two registers are "anded" with the first and last words of each line of data from Source A into the Blitter.
 ;                  A zero in any bit overrides data from Source A. These registers should be set to all "ones" for fill mode or for line drawing mode
 BltMaskG:    equ $044 ; BLTAFWM = Blitter first word mask for source A

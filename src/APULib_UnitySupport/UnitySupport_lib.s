@@ -268,6 +268,10 @@ C_Tk:
     dc.b    "set sprite palett","e"+$80,"I0",-1
     dc.w    L_Nul,L_GetSpritePalette
     dc.b    "get sprite palett","e"+$80,"0",-1
+    dc.w    L_SetSpriteAsBackdrop,L_Nul
+    dc.b    "set sprite 0 as playfiel","d"+$80,"I",-1
+    dc.w    L_RemoveBackdropSprite,L_Nul
+    dc.b    "disable playfield sprit","e"+$80,"I",-1
 
 
 
@@ -581,14 +585,18 @@ C_Lib
 ; them to zero if no routine is to be called...
 
     movem.l    a0,-(sp)
+
+; ******** push RGB12/15/24 colors format support methods - START
     lea        colorSupport_Functions(pc),a0
     move.l     a0,T_ColorSupport(a5)
-    movem.l    (sp)+,a0
-    moveq      #0,d0
+; ******** push RGB12/15/24 colors format support methods - END
 
+; ******** push Specific Unity Support FX Methods - START
     lea        UnityVectors(pc),a0
     move.l     a0,T_UnityVct(a5)
+; ******** push Specific Unity Support FX Methods - END
 
+    movem.l    (sp)+,a0
 ; ******** 2021.03.30 Default AGA Sprites datas setup for native 16 pixels width sprites - START
     moveq.l    #0,d3
     move.l     #0,T_AgaSprWidth(a5)     ; 16 pixels wide sprites
@@ -728,6 +736,7 @@ colorSupport_Functions:
     dc.l       0
 UnityVectors:
     ; **************** Amos Professional Unity System : New Color palette support, fading, etc. ****************
+    Rbra       L_UpdateLayeredSpriteInCopperList
     dc.l       0
 
 ; Now follow all the music routines. Some are just routines called by others,
@@ -1264,6 +1273,44 @@ F24_inputFormats:
     move.b      d1,T_rgbOutput+1(a5)
 .part4:
     rts
+
+
+
+;                                                                                                                      ************************
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                           *                                                 *
+;                                                                                           * AREA NAME :  Special method for layered sprites *
+;                                                                                           *                                                 *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
+  Lib_Def       UpdateLayeredSpriteInCopperList
+
+; ******** 1. Load Sprite #0 informations
+    move.l     T_HsTable(a5),a0    ; A0 = Hardware Sprites Table (pointer to sprite 0 structure)
+    move.l     HsImage(a0),a1      ; a1 = Image used by the Sprite Itself
+    move.w     (a1),d0             ; d0 = Image width ( in number of words)
+    cmp.w      #4,4(a1)            ; if the image 4 colors or 16 colors ?
+    bcc.s      SetUsing16colorsMode
+; ******** Define sprites list using 4 colors mode and Sprite Width
+SetUsing4ColorsMode:
+
+    rts
+; ******** Define sprites list using 16 colors mode and Sprite Width
+SetUsing16colorsMode:
+
+
+
+
+
+
+    rts
+
+
+
 
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
@@ -2228,10 +2275,15 @@ fap1:
     move.w     d0,CopSprFMODE+2(a1)
 ; ******** 2021.03.31 Update copper list FMODE set before Sprites SprXPTH/L list
     Rbsr       L_UpdateFModes2
+;    addq.w     #1,T_EcYAct(a5)         ; Forces Screen recalculation (in copper list)
+;    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
 noSet:
-    moveq      #0,d0                    ; Everything is OK;
+    moveq      #0,d0                   ; Everything is OK;
     rts
 
+; 2021.04.08 Should Try with these instead of using direct FMode pushes.
+
+;
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
@@ -2248,7 +2300,6 @@ noSet:
     ext.l      d3
     subq.l     #2,d3
     Ret_Int
-
 
 ;
 ; *****************************************************************************************************************************
@@ -2276,10 +2327,56 @@ noSet:
     moveq      #0,d0
     rts
 
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
   Lib_Par    GetSpritePalette
     clr.l      d3
     move.w     T_AgaSprColorPal(a5),d3
     Ret_Int
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    SetSpriteAsBackdrop
+; ******** 1. Check if current screen is valid
+    move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
+    Rbeq       L_NoScreenAvailable ; No current screen -> Error #12 "NoScreenAvailable"
+    move.l     d0,a2               ; a2 = Current Screen pointer
+    move.b     #1,Sprite0AsLayer(a2) ; Enable Sprite As Layer in the chosen Screen
+; ******** 2. Ask AMOS to refresh screens (to insert the Sprite as layered background)
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    rts
+
+  Lib_Par    RemoveBackdropSprite
+    move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
+    Rbeq       L_NoScreenAvailable ; No current screen -> Error #12 "NoScreenAvailable"
+    move.l     d0,a2               ; a2 = Current Screen pointer
+    move.b     #0,Sprite0AsLayer(a2) ; Disable Sprite As Layer in the chosen Screen
+; ******** 2. Ask AMOS to refresh screens (to insert the Sprite as layered background)
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    rts
+
+
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
@@ -2751,6 +2848,9 @@ ErDisk:
     moveq   #11,d0
     Rbra    L_Errors
 
+  Lib_Def NoScreenAvailable ; No current screen detected.
+    moveq   #12,d0
+    Rbra    L_Errors
 
     Lib_Def Errors
     lea     ErrMess(pc),a0
@@ -2772,11 +2872,11 @@ ErrMess:
     dc.b    "Cannot allocate memory to store the IFF/ILBM CMAP file.",0                            * Error #7 USED -> (#15)
 
     dc.b    "Sprites Width value is invalid. ECS Sprites Width can only be 16.",0                  * Error #8 USED
-    dc.b    "",0                                                                                   * Error #8 UNUSED -> (#16)
     dc.b    "",0                                                                                   * Error #9 UNUSED -> (#20)
 ; *******
-    dc.b    "The input RGB format is not recognized."                                              * Error #10
-    dc.b    "The requested color index is out of the color palette range."                         * Error #11
+    dc.b    "The input RGB format is not recognized.",0                                            * Error #10
+    dc.b    "The requested color index is out of the color palette range.",0                       * Error #11
+    dc.b    "No current screen detected.",0                                                        * Error #12
 
 
 

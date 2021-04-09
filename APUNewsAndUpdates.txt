@@ -3,8 +3,9 @@ TO DO :
 - AGA Rainbow compatible with ECS ones
 - Detect CPU+FastRam performances to see if blitter is faster than Cpu+FastRam and then select CPU or BLITTER for FIcons paste method.
   To do this, I must do some tests in WinUAE to see where the CPU+Ram start to be faster than Blitter
-- Use ECS Copper list to check what in AGA update makes the screen glitches at bottom.
 - Interleaved Bitmaps for screens (Alper Snomez email 2021.04.04) and interleaved sprites/bobs/images bank.
+- Check if there is a limit of 256, in amount of blitter objects (BOBS) (Wayne Ashworth)
+  ( see : https://www.facebook.com/groups/AmosPro/permalink/1429645217373474/?comment_id=1429708457367150&reply_comment_id=1430000350671294 )
 
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
@@ -22,12 +23,14 @@ TO DO AFTER :
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
+
 ; ************************************************************************
 ; 2021.04.07 :
 - Updated AmosProUnityAGA.library/CopperListSystem.s to handle AGA Sprites color palette selection in copper lists with default ECS/OCS compatible settings
 - Added UnitySupport.lib/SetSpritePalette method to define AGA Sprites color palette
 - Added UnitySupport.lib/GetSpritePalette method to return the AGA Sprites color palette
 - Tests Sprite Color Palette Selection : OK
+
 
 ; ************************************************************************
 ; 2021.04.05 :

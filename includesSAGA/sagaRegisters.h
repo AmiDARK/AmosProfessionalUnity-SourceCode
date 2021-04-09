@@ -31,10 +31,10 @@
     DMACON2Read    equ     $000202
     INTENA2Read    equ     $00021c
     INTREQ2Read    equ     $00021e
-    joy0buttons    equ     $000220     ; Joystick 0 connection/buttons
-    joy1buttons    equ     $000222     ; Joystick 1 connection/buttons
-    joy2buttons    equ     $000222     ; Joystick 2 connection/buttons
-    joy3buttons    equ     $000222     ; Joystick 3 connection/buttons
+    joy0buttons    equ     $000220     ; Joystick 0 connection/buttons (Undated)
+    joy1buttons    equ     $000222     ; Joystick 1 connection/buttons (Undated)
+    joy2buttons    equ     $000222     ; Joystick 2 connection/buttons (Undated)
+    joy3buttons    equ     $000222     ; Joystick 3 connection/buttons (Undated)
     ;
     clxdat0        equ     $000230     ; Sprite 0 Detailled collision
     clxdat1        equ     $000232     ; Sprite 1 Detailled collision
@@ -125,6 +125,7 @@
     Aud7Vol        equ     $000418
     Aud7Crtl       equ     $00041a
     Aud7Per        equ     $00041c
+
 
 ; *********************************************************************************************
 ; 
@@ -289,16 +290,54 @@
 ; 
 ;          This register contains extra fire buttons (USB joyspads)
 ; 
-;          +-------+----------+-------------------------------------------+
-;          | BIT#  | FUNCTION | DESCRIPTION                               |
-;          +-------+----------+-------------------------------------------+
-;          | 04    | FIRE4   | Firebutton 4                               |
-;          | 03    | FIRE3   | Firebutton 3                               |
-;          | 02    | FIRE2   | Firebutton 2                               |
-;          | 01    | FIRE1   | Firebutton 1                               |
-;          | 00    | PLUG    | Joypad connected                           |
-;          +-------+----------+-------------------------------------------+
+;         +-------+----------+-------------------------------------------+
+;         | BIT#  | FUNCTION | DESCRIPTION                               |
+;         +-------+----------+-------------------------------------------+
+;         | 15    | Right   | Move RIGHT                                 |
+;         | 14    | Left    | Move Left                                  |
+;         | 13    | Down    | Move Down                                  |
+;         | 12    | Up      | Move Up                                    |
+;         | 11    | Reserved|                                            |
+;         | 10    | Start   | Start                                      |
+;         | 09    | Back    | Back                                       |
+;         | 08    | FIRE8   | Firebutton 8                               |
+;         | 07    | FIRE7   | Firebutton 7                               |
+;         | 06    | FIRE6   | Firebutton 6                               |
+;         | 05    | FIRE5   | Firebutton 5                               |
+;         | 04    | FIRE4   | Firebutton 4                               |
+;         | 03    | FIRE3   | Firebutton 3                               |
+;         | 02    | FIRE2   | Firebutton 2                               |
+;         | 01    | FIRE1   | Firebutton 1                               |
+;         | 00    | PLUG    | Joypad connected                           |
+;         +-------+----------+-------------------------------------------+
 ; 
+; *********************************************************************************************
+; 
+; CLXDAT
+;
+;         This register contains detailed Sprite collision detection
+;
+;         +-------+----------+-------------------------------------------+
+;         | BIT#  | FUNCTION | DESCRIPTION                               |
+;         +-------+----------+-------------------------------------------+
+;         | 15    | HIT15   | Sprite to SpriteF                          |
+;         | 14    | HIT14   | Sprite to SpriteE                          |
+;         | 13    | HIT13   | Sprite to SpriteD                          |
+;         | 12    | HIT12   | Sprite to SpriteC                          |
+;         | 11    | HIT11   | Sprite to SpriteB                          |
+;         | 10    | HIT10   | Sprite to SpriteA                          |
+;         | 09    | HIT9    | Sprite to Sprite9                          |
+;         | 08    | HIT8    | Sprite to Sprite8                          |
+;         | 07    | HIT7    | Sprite to Sprite7                          |
+;         | 06    | HIT6    | Sprite to Sprite6                          |
+;         | 05    | HIT5    | Sprite to Sprite5                          |
+;         | 04    | HIT4    | Sprite to Sprite4                          |
+;         | 03    | HIT3    | Sprite to Sprite3                          |
+;         | 02    | HIT2    | Sprite to Sprite2                          |
+;         | 01    | HIT1    | Sprite to Sprite1                          |
+;         | 00    | HIT0    | Sprite to Sprite0                          |
+;         +-------+----------+-------------------------------------------+
+;
 ; *********************************************************************************************
 ; 
 ; PlanarCOLH-PlanarCOLL COLOR PORT

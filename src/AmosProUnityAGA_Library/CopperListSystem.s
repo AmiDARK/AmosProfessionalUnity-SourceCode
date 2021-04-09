@@ -394,6 +394,15 @@ CLPopulate:                                ; // 2019.11.05 Useless Reference add
     tst.w     T_CopON(a5)              ; Check if AMOS Auto copperlist is enabled or disable
     beq       PasCop                   ; if AMOS copper is disabled, no new copper calculation.
 
+; ******** 2021.04.08 Setup for Layered/Playfield Sprites support - START
+; Layered/Playfield sprites must be added in 2 areas of the copper list.
+; In the CopBow, at each rainbow line (even when color/line is not modified)
+; before EcCopHo call when a screen was previously defined
+; beore EcCopBa call when a screen was defined before.
+    move.l    #0,T_lastScreenAdded(a5) ; Clear last Screen pointer
+    move.w    #0,T_lastYLinePosition(a5) ; Clear the last Y Line position.
+; ******** 2021.04.08 Setup for Layered/Playfield Sprites support - END
+
     ; **************** The Logic copper already contains sprites datas & 2020.01.01 AGA Palette addon is on AGA chipset
     move.l    T_CopLogic(a5),a1        ; send LOGIC copper addres into -> A1 (Work is always donc on logic version, not physic one.)
     ; ******************************* 2021.03.27 Reinserted copper auto-adjustment
@@ -408,18 +417,38 @@ CpNxt:
 MCop0:
     move.l    T_EcCop(a5),a2           ; Send screen list adress into ->A2
 MCop1:
-    move.w    (a2)+,d0                 ; Send screen count ? into ->D0
-    beq.s     MCopX                    ; if =0 -> No screen -> Jump to MCopX
-    bmi.s     MCop2                    ; If ScreenID < 0 -> We must add the line that closes the screen (Y End)
+    move.w    (a2)+,d0                 ; d0 = YLine
+    beq.s     MCopX                    ; if YLine = 0 -> No screen -> Jump to MCopX (Close copper list, end of it)
+    bmi.s     MCop2                    ; if YLine < 0 -> We must add the line that closes the screen (Y End)
+                                       ; if YLine > 0 -> Continue and insert new screen inside the copper list.
+
+; ******** 2021.04.08 Check if a call to the Layered/Playfield sprites is required or not - START
+    tst.l     T_lastScreenAdded(a5)    ; Was a screen added before reaching this location again ?
+    beq.s     .notThisTime             ; No, we are then out of display view -> Jump .notThisTime
+; ******** A screen was defined, we have d0=bottom line+1 for SpriteFX, T_lastYLinePosition(a5)=top line-1 for SpriteFX,
+;          T_lastScreenAdded(a5) = Screen in which SpriteFX must be enabled for the effect to be activated.
+    move.l    T_lastScreenAdded(a5),a0 ; A0 = Screen in which the SpriteFX will be checked as enabled/disabled
+    tst.b     Sprite0AsLayer(a0)       ; is SpriteFX 1 enabled ?
+    beq.s     .notThisTime             ; No -> Jump .notThisTime
+    bsr       insertSpriteFX
+; ******** If the effect is enabled, then we push it - END
+.notThisTime:
+; ******** 2021.04.08 Check if a call to the Layered/Playfield sprites is required or not - END
     ; **************** A Screen is defined, we must insert it in the CopperList
     move.l    (a2)+,a0                 ; A0 = Current Screen structure adress
+
+; ******** 2021.04.08 Update datas for Layered/Playfield Sprites support - START
+    move.l    a0,T_lastScreenAdded(a5) ; 2021.04.08 The Current Screen to insert is saved for Layered/Playfield Sprites system
+    move.w    d0,T_lastYLinePosition(a5)
+; ******** 2021.04.08 Update datas for Layered/Playfield Sprites support - END
+
     bsr       EcCopHo                  ; (Jump with come back) -> Insert the current screen definition line in the AMOS Copper List.
     bra.s     MCop1                    ; Once the current screen was added in the copper list -> Loop to NCop1
     ; **************** Now we must insert the closure of a screen
 MCop2:
-    neg.w     d0                       ; D0 = 0-ScreenID so we neg it to get the true screen ID.
-    bsr       EcCopBa                  ; (Jump with come back) -> Method that wait the last line of the current screen and closes it
-    bra.s     MCop1                    ; Once screen was closed, we loop to NCop1 to check if another screen is defined
+    neg.w     d0                       ; If YLine < 0 -> -YLine to send as YLine to wait (to start empty screen area)
+    bsr       EcCopBa                  ; (Jump with come back) -> Method to wait at a line and disable all activity (blank area in screen)
+    bra.s     MCop1                    ; Once area is set, we loop to NCop1 to check if another screen is defined later in the display
     ; **************** We have now reached the end of the Copper list.
 MCopX:
     subq.l    #2,a2
@@ -1017,32 +1046,7 @@ FiCp1:
     cmp.w      d0,d1
     beq.s      MkC9
     move.w     d0,d2
-
-
-
-; **************** 2021.04.07 Insert here the sprite positionning routine.
-; Save Y Line from MkC4a: inside a memory variable to know/evaluate the start of screen
-; Then check if flag "UseBackgroundSprites" is set or not.
-; if flag is set, call the loop to insert sprites position in the copper list until line d2 from following lines "waitEndOfScreen"
-; Look at sprites tutorial file TriplePlayfields.s to see how to integrate sprites inside screen
-; From label _copperListSpriteY: to ;Fin.
-; It''s a double loop that must be established from Screen YPos to Screen YPos+YSize-1
-; And from left to right. XPos can be shifted for additional scrollings effects.
-; It is important to store the start adress of sprites layer for additional scrollings updates.
-; **************** 2021.04.07 Insert here the sprite positionning routine.
-
-
-
-
-
-
-
-
-
-
-
-
-waitEndOfScreen:
+WaitFirstScreenYLine:
     sub.w      #EcYBase,d2
     bsr        WaitD2
     move.w     #DmaCon,(a1)+
@@ -1436,6 +1440,7 @@ EcCopBa:
 ; *************************************************************
 ******* Attente copper jusqu''a la ligne D2
 WaitD2:
+    move.w     d2,T_lastYLinePosition(a5)  ; 2021.04.08 Save last Y Line position waited for Layered/Playfield Spritees
     cmp.w      #256,d2
     bcs.s      WCop
     tst.w      T_Cop255(a5)
@@ -1719,3 +1724,64 @@ TCopBs    move.l    T_CopLogic(a5),d1
     moveq    #0,d0
     rts
     ENDC
+
+; A1 = Logic Copper List (the one on which we are working on)
+insertSpriteFX:
+    movem.l   d0-d7/a2-a4,-(sp)        ; Save registers before starting inserting SpriteFX
+; ******** If the effect is enabled, then we push it - START
+;    and.l     #$FFFF,d0
+;    subq.l    #1,d0                    ; D0 = Y Line to reach
+;    clr.l     d1
+;    move.w    T_lastYLinePosition(a5),d1 ; D1 = Current Line to start from
+;    addw      #1,d1                    ; d1 = Line + 1
+
+; ******** 1. Load Sprite #0 informations
+;    move.l     T_HsTable(a5),a0        ; A0 = Hardware Sprites Table (pointer to sprite 0 structure)
+;    move.l     HsImage(a0),a2          ; a2 = Image used by the Sprite Itself
+;    cmp.w      #4,4(a2)                ; if the image 4 colors or 16 colors ?
+;    bcc.s      SetUsing16colorsMode
+; ******** Define sprites list using 4 colors mode and Sprite Width
+SetUsing4ColorsMode:
+    move.w     #(50<<8)!$38!$0001,d0  ; Define default static X,Y Start position. Must be improved using Sprite position from a0=T_HsTable(a5)
+    move.w     #64-1,d1
+    bra.s      CopperYLoopStart
+CopperYLoop:
+; ******** Insert Copper Line (Y) Wait.
+    move.w     d0,(a1)+
+    move.w     #$FFFE,(a1)+
+CopperYLoopStart:
+    move.w     #((50&$FF)<<8)!((128&$1FE)>>1),d2
+    move.w     #Spr0Pos,d3
+    move.w     #4,d4
+CopperXLoop:
+    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
+    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
+    add.w      #8,d3                   ; Spr(X+1)Pos
+    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
+    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
+    move.w     #$1FE,(a1)+
+    move.w     #0,(a1)+
+    move.w     #$1FE,(a1)+
+    move.w     #0,(a1)+
+    move.w     #$1FE,(a1)+
+    move.w     #0,(a1)+
+    move.w     #$1FE,(a1)+
+    move.w     #0,(a1)+
+    move.w     #$1FE,(a1)+
+    move.w     #0,(a1)+
+    move.w     #$1FE,(a1)+
+    move.w     #0,(a1)+
+    add.w      #8,d3                   ; Spr(X+1)Pos
+    cmpi.w     #Spr2Pos,d3
+    blt.s      .cont
+    move.w     #Spr0Pos,d3
+.cont:
+    add.w      #32,d2
+    dbf        d4,CopperXLoop
+    addi.w     #$0100,d0
+    dbf        d1,CopperYLoop
+
+
+SetEnding:
+    movem.l   (sp)+,d0-d7/a2-a4        ; Load registers ater finishing the SpriteFX insertion
+    rts
