@@ -268,10 +268,6 @@ C_Tk:
     dc.b    "set sprite palett","e"+$80,"I0",-1
     dc.w    L_Nul,L_GetSpritePalette
     dc.b    "get sprite palett","e"+$80,"0",-1
-    dc.w    L_SetSpriteAsBackdrop,L_Nul
-    dc.b    "set sprite 0 as playfiel","d"+$80,"I",-1
-    dc.w    L_RemoveBackdropSprite,L_Nul
-    dc.b    "disable playfield sprit","e"+$80,"I",-1
 
 
 
@@ -2343,38 +2339,6 @@ noSet:
     move.w     T_AgaSprColorPal(a5),d3
     Ret_Int
 
-
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name :                                             *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters :                                              *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par    SetSpriteAsBackdrop
-; ******** 1. Check if current screen is valid
-    move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
-    Rbeq       L_NoScreenAvailable ; No current screen -> Error #12 "NoScreenAvailable"
-    move.l     d0,a2               ; a2 = Current Screen pointer
-    move.b     #1,Sprite0AsLayer(a2) ; Enable Sprite As Layer in the chosen Screen
-; ******** 2. Ask AMOS to refresh screens (to insert the Sprite as layered background)
-    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
-    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
-    rts
-
-  Lib_Par    RemoveBackdropSprite
-    move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
-    Rbeq       L_NoScreenAvailable ; No current screen -> Error #12 "NoScreenAvailable"
-    move.l     d0,a2               ; a2 = Current Screen pointer
-    move.b     #0,Sprite0AsLayer(a2) ; Disable Sprite As Layer in the chosen Screen
-; ******** 2. Ask AMOS to refresh screens (to insert the Sprite as layered background)
-    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
-    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
-    rts
 
 
 ;                                                                                                                      ************************

@@ -115,58 +115,67 @@ C_Tk:
 
 ; Now the real tokens...
 ; ********************************************************************
-        Dc.w    L_SNTSC,L_Nul
-        Dc.b    "set nts","c"+$80,"I",-1
-        Dc.w    L_SPAL,L_Nul
-        Dc.b    "set pa","l"+$80,"I",-1
-        Dc.w    L_Nul,L_RCLICK
-        Dc.b    "right clic","k"+$80,"0",-1
-        Dc.w    L_Nul,L_FIRE2
-        Dc.b    "fire(1,2",")"+$80,"0",-1
-        Dc.w    L_Nul,L_FIRE3
-        Dc.b    "fire(1,3",")"+$80,"0",-1
+    dc.w    L_SNTSC,L_Nul
+    dc.b    "set nts","c"+$80,"I",-1
+    dc.w    L_SPAL,L_Nul
+    dc.b    "set pa","l"+$80,"I",-1
+    dc.w    L_Nul,L_RCLICK
+    dc.b    "right clic","k"+$80,"0",-1
+    dc.w    L_Nul,L_FIRE2
+    dc.b    "fire(1,2",")"+$80,"0",-1
+    dc.w    L_Nul,L_FIRE3
+    dc.b    "fire(1,3",")"+$80,"0",-1
 ; ********************************************************************
-        Dc.w    L_Nul,L_EHB
-        Dc.b    "eh","b"+$80,"0",-1
-        dc.w    L_Nul,L_getHam6Value
-        dc.b    "ham","6"+$80,"0",-1
+    dc.w    L_Nul,L_EHB
+    dc.b    "eh","b"+$80,"0",-1
+    dc.w    L_Nul,L_getHam6Value
+    dc.b    "ham","6"+$80,"0",-1
 ; ********************************************************************
-        dc.w    L_CreateMemblock,L_Nul
-        dc.b    "create membloc","k"+$80,"I0,0",-1
-        dc.w    L_Nul,L_MemblockExists
-        dc.b    "memblock exis","t"+$80,"00",-1
-        dc.w    L_Nul,L_GetMemblockSize
-        dc.b    "get memblock siz","e"+$80,"00",-1
-        dc.w    L_WriteMemblockLong,L_Nul
-        dc.b    "write memblock lon","g"+$80,"I0,0,0",-1
-        dc.w    L_Nul,L_ReadMemblockLong
-        dc.b    "memblock lon","g"+$80,"00,0",-1
-        dc.w    L_WriteMemblockWord,L_Nul
-        dc.b    "write memblock wor","d"+$80,"I0,0,0",-1
-        dc.w    L_Nul,L_ReadMemblockWord
-        dc.b    "memblock wor","d"+$80,"00,0",-1
-        dc.w    L_WriteMemblockByte,L_Nul
-        dc.b    "write memblock byt","e"+$80,"I0,0,0",-1
-        dc.w    L_Nul,L_ReadMemblockByte
-        dc.b    "memblock byt","e"+$80,"00,0",-1
-        dc.w    L_CreateMemblockFromFile,L_Nul
-        dc.b    "create memblock from fil","e"+$80,"I2,0",-1
+    dc.w    L_CreateMemblock,L_Nul
+    dc.b    "create membloc","k"+$80,"I0,0",-1
+    dc.w    L_Nul,L_MemblockExists
+    dc.b    "memblock exis","t"+$80,"00",-1
+    dc.w    L_Nul,L_GetMemblockSize
+    dc.b    "get memblock siz","e"+$80,"00",-1
+    dc.w    L_WriteMemblockLong,L_Nul
+    dc.b    "write memblock lon","g"+$80,"I0,0,0",-1
+    dc.w    L_Nul,L_ReadMemblockLong
+    dc.b    "memblock lon","g"+$80,"00,0",-1
+    dc.w    L_WriteMemblockWord,L_Nul
+    dc.b    "write memblock wor","d"+$80,"I0,0,0",-1
+    dc.w    L_Nul,L_ReadMemblockWord
+    dc.b    "memblock wor","d"+$80,"00,0",-1
+    dc.w    L_WriteMemblockByte,L_Nul
+    dc.b    "write memblock byt","e"+$80,"I0,0,0",-1
+    dc.w    L_Nul,L_ReadMemblockByte
+    dc.b    "memblock byt","e"+$80,"00,0",-1
+    dc.w    L_CreateMemblockFromFile,L_Nul
+    dc.b    "create memblock from fil","e"+$80,"I2,0",-1
 ; ********************************************************************
-        dc.w    L_ReserveFIcons,L_Nul
-        dc.b    "reserve f ico","n"+$80,"I0,0",-1
-        dc.w    L_UseFIconBank,L_Nul
-        dc.b    "set current f icon ban","k"+$80,"I0",-1
-        dc.w    L_Nul,L_GetCurrentFIconBank
-        dc.b    "get current f icon ban","k"+$80,"0",-1
-        dc.w    L_GetFIcon,L_Nul
-        dc.b    "get f ico","n"+$80,"I0,0,0",-1              ; Get F Icon ICONID,XPOS,YPOS
-        dc.w    L_PasteFIcon1,L_Nul
-        dc.b    "!paste f ico","n"+$80,"I0,0,0",-2            ; Paste F Icon ICONID,XPOS,YPOS
-        dc.w    L_PasteFIcon2,L_Nul
-        dc.b    $80,"I0,0,0,0",-2
+    dc.w    L_ReserveFIcons,L_Nul
+    dc.b    "reserve f ico","n"+$80,"I0,0",-1
+    dc.w    L_UseFIconBank,L_Nul
+    dc.b    "set current f icon ban","k"+$80,"I0",-1
+    dc.w    L_Nul,L_GetCurrentFIconBank
+    dc.b    "get current f icon ban","k"+$80,"0",-1
+    dc.w    L_GetFIcon,L_Nul
+    dc.b    "get f ico","n"+$80,"I0,0,0",-1              ; Get F Icon ICONID,XPOS,YPOS
+    dc.w    L_PasteFIcon1,L_Nul
+    dc.b    "!paste f ico","n"+$80,"I0,0,0",-2           ; Paste F Icon ICONID,XPOS,YPOS
+    dc.w    L_PasteFIcon2,L_Nul
+    dc.b    $80,"I0,0,0,0",-2
 ; ********************************************************************
-        dc.w    L_Nul,L_GetFileSize
-        dc.b    "get file siz","e"+$80,"02",-1
+    dc.w    L_Nul,L_GetFileSize
+    dc.b    "get file siz","e"+$80,"02",-1
+; ********************************************************************
+    dc.w    L_SetSpriteAsBackdrop,L_Nul
+    dc.b    "create playfield from sprit","e"+$80,"I0,0,0",-1
+    dc.w    L_RemoveBackdropSprite,L_Nul
+    dc.b    "remove sprite playfiel","d"+$80,"I",-1
+    dc.w    L_Nul,L_ValueTest
+    dc.b    "get test valu","e"+$80,"0",-1
+; ********************************************************************
+
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
@@ -1483,6 +1492,17 @@ iDiskFileError:
     Rbra       L_DiskFileError          ; D0 = Success in file examineFH method
 
 
+;                                                                                                                      ************************
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                          *                                                  *
+;                                                                                          * AREA NAME :      Special SpritesFX commands      *
+;                                                                                          *                                                  *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
 
 ;
 ; *****************************************************************************************************************************
@@ -1495,6 +1515,58 @@ iDiskFileError:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
+  Lib_Par    SetSpriteAsBackdrop   ; d3 = Height of the effects in pixels.
+    move.l     (a3)+,d4            ; d4 = YStart
+    move.l     (a3)+,d5            ; d5 = 1st Sprite ID
+; ******** 1. Check if current screen is valid
+    move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
+    Rbeq       L_Err9              ; No current screen -> Error #12 "NoScreenAvailable"
+    move.l     d0,a2               ; a2 = Current Screen pointer
+; ******** 2. Enable Sprites Playfield FX in current Screen
+    move.b     (a2),d0
+    bset       #0,d0
+    move.b     d0,SpritesFX(a2)    ; Enable Sprite As Layer in the chosen Screen
+; ******** 3. Save  Sprites Playfield FX datas in current Screen
+    move.w     d5,sprFX_Spr0+SpritesFXDatas(a2)   ; Save 1st SpriteID
+    move.w     d4,sprFX_YStart+SpritesFXDatas(a2) ; Save Y Start FX
+    move.w     d3,sprFX_Height+SpritesFXDatas(a2) ; Save Sprite Effect Height (amount of lines)
+; ******** 4. Ask AMOS to refresh screens (to insert the Sprite as layered background)
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    moveq      #0,d0
+    rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    RemoveBackdropSprite
+    move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
+    Rbeq       L_Err9              ; No current screen -> Error #12 "NoScreenAvailable"
+    move.l     d0,a2               ; a2 = Current Screen pointer
+; ******** 
+    move.b     (a2),d0
+    bclr       #0,d0
+    move.b     d0,SpritesFX(a2)    ; Enable Sprite As Layer in the chosen Screen
+    clr.w      sprFX_Spr0+SpritesFXDatas(a2)   ; Save 1st SpriteID
+    clr.w      sprFX_YStart+SpritesFXDatas(a2) ; Save Y Start FX
+    clr.w      sprFX_Height+SpritesFXDatas(a2) ; Save Sprite Effect Height (amount of lines)
+; ******** 2. Ask AMOS to refresh screens (to insert the Sprite as layered background)
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    rts
+
+  Lib_Par    ValueTest
+    clr.l      d3
+    move.w     T_YTest(a5),d3
+    Ret_Int
 
 ;
 ; *****************************************************************************************************************************
@@ -1941,7 +2013,7 @@ ErDisk:
     moveq   #8,d0
     Rbra    L_Errors
 
-  Lib_Def Err9             ; 
+  Lib_Def Err9             ; No 'Current Screen' available.
     moveq   #9,d0
     Rbra    L_Errors
 
@@ -1982,15 +2054,15 @@ ErDisk:
 
 ErrMess:
     dc.b    "err0",0
-    dc.b    "The requested F Icons ID number is invalid (valid range=0-65535).",0                  * Error #1
-    dc.b    "You cannot reserve less than 4 F Icons in a bank.",0                                  * Error #2
-    dc.b    "Not enough memory to allocate F Icon bank.",0                                         * Error #3
-    dc.b    "The requested memory bank does not exists.",0                                         * Error #4
-    dc.b    "The requested memory bank is not a F Icons one.",0                                    * Error #5
-    dc.b    "No Current Screen to grab the F Icon.",0                                              * Error #6
-    dc.b    "The F Icon ID Number does not fit the current F Icon Bank amount",0                   * Error #7
-    dc.b    "The F Icon coordinates are out of screen sizes.",0                                    * Error #8
-    dc.b    " ",0                                                                                  * Error #9 UNUSED
+    dc.b    "The requested F Icons ID number is invalid (valid range=0-65535).",0                  * Error #1  USED
+    dc.b    "You cannot reserve less than 4 F Icons in a bank.",0                                  * Error #2  USED
+    dc.b    "Not enough memory to allocate F Icon bank.",0                                         * Error #3  USED
+    dc.b    "The requested memory bank does not exists.",0                                         * Error #4  USED
+    dc.b    "The requested memory bank is not a F Icons one.",0                                    * Error #5  USED
+    dc.b    "No Current Screen to grab the F Icon.",0                                              * Error #6  USED
+    dc.b    "The F Icon ID Number does not fit the current F Icon Bank amount",0                   * Error #7  USED
+    dc.b    "The F Icon coordinates are out of screen sizes.",0                                    * Error #8  USED
+    dc.b    "No 'Current Screen' available.",0                                                     * Error #9  USED
 ; ******** Memblocks error messages CURRENT VERSION
     dc.b    "Valid memblock id range is 6-65535.",0                                                * Error #10 USED
     dc.b    "Not enough free memory to allocate the requested memblock.",0                         * Error #11 USED

@@ -23,6 +23,13 @@ TO DO AFTER :
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
+; ************************************************************************
+; 2021.04.12 :
+- Set Sprite As Playfield SPRITEID, YSTART, HEIGHT update (nearly completed)
+
+; ************************************************************************
+; 2021.04.10 :
+- Start working on special SpritesFX "Set Sprite As Playfield"
 
 ; ************************************************************************
 ; 2021.04.07 :

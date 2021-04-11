@@ -161,6 +161,7 @@ EcTCop        equ      1024
         Rl    CopPhysicTrue,1
         Rl    lastScreenAdded,1        ; 2021.04.08 Added to handle Layered/Playfield Sprites
         Rw    lastYLinePosition,1      ; 2021.04.08 Last Y line copper position called by WaitD2
+        Rl    YTest,1
 
 ***************************************************************
 *        GESTION RAINBOWS

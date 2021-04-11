@@ -110,7 +110,12 @@ EcDBOriginalBPL rs.l 8                 ; 2019.11.18 Original Bitplanes Memory Al
 Ham8Mode       rs.w 1                  ; 2020.07.31 Flag to check if current screen uses HAM8 mode
 EcH8Logic:     rs.l 8                  ; Define the non displayed bitmaps for IFF/ILBM operations, support HAM8 Mode.
 True64Color    rs.b 1                  ; 2021.03.16 To allow tru 64 colors
-Sprite0AsLayer rs.b 1                  ; 2021.04.08 If set, then use sprite 0 as Background Layer
+SpritesFX      rs.b 1                  ; 2021.04.08 If set, then use sprite 0 as Background Layer
+SpritesFXDatas rs.w 8                  ; 2021.05.10 Datas for SpritesFX
+
+sprFX_Spr0     equ  0
+sprFX_YStart   equ  2
+sprFX_Height   equ  4
 
 ; Length of a screen
 EcLong        equ __RS
