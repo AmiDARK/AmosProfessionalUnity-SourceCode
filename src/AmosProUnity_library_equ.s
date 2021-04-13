@@ -137,6 +137,7 @@ LShift:        equ     2+2+4+2+2+2
         Rl    CurScreen,1              ; 2020.09.16 Added to optimise color palette updates
         Rw    FadeStep,1               ; 2020.09.16 Added to create faste fade color system.
         Rl    NewPalette,1             ; 2020.09.29 Added for fading to specific AGA color palette
+        Rw    MaxColorID,1             ; 2021.04.13 Defined to enforce Unity fading to handle more than the screen that will be faded (for sprites for example)
 
 ***********************************************************************************************************
 *        2020.12.05 AMOS PROFESSIONAL UNITY - SUPPORT FOR COLOR CONVERTION RGB24 / RGB12

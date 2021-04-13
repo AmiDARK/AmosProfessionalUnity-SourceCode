@@ -826,7 +826,12 @@ MkC5b:                                 ; Loop to put then entire screen palette 
     move.w     (a4)+,(a1)+             ; Copy color data from screen palette inside copper list
     dbra       d3,MkC5b                ; End of color copy into copper list loop.
     move.w     #BplCon3,(a1)+
-    move.w     T_AgaSprResol(a5),(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
+; ******** 2021.04.13 Update to fix color palettes issues in Copper List - START
+    move.l     #%1000000000000,d2
+    and.w      T_AgaSprResol(a5),d2
+;    move.w     T_AgaSprResol(a5),(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
+    move.w     d2,(a1)+
+; ******** 2021.04.13 Update to fix color palettes issues in Copper List - END
 ; ********************************************* 2020.08.14 Add support for RGB24 bits colors 000-015 - END
 
     IFEQ    EZFlag
@@ -1033,7 +1038,12 @@ noFetchChanges2:
     move.w     #BplCon2,(a1)+
     move.w     EcCon2(a0),(a1)+
     move.w     #BplCon3,(a1)+          ; 2019.11.04 Added BplCon3 to support dual playfield 2x16 colors
-    move.w     T_AgaSprResol(a5),(a1)+ ; 2019.11.04
+; ******** 2021.04.13 Update to fix color palette issue in copper list - START
+    move.w     #%1000000000000,d4
+    and.w      T_AgaSprResol(a5),d4
+;    move.w     T_AgaSprResol(a5),(a1)+ ; 2019.11.04
+    move.w     d5,(a1)+
+; ******** 2021.04.13 Update to fix color palette issue in copper list - END
 ; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64
     move.w     #FMode,(a1)+            ; 2019.11.04 And FMode Support too
     move.w     T_AgaSprWidth(a5),d4
@@ -1057,6 +1067,7 @@ WaitFirstScreenYLine:
     bsr        WaitD2
     move.w     #DmaCon,(a1)+
     move.w     #$8300,(a1)+
+;    move.w     #%1000000111111111,(a1)+ ; 2021.04.13 Try to noe enable unused DMS channels.
 
 * Now AMOS insert colors 16-31
     move.l     a1,d3
@@ -1087,7 +1098,7 @@ MkC7b:
     move.w     (a4)+,(a1)+             ; Next Copper Data (A1) = Color Data (A4) 
     dbra       d1,MkC7b                ; D1 > -1 Continue inserting color registers -> Jump MkC7
     move.w     #BplCon3,(a1)+
-    move.w     #%0000000000000,(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
+    move.w     #%1000000000000,(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1 ; 2021.04.13 Restored
 ; ********************************************* 2020.08.14 Add support for RGB24 bits colors 016-031 - END
 ; ******** 2021.03.27 Fixe screen glitches on ressource screen (real time mode) - START
 _noAlternateColors:
@@ -1552,10 +1563,16 @@ insertAGAColorsInCopper:
     lea        T_globAgaPalL(a5),a2     ; A2 = First color of AGA palette ( =32 ) of the curent screen (a0)
     Move.l     #$200,d4                 ; (09) LOCT=1 ( Low bits )
     bsr        insertAGACIC
-    move.w  #BplCon3,(a0)+             ; uses BplCon3 bits 13-15 to set other color palettes in copper list 0
-    move.w  T_AgaSprResol(a5),(a0)+
-    move.w  #BplCon3,(a1)+             ; uses BplCon3 bits 13-15 to set other color palettes in copper list 1
-    move.w  T_AgaSprResol(a5),(a1)+
+; ******** 2021.04.13 update to fix color issue in copper list
+    move.l     #%1000000000000,d4
+    and.w      T_AgaSprResol(a5),d4
+    move.w     #BplCon3,(a0)+             ; uses BplCon3 bits 13-15 to set other color palettes in copper list 0
+;    move.w     T_AgaSprResol(a5),(a0)+
+    move.w     d4,(a0)+
+    move.w     #BplCon3,(a1)+             ; uses BplCon3 bits 13-15 to set other color palettes in copper list 1
+;    move.w     T_AgaSprResol(a5),(a1)+
+    move.w     d4,(a1)+
+; ******** 2021.04.13 update to fix color issue in copper list
     rts
 
 insertAGACIC:
@@ -1732,6 +1749,8 @@ TCopBs    move.l    T_CopLogic(a5),d1
 
 
 
+; See Copper List Documentation : http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0049.html?fbclid=IwAR1rM4vtz-iUsOuVFWg1PTHDfF3aVaBqdxQ_NIOHNFuzg0SYksUn_hu9gJE
+
 ;   sprFX_Spr0+SpritesFXDatas(ScrnPointer)   ; 1st SpriteID
 ;   sprFX_YStart+SpritesFXDatas(ScrnPointer) ; Y Start FX
 ;   sprFX_Height+SpritesFXDatas(ScrnPointer) ; Sprite Effect Height (amount of lines)
@@ -1787,16 +1806,37 @@ insertSpriteFX:
     move.w     d0,d5                   ; d5 = d0 = Last FX Line
     sub.w      d1,d5                   ; d5 = Y End - Y Start = Y Size
     bmi        SetEnding               ; Calculation issue (less than 1 line to insert -> Jump to end = error)
+
 ; ******** 5. Start Y Loop
 CopperYLoop:
+
+; ****************************************************************
 ; ******** 5.1 Calculate the Copper Wait for this line and insert Copper Line (Y) Wait.
 ;    move.w #(DISPLAY_Y<<8)!$38!$0001,d0        ;$38 empiriquement déterminé, mais en fait c'est la valeur de DDFSTRT en lowres (4.5 cycles d'horloge vidéo avant DIWSTRT => $81/2-8.5 car résolution de DIWSTRT est le pixel mais de DDFSTRT est 4 pixels)
-    move.w     d1,d2                   ; d2 = Y Start / Y Current Line
-    and.l      #$FF,d2                 ; Y Line && 255 (to be sure it's inside view)
-    lsl.w      #8,d2                   ; Push d2.w = YYYYYYYY........
-    or.w       #$38!$0001,d2           ; Add X Screen Position Start
-    move.w     d2,(a1)+                ; Wait Line d2
+    move.w     d1,d7                   ; d7 = Y Start / Y Current Line
+    and.l      #$FF,d7                 ; Y Line && 255 (to be sure it's inside view)
+    lsl.w      #8,d7                   ; Push d7.w = YYYYYYYY........
+    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
+    beq.s      .lowRate
+    or.w       #$18!$0001,d7           ; Add X Screen Position Start
+    bra.s      .WhatsNext
+.lowRate:
+    or.w       #$38!$0001,d7           ; Add X Screen Position Start
+.WhatsNext:
+
+; ******** 2021.04.13 Removed from here if Sprite Width > 16 - START
+;    cmp.w      #6,EcNPlan(a0)          ; Check if screen uses more than 5 bitplanes, then we do not insert the wait
+;    bgt.s      .forceInsert
+
+    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
+    bgt.s      .noInsert
+.forceInsert:
+    move.w     d7,(a1)+                ; Wait Line d7
     move.w     #$FFFE,(a1)+
+.noInsert:
+; ******** 2021.04.13 Removed from here if Sprite Width > 16 - END
+
+; ****************************************************************
 ; ******** 5.2 Reset Sprite ID to 0 and Sprite Position
     bsr        ResetSpriteID
 ; ************************************** Calculate Sprite Position ((SPRITE_Y&$FF)<<8)!((SPRITE_X&$1FE)>>1),d2
@@ -1804,77 +1844,118 @@ CopperYLoop:
     and.l      #$FF,d2                 ; Y Line && 255 (to be sure it's inside view)
     lsl.w      #8,d2                   ; Push d2.w = YYYYYYYY........
     or.w       #((128&$1FE)>>1),d2     ; Add X Screen Position Start
-    moveq.w    #4,d4                   ; D4 = 5 Copies of the whole sprite.
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    move.l     #320,d4                 ; D4 = Screen Width (Pixels Count)
+    lsr.l      #4,d4                   ; D4 = Screen Width (Words Count)
+    addq.w     #1,d4
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+
+; ****************************************************************
 ; ******** 5.3 Get Sprite Image Width for sprites range calculation
     move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+.noD7Update
+; ****************************************************************
 ; ******** 5.4 Start of the XLoop
 CopperXLoop:
-; ******** 5.4.1 Push 1st Sprite Bitplanes 0-1 (4 Colors Mode)
+
+; ****************************************************************
+; ******** 5.4.1 Push the copper WAIT directly to the Sprite Position
+; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - START
+    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
+    beq.s      .noInsert
+
+;    cmp.w      #6,EcNPlan(a0)          ; Check if screen uses more than 5 bitplanes, then we do not insert the wait
+;    bgt.s      .noInsert
+
+    cmp.w      (a2),d6
+    bne.s      .noInsert
+
+    move.w     d7,(a1)+                ; Wait Line d7
+    move.w     #$FFFE,(a1)+
+.noInsert:
+; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - END
+
+; ****************************************************************
+; ******** 5.4.2 Push 1st Sprite Bitplanes 0-1 (4 Colors Mode)
+;    move.w     #Spr0Pos,(a1)+
     move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
     move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
     add.w      #8,d3                   ; Spr(X+1)Pos
     cmp.w      #2,4(a2)                ; Is Sprite Depth = 4 colors (2 Bitplanes)
     beq.s      .no16ColCopy            ; Yes -> Jump .no16ColCopy
-; ******** 5.4.2 Push 2nd Sprite Bitplanes 2-3 (only on 16 Colors Mode)
+
+; ****************************************************************
+; ******** 5.4.3 Push 2nd Sprite Bitplanes 2-3 (only on 16 Colors Mode)
 .insertJoinedFor16Colors:
+;    move.w     #Spr1Pos,(a1)+
     move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
     move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
     add.w      #8,d3                   ; Spr(X+1)Pos
 .no16ColCopy:
-; ******** 5.4.3 Calculate the next sprite X Position and required copper waits for it
+
+; ******** 5.4.4 Calculate the next sprite X Position and required copper waits for it
     cmp.w      T_AgaSprWordsWidth(a5),d6 ; D6 = D6 - SPrWidth > 0 ?; Image Width = Image Width - Sprite Width > 0 ?
     bge.s      .fullWait
 .partialWait:
-    move.w     d6,d7                   ; D7 = Remaining Width used in the Sprite
-; ******** 5.4.3.B Reset Image Width & Sprite SprXPos Register counter
+    move.w     d6,T_SaveReg(a5)        ; T_SaveReg = Remaining Width used in the Sprite
+; ******** 5.4.4.B Reset Image Width & Sprite SprXPos Register counter
     move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
     bsr        ResetSpriteID
-    cmpi.w     #2,d7
-    beq.s      .move32pix              ; 32 Pixels used in this sprite on the 64 available
-    blt.s      .move16pix              ; 16 Pixels used in this sprite on the 32 or 64 available
-; ******** 5.4.3.C Special move for 48 pixels width used in this sprite on the 64 available.
+    cmp.w      #2,T_SaveReg(a5)        ; 
+    beq        .move32pix              ; 32 Pixels used in this sprite on the 64 available
+    blt        .move16pix              ; 16 Pixels used in this sprite on the 32 or 64 available
+
+; ******** 5.4.4.C Special move for 48 pixels width used in this sprite on the 64 available.
 .move48pix:
-    move.w     #$1FE,(a1)+
-    move.w     #0,(a1)+
-    move.w     #$1FE,(a1)+
-    move.w     #0,(a1)+
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+;    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
     addq.w     #8,d2                  ; 8(.move48pix) + 8(.move32pix) + 8(.move1-pix) = 24
-    bra.s      .move32pix
-; ******** 4.4.4 Full Wait for full Sprite Width.
+    bra        .move32pix
+
+; ******** 5.4.5 Full Wait for full Sprite Width.
 .fullWait
     sub.w      T_AgasprWordsWidth(a5),d6
-; ******** 4.4.4.B Check is Image Width = 0, If Yes then Reset Sprite Counter and Reset Image Width
-;    cmp.w      #0,d6
-;    bge.s      .noIWetSPRReset
+; ******** 5.4.5.B Check is Image Width = 0, If Yes then Reset Sprite Counter and Reset Image Width
+    cmp.w      #0,d6
+    bgt.s      .noIWetSPRReset
     move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
     bsr        ResetSpriteID
 .noIWetSPRReset:
-; ******** 4.4.5 Now, Insert the required Copper Wait, when needed
+
+; ******** 5.4.6 Now, Insert the required Copper Wait, when needed
     cmp.w      #aga32pixSprites,T_AgaSprWidth(a5)
-    blt.s      .move16pix
-    beq.s      .move32pix
+    blt        .move16pix
+    beq        .move32pix
+
+; ******** 5.4.6B move 64 pixels
 .move64pix:
-; ******** 4.4.5.A Insert NO-OP for 64 pixels width sprites
-    move.w     #$1FE,(a1)+
-    move.w     #0,(a1)+
-    move.w     #$1FE,(a1)+
-    move.w     #0,(a1)+
-    move.w     #$1FE,(a1)+
-    move.w     #0,(a1)+
+    add.w      #$10,d7                 ; D7 (+$20) = Next Copper X Position for 64 Pixels Width Sprites.
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #2,d4
+;    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
     add.w      #16,d2                  ; 16(.move64pix) + 8(.move32pix) + 8(.move1-pix) = 32
+
+; ******** 5.4.6C move 32 pixels
 .move32pix:
-; ******** 4.4.5.B Insert NO-OP for 32 pixels width sprites
-    move.w     #$1FE,(a1)+
-    move.w     #0,(a1)+
-    move.w     #$1FE,(a1)+
-    move.w     #0,(a1)+
-    move.w     #$1FE,(a1)+
-    move.w     #0,(a1)+
+    add.w      #$10,d7                 ; D7 (+$10) = Next Copper X Position for 32 Pixels Width Sprites.
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+;    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
     addq.w     #8,d2                  ; 8(.move32pix) + 8(.move1-pix) = 16
-; ******** 4.4.5.C No NO-OP on 16 pixels width sprites
+
+; ******** 5.4.6D move 16 pixels
 .move16pix:
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
     addq.w     #8,d2                  ; 8(.move1-pix) = 8
-; ******** 4.4.6 Now check that we do not reach SprXPos limit (0-7 or 0-5 on DPF)
+
+; ******** 5.4.7 Now check that we do not reach SprXPos limit (0-7 or 0-5 on DPF)
     tst.w      EcDual(a0)              ; If screen is attached to another in DualPlayfield mode we cannot display sprites 6/7
     beq.s      .Check8Sprs
     cmpi.w     #Spr6Pos,d3
@@ -1883,19 +1964,24 @@ CopperXLoop:
 .Check8Sprs:
     cmpi.w     #Spr7Pos+8,d3
     blt.s      .LimitNotReached
-; ******** 4.4.6.B If we are on a Dual Playfield Screen, we cannot display sprites 6 & 7, this will lead to a missing part of the image. We then restart at beginning of it.
+
+; ******** 5.4.7.B If we are on a Dual Playfield Screen, we cannot display sprites 6 & 7, this will lead to a missing part of the image. We then restart at beginning of it.
 .resetSprImg:
     move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
     bsr        ResetSpriteID
 .LimitNotReached:
     dbf        d4,CopperXLoop          ; Another copy of the whole sprite(s) ? Yes -> jump CopperXLoop
+.forceNextLine:
     addi.w     #$01,d1                 ; D1 = Next Copper Line Wait
     dbf        d5,CopperYLoop          ; D5 = D5 - 1 ; if d5 > -1 -> Jump CopperYLoop (Another Y Line to draw ?)
+
+; ******** 5.5 End of the sprite FX insertion.
 SetEnding:
     move.l    a1,T_SaveReg(a5)
     movem.l   (sp)+,d0-d7/a0-a3     ; Load registers ater finishing the SpriteFX insertion
     move.l    T_SaveReg(a5),a1
     rts
+
 
 ResetSpriteID:
 ;    move.w     sprFX_Spr0+SpritesFXDatas(a0),d3

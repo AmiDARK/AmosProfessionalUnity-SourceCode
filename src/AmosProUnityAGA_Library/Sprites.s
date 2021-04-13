@@ -273,33 +273,34 @@ HsPc1:
 ***********************************************************
 *    SET SPRITE PRIORITY (0-1)
 HsPri:
-    move.l   T_EcCourant(a5),a0
-    cmp.w    #5,d1
-    bcs.s    HsPr1
-    moveq    #0,d1
+            move.l  T_EcCourant(a5),a0
+            cmp.w   #5,d1
+            bcs.s   HsPr1
+            moveq   #0,d1
 HsPr1:
-    move.w   EcCon2(a0),d2
-    and.w    #%1111000,d2
-    move.w   EcDual(a0),d0
-    beq.s    HsPrP
-    bpl.s    HsPrP
+            move.w  EcDual(a0),d0
+            beq.s   HsPr2
+            bpl.s   HsPr3
 * Ecran DUAL 2 --> Poke dans le DUAL 1!
-    neg.w    d0
-    lsl.w    #2,d0
-    lea      T_EcAdr(a5),a0
-    move.l   -4(a0,d0.w),d0
-    beq.s    HsPrX
-    move.l   d0,a0
-    lsl.w    #3,d1
-    move.w   EcCon2(a0),d2
-    and.w    #%1000111,d2
+            neg.w   d0
+            lsl.w   #2,d0
+            lea T_EcAdr(a5),a0
+            move.l  -4(a0,d0.w),d0
+            beq.s   HsPrX
+            move.l  d0,a0
+HsPr2:
+            move.w  EcCon2(a0),d2
+            and.w   #%1000111,d2
+            lsl.w   #3,d1
+            bra.s   HsPrP
+HsPr3:
+            move.w  EcCon2(a0),d2
+            and.w   #%1111000,d2
 * Poke!
-HsPrP:
-    or.w     d1,d2
-    move.w   d2,EcCon2(a0)
-HsPrX:
-    moveq    #0,d0
-    rts
+HsPrP:          or.w    d1,d2
+            move.w  d2,EcCon2(a0)
+HsPrX:          moveq   #0,d0
+            rts
  
 ***********************************************************
 *    ARRET SPRITES HARDWARE

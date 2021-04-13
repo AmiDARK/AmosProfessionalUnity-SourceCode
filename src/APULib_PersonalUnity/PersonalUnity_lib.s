@@ -172,6 +172,8 @@ C_Tk:
     dc.b    "create playfield from sprit","e"+$80,"I0,0,0",-1
     dc.w    L_RemoveBackdropSprite,L_Nul
     dc.b    "remove sprite playfiel","d"+$80,"I",-1
+    dc.w    L_PlayfieldsPriorities,L_Nul
+    dc.b    "set playfields prioritie","s"+$80,"I0,0,0",-1
     dc.w    L_Nul,L_ValueTest
     dc.b    "get test valu","e"+$80,"0",-1
 ; ********************************************************************
@@ -1579,7 +1581,49 @@ iDiskFileError:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
+pf2OverPf1     equ 6
+;
+  Lib_Par    PlayfieldsPriorities  ; d3 = Sprites DPF2 Priorities
+    move.l     (a3)+,d2            ; d2 = Sprites DPF1 Priorities
+    move.l     (a3)+,d1            ; d1 = Playfield 1 Vs Playfield 2 Priority
+    move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
+    beq.s      EndPF
+    move.l     d0,a0
 
+
+
+; ******** 1. We calculate Priorities
+    clr.l      d6
+    tst.l      d1
+    beq.s      .pf1OverPf2
+.pf2OverPf1:
+    bset       #pf2OverPf1,d6
+.pf1OverPf2:
+    and.w      #%111,d1
+    or.w       d2,d6
+    and.w      #%111,d2
+    lsl.w      #3,d5
+    or.w       d1,d6               ; D6 = 0PAAABBB : P = PF2PF1, AAA=Playfield2 sprites priority, BBB = PF1 Sprites priority
+; ******** 2. We set priorities in the current screen
+SinglePlayfield:
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    move.w     d6,EcCon2(a0)
+; ******** 3. We check if we are in single screen or dual playfield and set bits for EcCon2
+    move.w     EcDual(a0),d0
+    beq.s      EndPF
+    bpl.s      EndPF
+DualPlayfield:
+    neg.w      d0
+    lsl.w      #2,d0
+    lea        T_EcAdr(a5),a0
+    move.l     -4(a0,d0.w),d0
+    beq.s      EndPF
+    move.l     d0,a0
+    move.w     d6,EcCon2(a0)
+EndPF:
+    moveq    #0,d0
+    rts
 
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***

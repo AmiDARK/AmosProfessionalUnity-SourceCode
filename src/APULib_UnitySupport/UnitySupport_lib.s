@@ -252,7 +252,9 @@ C_Tk:
     dc.w    L_fadeUnity,L_Nul
     dc.b    "unity fad","e"+$80,"I0",-1
     dc.w    L_fadeUnitytoPalette,L_Nul
-    dc.b    "unity fade to palett", "e"+$80,"I0,0",-1
+    dc.b    "!unity fade to palett", "e"+$80,"I0,0",-2
+    dc.w    L_fadeUnitytoPalette2,L_Nul
+    dc.b    $80,"I0,0,0",-1
 
     dc.w    L_Nul,L_true64Colors
     dc.b    "true6","4"+$80,"0",-1
@@ -2030,13 +2032,20 @@ B_Err6:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
-    ; ****************************************** Fade color palette to AGA Color palette
-    ; D3 = Speed (Step), (a3)+ = AGA Color Palette to use.
   Lib_Par      fadeUnitytoPalette
+    move.l     d3,-(a3)                ; Push Speed -> -(a3)
+    clr.l      d3                      ; D3 = Color ID Max = 0 (for default screen color palette size)
+    Rbra       L_fadeUnitytoPalette2
+
+    ; ****************************************** Fade color palette to AGA Color palette
+    ; D3 = Max Color ID, (a3)+ = Speed, (A3)+ = AGA Color Palette to use
+  Lib_Par      fadeUnitytoPalette2
+    move.w     d3,T_MaxColorID(a5)     ; Enforce the maximum color ID if set <>0
+    move.l     (a3)+,d4                ; d4 = Speed
     move.l     (a3)+,d0                ; D0 = Color Palette to use
-    move.l     d3,d4                   ; D4 = Speed
     movem.l    d1-d4/a0-a2,-(sp)       ; Save Regsxm
-    move.w     d3,T_FadeStep(a5)       ; D3 = Fading speed
+    move.w     d4,T_FadeStep(a5)       ; D4 = Fading speed
+    move.l     d3,T_SaveReg(a5)
     ; ******** 2021.03.13 Get the Color Palette pointer, and push pointer to CMAP location inside the color palette
     cmp.l      #5,d0
     ble        FD_Err1                 ; Colors Palette ID < 6 -> Error : Invalid range
@@ -2046,7 +2055,18 @@ B_Err6:
     beq        FD_Err4
     btst       #Bnk_BitPalette,d0      ; No Bnk_BitPalette flag = not a Colors Palette
     beq        FD_Err3
+
+    move.l     T_SaveReg(a5),d3
+
     move.l     a0,d0                   ; d0 = color palette block size
+    tst.l      d3
+    bpl.s      .noPaletteReading
+    move.l     (a0)+,d3              ; d3 = color palette block size
+    move.l     def_CMAP_size(a0),d3  ; D3 = Colour CMAP size.
+    divu       #3,d3
+.noPaletteReading:
+    move.w     d3,T_MaxColorID(a5)     ; Enforce the maximum color ID if set <>0
+
     add.l      #4,d0                   ; Color Palette bank block size
     add.l      #def_CMAP_Colors,d0     ; D0 = Colour #0 CMAP position
     move.l     d0,T_NewPalette(a5)     ; Store the new color palette into T_NewPalette data.
@@ -2090,6 +2110,12 @@ FD_Errors:
     move.l     a2,T_FadePal(a5)        ; T_FadePal(a5) = A2 = Current Screen color palette
     lea        T_FadeCol(a5),a0        ; A0 = T_FadeCol(a5) = Target color palette memory block
     move.w     EcNbCol(a1),d0          ; D0 = Amount of colours available in the Screen
+; ******** 2021.04.13 Updated to handle more colors than the ones in the screen - START
+    tst.w      T_MaxColorID(a5)
+    beq.s      .noEnforcing
+    move.w     T_MaxColorID(a5),d0     ; Force to use a specific amount of colors in the fading system.
+.noEnforcing:
+; ******** 2021.04.13 Updated to handle more colors than the ones in the screen - END
     cmp.w      #0,EcDual(a1)           ; Is screen dual playfield ?
     ble.s      .nodpf                  ; No -> Jump .nodpf
     move.w     #16,d0                  ; 16 colors ECS Mode for 2 screens.
@@ -2271,8 +2297,8 @@ fap1:
     move.w     d0,CopSprFMODE+2(a1)
 ; ******** 2021.03.31 Update copper list FMODE set before Sprites SprXPTH/L list
     Rbsr       L_UpdateFModes2
-;    addq.w     #1,T_EcYAct(a5)         ; Forces Screen recalculation (in copper list)
-;    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    addq.w     #1,T_EcYAct(a5)         ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
 noSet:
     moveq      #0,d0                   ; Everything is OK;
     rts
