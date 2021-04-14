@@ -25,6 +25,14 @@ TO DO AFTER :
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
+- Update Unity Fade To Palette to fade to more colors than the screen use (to handle sprites fading)
+
+; ************************************************************************
+; 2021.04.14 :
+- Updated method "Set Playfield Priorities" (removed the 's' to Playfield)
+- Updated Fading Methods to use Color Conversions macros/methods
+- Updated TriplePlayfield with Sprites Demonstration
+
 ; ************************************************************************
 ; 2021.04.13 :
 - Improved "Set Sprite As Playfield" (support 192 pixels 16 colors with 128 colors screen).

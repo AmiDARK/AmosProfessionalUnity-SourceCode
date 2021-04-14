@@ -219,11 +219,15 @@ newFadeSystem:
     beq.s      fadeToPalette
 fadeToBlack:
     AmpLCallR  A_NewFADE1,a0
-    move.l     T_FadeScreen(a5),a0
-    AmpLCallR  A_SPal_ScreenA0,a2
+    bra.s      UpdatePalette
     rts
 fadeToPalette:
     AmpLCallR  A_NewFADE2,a0
+UpdatePalette:
     move.l     T_FadeScreen(a5),a0
+    move.w     EcNbCol(a0),T_SaveReg(a5)  ; Save original colors count
+    move.w     T_FadeNb(a5),EcNbCol(a0)   ; Force to update the amount of colors requested by the fading call
     AmpLCallR  A_SPal_ScreenA0,a2
+    move.l     T_FadeScreen(a5),a0
+    move.w     T_SaveReg(a5),EcNbCol(a0)  ; Restore original colors count
     rts

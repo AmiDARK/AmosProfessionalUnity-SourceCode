@@ -173,11 +173,10 @@ C_Tk:
     dc.w    L_RemoveBackdropSprite,L_Nul
     dc.b    "remove sprite playfiel","d"+$80,"I",-1
     dc.w    L_PlayfieldsPriorities,L_Nul
-    dc.b    "set playfields prioritie","s"+$80,"I0,0,0",-1
+    dc.b    "set playfield prioritie","s"+$80,"I0,0,0",-1
     dc.w    L_Nul,L_ValueTest
     dc.b    "get test valu","e"+$80,"0",-1
 ; ********************************************************************
-
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
@@ -252,10 +251,8 @@ C_Tk:
 ;        Dc.w    L_MPDRAWDPF2,-1
 ;        Dc.b    "mplot dpf2 dra","w"+$80,"I0t0",-1
 
-
-
 ;    +++ The token table must end by this
-    dc.w     0
+    dc.w    0
     dc.l    0
 
 
@@ -1589,9 +1586,6 @@ pf2OverPf1     equ 6
     move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
     beq.s      EndPF
     move.l     d0,a0
-
-
-
 ; ******** 1. We calculate Priorities
     clr.l      d6
     tst.l      d1
@@ -1625,6 +1619,17 @@ EndPF:
     moveq    #0,d0
     rts
 
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***

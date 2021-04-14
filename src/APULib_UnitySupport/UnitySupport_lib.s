@@ -251,10 +251,10 @@ C_Tk:
     dc.b    "unity step fad","e"+$80,"I0",-1
     dc.w    L_fadeUnity,L_Nul
     dc.b    "unity fad","e"+$80,"I0",-1
-    dc.w    L_fadeUnitytoPalette,L_Nul
-    dc.b    "!unity fade to palett", "e"+$80,"I0,0",-2
     dc.w    L_fadeUnitytoPalette2,L_Nul
-    dc.b    $80,"I0,0,0",-1
+    dc.b    "!unity fade to palett", "e"+$80,"I0,0",-2
+    dc.w    L_fadeUnitytoPalette,L_Nul
+    dc.b    $80,"I0,0,0",-2
 
     dc.w    L_Nul,L_true64Colors
     dc.b    "true6","4"+$80,"0",-1
@@ -2032,20 +2032,19 @@ B_Err6:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
-  Lib_Par      fadeUnitytoPalette
+  Lib_Par      fadeUnitytoPalette2
     move.l     d3,-(a3)                ; Push Speed -> -(a3)
     clr.l      d3                      ; D3 = Color ID Max = 0 (for default screen color palette size)
-    Rbra       L_fadeUnitytoPalette2
+    Rbra       L_fadeUnitytoPalette
 
     ; ****************************************** Fade color palette to AGA Color palette
     ; D3 = Max Color ID, (a3)+ = Speed, (A3)+ = AGA Color Palette to use
-  Lib_Par      fadeUnitytoPalette2
-    move.w     d3,T_MaxColorID(a5)     ; Enforce the maximum color ID if set <>0
+  Lib_Par      fadeUnitytoPalette      ; d3 = Amount of colors to fade
     move.l     (a3)+,d4                ; d4 = Speed
-    move.l     (a3)+,d0                ; D0 = Color Palette to use
+    move.l     (a3)+,d0                ; d0 = Color Palette to use
     movem.l    d1-d4/a0-a2,-(sp)       ; Save Regsxm
-    move.w     d4,T_FadeStep(a5)       ; D4 = Fading speed
-    move.l     d3,T_SaveReg(a5)
+    move.w     d3,T_MaxColorID(a5)     ; Enforce the maximum color ID if set <>0
+    move.w     d4,T_FadeStep(a5)       ; d4 = Fading speed
     ; ******** 2021.03.13 Get the Color Palette pointer, and push pointer to CMAP location inside the color palette
     cmp.l      #5,d0
     ble        FD_Err1                 ; Colors Palette ID < 6 -> Error : Invalid range
@@ -2055,25 +2054,19 @@ B_Err6:
     beq        FD_Err4
     btst       #Bnk_BitPalette,d0      ; No Bnk_BitPalette flag = not a Colors Palette
     beq        FD_Err3
-
-    move.l     T_SaveReg(a5),d3
-
-    move.l     a0,d0                   ; d0 = color palette block size
-    tst.l      d3
+    tst.w      T_MaxColorID(a5)
+;    beq.s      .noPaletteReading
     bpl.s      .noPaletteReading
-    move.l     (a0)+,d3              ; d3 = color palette block size
-    move.l     def_CMAP_size(a0),d3  ; D3 = Colour CMAP size.
+    move.l     def_CMAP_size+4(a0),d3  ; D3 = Colour CMAP size.
     divu       #3,d3
-.noPaletteReading:
     move.w     d3,T_MaxColorID(a5)     ; Enforce the maximum color ID if set <>0
-
-    add.l      #4,d0                   ; Color Palette bank block size
-    add.l      #def_CMAP_Colors,d0     ; D0 = Colour #0 CMAP position
+.noPaletteReading:
+    move.l     a0,d0                   ; d0 = color palette block size
+    add.l      #def_CMAP_Colors+4,d0   ; D0 = Colour #0 CMAP position (add 4 for memblock size header)
     move.l     d0,T_NewPalette(a5)     ; Store the new color palette into T_NewPalette data.
     move.w     #1,T_FadeVit(a5)        ; Save the speed used for the fading System 
     move.w     #1,T_FadeCpt(a5)        ; Counter set at 1 to run 1st fade on 1st call.
     move.b     #2,T_isFadeAGA(a5)      ; Use the AGA version 2 of the Fading interrupt.
-    move.l     d4,d3
     Rbra       L_fadeUnityinside
 
 FD_Err1:
@@ -2114,6 +2107,7 @@ FD_Errors:
     tst.w      T_MaxColorID(a5)
     beq.s      .noEnforcing
     move.w     T_MaxColorID(a5),d0     ; Force to use a specific amount of colors in the fading system.
+    bra.s      .Enforced
 .noEnforcing:
 ; ******** 2021.04.13 Updated to handle more colors than the ones in the screen - END
     cmp.w      #0,EcDual(a1)           ; Is screen dual playfield ?
@@ -2124,6 +2118,7 @@ FD_Errors:
     lsl.w      #1,d0                   ; 32 colors AGA Mode for 2 screens.
 .noAga:
 .nodpf:
+.Enforced:
     move.w     d0,T_FadeFlag(a5)       ; T_FadeFlag(a5) = D0 = Colour amount to Update
     sub.w      #1,d0                   ; D0 = D0 -1 (to use -1 as end of color handling loop)
     Move.w     d0,T_FadeNb(a5)         ; T_FadeNb(a5) = Amount of colors of the Screen -1
@@ -2133,31 +2128,11 @@ fap1:
     ; ************************ First, we read the low bits values in D3 to get D3 = ......Rl..Gl..Bl
     clr.l      d3
     Move.w     EcPalL-EcPal(a2),d3  ; D3 =     ..RlGlBl
-    and.l      #$00000FFF,d3    ; D3 = ..........RlGlBl
-    Move.l     d3,d2            ; D2 = ..........RlGlBl
-    And.w      #$00000F00,d3    ; D3 = ..........Rl....
-    Lsl.l      #4,d3            ; D3 = ........Rl......
-    or.w       d2,d3            ; D3 = ........RlRlGlBl
-    And.l      #$0000F0F0,d3    ; D3 = ........Rl..Gl..
-    lsl.l      #4,d3            ; D3 = ......Rl..Gl....
-    and.w      #$0000000F,d2    ; D2 = ..............Bl
-    or.l       d2,d3            ; D3 = ......Rl..Gl..Bl
     ; ************************* Secondly, we read the high bits values in D2 to get D2 = ....Rh..Gh..Bh..
     clr.l      d2
     Move.w     (a2)+,d2         ; D2 =         ..RhGhBh
-    and.l      #$00000FFF,d2    ; D2 = ..........RhGhBh
-    Move.l     d2,d1            ; D1 = ..........RhGhBh
-    And.l      #$00000F00,d2    ; D2 = ..........Rh....
-    Lsl.l      #4,d2            ; D2 = ........Rh......
-    or.l       d1,d2            ; D2 = ........RhRhGhBh
-    And.l      #$0000F0F0,d2    ; D2 = ........Rh..Gh..
-    lsl.l      #4,d2            ; D2 = ......Rh..Gh....
-    and.l      #$0000000F,d1    ; D1 = ..............Bh
-    or.l       d1,d2            ; D2 = ......Rh..Gh..Bh
-    lsl.l      #4,d2            ; D2 = ....Rh..Gh..Bh..
-    ; ************************* Finally we merge D3 and D2 to obtain the full RGB24 color D3 + D2 = ....RhRlGhGlBhBl
-    or.l       d2,d3            ; D3 = ....RhRlGhGlBhBl
-    move.l     d3,d2            ; D2 = ....RhRlGhGlBhBl
+    PushToRGB24 d2,d3,d3
+    move.l     d3,d2
     swap       d2               ; D2 = GhGlBhBl....RhRl
     
     ; ************************ Handle RGB12 + RGB12 to become RGB24 : Set Byte #0 = 1 = Color Active

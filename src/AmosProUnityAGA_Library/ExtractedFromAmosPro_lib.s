@@ -3304,8 +3304,7 @@ noUpdateColor:
     bra.s      nextColor               ; Jump -> nextColor
 updateColor:
     moveq      #2,d7                   ; Counter to handle R,G then B and go to next color
-    clr.l      d5                      ; D5 will store RGB12 High bits
-    clr.l      d6                      ; D6 will store RGB12 Low bits
+    clr.l      d5                      ; D5 will temporary store RGB24 color value
 ; ******** Handle R8 Color component in D3, Save : D3 = ....Rh.. and D4 = ....Rl..
 rgbFadeLoop:
     moveq      #0,d3
@@ -3313,6 +3312,8 @@ rgbFadeLoop:
     and.l      #$FF,d3
     cmp.w      #0,d2
     blt.s      .increase
+
+; ******** Case 1 : Decrease color
 .decrease:
     tst.b      d3
     beq.s      continueFadeAGA         ; if Color component = 0, we do not increase counter
@@ -3320,10 +3321,11 @@ rgbFadeLoop:
     sub.w      d2,d3                   ; D3 = D3 + D2 = Fade de la couleur vers le noir ou le blanc ********************************
     cmp.w      #0,d3
     bge.s      .ctd
-    move.w     #0,d3
+    moveq.w    #0,d3
 .ctd:
     bra.s      continueFadeAGA
 
+; ******** Case 2 : Increase color
 .increase:
     cmp.w      #$FF,d3
     beq.s      continueFadeAGA
@@ -3332,18 +3334,16 @@ rgbFadeLoop:
     cmp.w      #$FF,d3
     blt.s      continueFadeAGA
     move.w     #$FF,d3
+; Continue with next color component RED, then GREEN, then BLUE
 continueFadeAGA:
     move.b     d3,-1(a0)               ; Save the new color value in the Fade color list
-    move.l     d3,d4                   ; D3 = D4 = R8
-    lsr.w      #4,d3                   ; D3 = ......Rh or ......Gh or ......Bh
-    and.w      #$F,d4                  ; D4 = ......Rl or ......Gl or ......Bl
-    and.w      #$F,d3
-; ******** Shift D6 & D7 by 4 bytes to insert the R4,GB or B4 component
-    lsl.w      #4,d5                   ; D5 = ???????? = ??????..
-    lsl.w      #4,d6                   ; D6 = ???????? = ??????..
-    or.w       d3,d5                   ; D5 = ??????Ch = Store the current High bits component inserted after the previous one
-    or.w       d4,d6                   ; D6 = ??????Cl = sdtore the current low bit component inserted after the previous one
+; ******** 2021.04.14 Update for conversion methods
+    lsl.l      #8,d5
+    or.b       d3,d5
     dbra d7,rgbFadeLoop                ; Decrease D7 and continue color extraction.
+    or.l       #$1000000,d5            ; Push RGB24 flag bit
+    getRGB12Datas d5,d5,d6
+; ******** 2021.04.14 Update for conversion methods
 ; ******** Now, we update the screen color palette
     move.w     d6,EcPalL-EcPal(a1)     ; Save RGB12L to EcPalL color palette
     move.w     d5,(a1)+                ; Save RGB12H to EcPal color palette
@@ -3399,11 +3399,13 @@ rgbFadeLoop2:
     beq.s      noUpdate                ; Yes -> noUpdate
     cmp.w      d4,d3                   ; is D3 = R8/G8 or B8 Color Component ? 
     bgt.s      lower                   ; D3 > D4 -> Decrease d3 JUMP lower
+
 upper:                                 ; D3 < D4 -> Increase d3 Next Line
     add.w      d2,d3                   ; Increase D3
     cmp.w      d4,d3                   ; is D3 > D4 ?
     bgt.s      forceEqual              ; Yes Force D3 = D4 -> JUMP forceEqual
     bra.s      updtColor
+
 lower:
     sub.w      d2,d3                   ; Decrease D3
     cmp.w      d4,d3                   ; is D3 < D4 ?
@@ -3411,20 +3413,18 @@ lower:
                                        ; Yes Force D3 = D4 -> Next Line
 forceEqual:
     move.w     d4,d3
+
 updtColor:
     move.b     d3,-1(a0)               ; Update the color in the Fade color list
     addq       #1,d1
 noUpdate:
-    move.l     d3,d4                   ; D3 = D4 = R8
-    lsr.w      #4,d3                   ; D3 = ......Rh or ......Gh or ......Bh
-    and.w      #$F,d4                  ; D4 = ......Rl or ......Gl or ......Bl
-    and.w      #$F,d3
-; ******** Shift D6 & D7 by 4 bytes to insert the R4,GB or B4 component
-    lsl.w      #4,d5                   ; D5 = ???????? = ??????..
-    lsl.w      #4,d6                   ; D6 = ???????? = ??????..
-    or.w       d3,d5                   ; D5 = ??????Ch = Store the current High bits component inserted after the previous one
-    or.w       d4,d6                   ; D6 = ??????Cl = sdtore the current low bit component inserted after the previous one
+; ******** 2021.04.14 Update for conversion methods
+    lsl.l      #8,d5
+    or.b       d3,d5
     dbra       d7,rgbFadeLoop2         ; Decrease D7 and continue color extraction.
+    or.l       #$1000000,d5            ; Push RGB24 flag bit
+    getRGB12Datas d5,d5,d6
+; ******** 2021.04.14 Update for conversion methods
 ; ******** Now, we update the screen color palette
     move.w     d6,EcPalL-EcPal(a1)     ; Save RGB12L to EcPalL color palette
     move.w     d5,(a1)+                ; Save RGB12H to EcPal color palette
