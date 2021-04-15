@@ -110,13 +110,9 @@ EcDBOriginalBPL rs.l 8                 ; 2019.11.18 Original Bitplanes Memory Al
 Ham8Mode       rs.w 1                  ; 2020.07.31 Flag to check if current screen uses HAM8 mode
 EcH8Logic:     rs.l 8                  ; Define the non displayed bitmaps for IFF/ILBM operations, support HAM8 Mode.
 True64Color    rs.b 1                  ; 2021.03.16 To allow tru 64 colors
-SpritesFX      rs.b 1                  ; 2021.04.08 If set, then use sprite 0 as Background Layer
-SpritesFXDatas rs.w 8                  ; 2021.05.10 Datas for SpritesFX
-SpritesFXCall  rs.l 1                  ; 2021.04.15 The method in the personal.lib to call for insertSpriteFX
-
-sprFX_Spr0     equ  0
-sprFX_YStart   equ  2
-sprFX_Height   equ  4
+ScreenFX       rs.b 1                  ; 2021.04.08 If set, then the Copper update will call the ScreenFXCall adress to insert an FX inside the Screen
+ScreenFXDatas  rs.w 8                  ; 2021.05.10 Datas for ScreensFX
+ScreenFXCall   rs.l 1                  ; 2021.04.15 The pointer to the adress to call for the FX to insert in the Screen
 
 ; Length of a screen
 EcLong        equ __RS

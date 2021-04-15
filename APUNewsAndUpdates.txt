@@ -30,7 +30,9 @@ TO DO AFTER :
 ; ************************************************************************
 ; 2021.04.15 :
 - Moved insertSpriteFX methods inside their target location "AmosPro_PersonalUnity.lib"
-
+- Fixed insertSpriteFX for 1 to 6 bitplanes : All OK
+- Added error message for incompatibles images width/depth + Screen depths combinations
+- Detailled list of compatibles sprites modes on the official Website
 
 ; ************************************************************************
 ; 2021.04.14 :

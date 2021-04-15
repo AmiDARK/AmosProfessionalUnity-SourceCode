@@ -61,6 +61,10 @@ FIconsWidth      Equ    6            ; Word (2)
 FIconsHeight     Equ    8            ; Word (2)
 FIconsDepth      Equ   10            ; Word (2)
 FIconsData       Equ   12            ; All Icons Datas
+; ******** Screen FX Sprites FX
+sprFX_YStart     Equ   0
+sprFX_Height     Equ   2
+sprFX_ScrDepth   Equ   4
 
 ; A usefull macro to find the address of data in the extension''s own 
 ; datazone (see later)...
@@ -169,7 +173,7 @@ C_Tk:
     dc.b    "get file siz","e"+$80,"02",-1
 ; ********************************************************************
     dc.w    L_SetSpriteAsBackdrop,L_Nul
-    dc.b    "create playfield from sprit","e"+$80,"I0,0,0",-1
+    dc.b    "create playfield from sprit","e"+$80,"I0,0",-1
     dc.w    L_RemoveBackdropSprite,L_Nul
     dc.b    "remove sprite playfiel","d"+$80,"I",-1
     dc.w    L_PlayfieldsPriorities,L_Nul
@@ -507,15 +511,13 @@ PersonalUnityBranchs:
 ; *   A0 = Screen Structure inside which, FX will be inserted *
 ; *   A1 = Logic Copper List (Where FX will be inserted)      *
 ; *   D0 = Max Line to reach (never go up to this line)       *
-; *     sprFX_Spr0+SpritesFXDatas(ScrnPointer) =1st SpriteID  *
-; *     sprFX_YStart+SpritesFXDatas(ScrnPointer) ; Y Start FX *
-; *     sprFX_Height+SpritesFXDatas(ScrnPointer) = Sprite FX  *
+; *      sprFX_YStart+ScreenFXDatas(ScrnPointer) = Y Start FX *
+; *      sprFX_Height+ScreenFXDatas(ScrnPointer) = Sprite FX  *
 ; *                                  Height (amount of lines) *
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
   Lib_Par    insertSpriteFX
-    movem.l    d0-d7/a0-a3,-(sp)        ; Save registers before starting inserting SpriteFX
     cmp.w      #0,d0
     bge.s      .noNeg
 .neg:
@@ -526,7 +528,6 @@ PersonalUnityBranchs:
     move.l     T_HsTable(a5),a3        ; A3 = Hardware Sprites Table (pointer to sprite 0 structure)
 ; **************** NOT DONE : Insert here the calculation for Sprite #sprFX_Spr0 datas in the T_HsTable(a5) ****************
     move.l     HsImage(a3),a2          ; a2 = Image used by the Sprite Itself
-    move.w     (a2),T_YTest(a5)
 ; ******** 2. Calculate where the Sprite FX will really end (always before input D0 (Line To Reach))
     move.w     HsY(a3),d1              ; D1 = Y Start Sprite Line Position  (D1 = Hardware sprite Y Position)
     add.w      2(a2),d1                ; D1 = Y End Sprite Last Line        (D1 = Hardware sprite Y Position + Sprite Image Height in lines = Last Line Image will reach)
@@ -535,15 +536,15 @@ PersonalUnityBranchs:
 .fullDisplay:
     move.w     d1,d0                   ; d0 = Last Line Sprite image will reach (as smaller than copper list line to reach)
 .partialDisplay:
-    move.w     sprFX_YStart+SpritesFXDatas(a0),d1 ; D1 = Y Start for the Sprite FX
-    add.w      sprFX_Height+SpritesFXDatas(a0),d1 ; D1 = Y End of the Sprite FX
+    move.w     sprFX_YStart+ScreenFXDatas(a0),d1 ; D1 = Y Start for the Sprite FX
+    add.w      sprFX_Height+ScreenFXDatas(a0),d1 ; D1 = Y End of the Sprite FX
     cmp.w      d1,d0
     blt.s      .NoMoreRemoval
 .MoreRemoval:
     move.w     d1,d0                   ; d0 = is reduced to be at Y End of the Sprite FX
 .NoMoreRemoval:
 ; ******** 3. Define the 1st line where the graphics will be drawn
-    move.w     sprFX_YStart+SpritesFXDatas(a0),d1 ; d1 = Sprite FX Start Y Hardware Line
+    move.w     sprFX_YStart+ScreenFXDatas(a0),d1 ; d1 = Sprite FX Start Y Hardware Line
     cmp.w      HsY(a3),d1              ; Is d1 > Hardware Sprite Y Start Line ?
     bge.s      .noReduce               ; Yes, No reduction -> Jump .noReduce
 .ReduceStartToLater:
@@ -572,16 +573,26 @@ CopperYLoop:
     and.l      #$FF,d7                 ; Y Line && 255 (to be sure it's inside view)
     lsl.w      #8,d7                   ; Push d7.w = YYYYYYYY........
     cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
-    beq.s      .lowRate
-    or.w       #$08!$0001,d7           ; Add X Screen Position Start
+    beq.s      .lowRate16pix
+; For 64 Pixels Width Sprites :
+    cmp.w      #7,sprFX_ScrDepth+ScreenFXDatas(a0)
+    beq.s      .HighRateBP7
+.HighRateBP1t6
+    or.w       #$28!$0001,d7           ; Add X Screen Position Start
     bra.s      .WhatsNext
-.lowRate:
+.HighRateBP7:
+    or.w       #$18!$0001,d7           ; Add X Screen Position Start
+    bra.s      .WhatsNext
+.lowRate16pix:
     or.w       #$38!$0001,d7           ; Add X Screen Position Start
 .WhatsNext:
 
 ; ******** 2021.04.13 Removed from here if Sprite Width > 16 - START
+
     cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
-    bgt.s      .noInsert
+    bgt.s      .noInsert  
+    cmp.w      #7,sprFX_ScrDepth+ScreenFXDatas(a0)
+    beq.s      .noInsert
 .forceInsert:
     move.w     d7,(a1)+                ; Wait Line d7
     move.w     #$FFFE,(a1)+
@@ -609,302 +620,131 @@ CopperYLoop:
 ; ****************************************************************
 ; ******** 5.4 Start of the XLoop
 CopperXLoop:
-    bsr        CopperXLoopCase01
 
+; ****************************************************************
+; ******** 5.4.1 Push the copper WAIT directly to the Sprite Position
+; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - START
+    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
+    beq.s      .next
+;    cmp.w      #7,sprFX_ScrDepth+ScreenFXDatas(a0)
+;    bne.s      .normalWait
+;    beq.s      .next
+; ******** Normal wait for 1-6 bitplanes depths
+.normalWait:
+    cmp.w      (a2),d6
+    bne.s      .next
+    move.w     d7,(a1)+                ; Wait Line d7
+    move.w     #$FFFE,(a1)+
+.next:
+; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - END
+
+; ****************************************************************
+; ******** 5.4.2 Push 1st Sprite Bitplanes 0-1 (4 Colors Mode)
+;    move.w     #Spr0Pos,(a1)+
+    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
+    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
+    add.w      #8,d3                   ; Spr(X+1)Pos
+    cmp.w      #2,4(a2)                ; Is Sprite Depth = 4 colors (2 Bitplanes)
+    beq.s      .no16ColCopy            ; Yes -> Jump .no16ColCopy
+
+; ****************************************************************
+; ******** 5.4.3 Push 2nd Sprite Bitplanes 2-3 (only on 16 Colors Mode)
+.insertJoinedFor16Colors:
+;    move.w     #Spr1Pos,(a1)+
+    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
+    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
+    add.w      #8,d3                   ; Spr(X+1)Pos
+.no16ColCopy:
+
+; ******** 5.4.4 Calculate the next sprite X Position and required copper waits for it
+    cmp.w      T_AgaSprWordsWidth(a5),d6 ; D6 = D6 - SPrWidth > 0 ?; Image Width = Image Width - Sprite Width > 0 ?
+    bge.s      .fullWait
+.partialWait:
+    move.w     d6,T_SaveReg(a5)        ; T_SaveReg = Remaining Width used in the Sprite
+; ******** 5.4.4.B Reset Image Width & Sprite SprXPos Register counter
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+    bsr        ResetSpriteID
+    cmp.w      #2,T_SaveReg(a5)        ; 
+    beq        .move32pix              ; 32 Pixels used in this sprite on the 64 available
+    blt        .move16pix              ; 16 Pixels used in this sprite on the 32 or 64 available
+
+; ******** 5.4.4.C Special move for 48 pixels width used in this sprite on the 64 available.
+.move48pix:
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+;    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    addq.w     #8,d2                  ; 8(.move48pix) + 8(.move32pix) + 8(.move1-pix) = 24
+    bra        .move32pix
+
+; ******** 5.4.5 Full Wait for full Sprite Width.
+.fullWait
+    sub.w      T_AgaSprWordsWidth(a5),d6
+; ******** 5.4.5.B Check is Image Width = 0, If Yes then Reset Sprite Counter and Reset Image Width
+    cmp.w      #0,d6
+    bgt.s      .noIWetSPRReset
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+    bsr        ResetSpriteID
+.noIWetSPRReset:
+
+; ******** 5.4.6 Now, Insert the required Copper Wait, when needed
+    cmp.w      #aga32pixSprites,T_AgaSprWidth(a5)
+    blt        .move16pix
+    beq        .move32pix
+
+; ******** 5.4.6B move 64 pixels
+.move64pix:
+    add.w      #$10,d7                 ; D7 (+$20) = Next Copper X Position for 64 Pixels Width Sprites.
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #2,d4
+;    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    add.w      #16,d2                  ; 16(.move64pix) + 8(.move32pix) + 8(.move1-pix) = 32
+
+; ******** 5.4.6C move 32 pixels
+.move32pix:
+    add.w      #$10,d7                 ; D7 (+$10) = Next Copper X Position for 32 Pixels Width Sprites.
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+;    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    addq.w     #8,d2                  ; 8(.move32pix) + 8(.move1-pix) = 16
+
+; ******** 5.4.6D move 16 pixels
+.move16pix:
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    addq.w     #8,d2                  ; 8(.move1-pix) = 8
+
+; ******** 5.4.7 Now check that we do not reach SprXPos limit (0-7 or 0-5 on DPF)
+    tst.w      EcDual(a0)              ; If screen is attached to another in DualPlayfield mode we cannot display sprites 6/7
+    beq.s      .Check8Sprs
+    cmpi.w     #Spr6Pos,d3
+    blt.s      .LimitNotReached
+    bra.s      .resetSprImg
+.Check8Sprs:
+    cmpi.w     #Spr7Pos+8,d3
+    blt.s      .LimitNotReached
+
+; ******** 5.4.7.B If we are on a Dual Playfield Screen, we cannot display sprites 6 & 7, this will lead to a missing part of the image. We then restart at beginning of it.
+.resetSprImg:
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+    bsr        ResetSpriteID
+.LimitNotReached:
+    dbf        d4,CopperXLoop          ; Another copy of the whole sprite(s) ? Yes -> jump CopperXLoop
 .forceNextLine:
     addi.w     #$01,d1                 ; D1 = Next Copper Line Wait
     dbf        d5,CopperYLoop          ; D5 = D5 - 1 ; if d5 > -1 -> Jump CopperYLoop (Another Y Line to draw ?)
 
 ; ******** 5.5 End of the sprite FX insertion.
 SetEnding:
-    move.l    a1,T_SaveReg(a5)
-    movem.l   (sp)+,d0-d7/a0-a3     ; Load registers ater finishing the SpriteFX insertion
-    move.l    T_SaveReg(a5),a1
     rts
 
 ResetSpriteID:
-    move.w     sprFX_Spr0+SpritesFXDatas(a0),d3
-    lsl.w      #3,d3                   ; Sprite ID * 8 (Each SprNPos to SprN+1Pos takes 8 bytes)
-    add.w      #Spr0Pos,d3             ; d3 = SprXPos register to the 1st sprite to push.
-;    move.w     #Spr0Pos,d3
+    move.w     #Spr0Pos,d3
     rts
-
-
-
-
-
-
-
-
-
-
-; **************************************************************************************************************
-; ******** First case for Copper X Loop
-; Sprites Width = 128, 192 & 256 
-; Sprites Depth = 2 and 4 planes (4 and 16 colors)
-; Screen Depths : 1 to 7 bitplanes (2 to 128 colors)
-CopperXLoopCase01:
-; ****************************************************************
-; ******** 5.4.1 Push the copper WAIT directly to the Sprite Position
-; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - START
-    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
-    beq.s      .noInsert
-
-    cmp.w      (a2),d6
-    bne.s      .noInsert
-
-    cmp.w      #7,EcNPlan(a0)          ; Check if screen uses more than 5 bitplanes, then we do not insert the wait
-    bgt.s      .noInsert
-
-.insertMode1:
-    move.w     d7,(a1)+                ; Wait Line d7
-    move.w     #$FFFE,(a1)+
-.noInsert:
-; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - END
-
-; ****************************************************************
-; ******** 5.4.2 Push 1st Sprite Bitplanes 0-1 (4 Colors Mode)
-;    move.w     #Spr0Pos,(a1)+
-    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
-    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
-    add.w      #8,d3                   ; Spr(X+1)Pos
-    cmp.w      #2,4(a2)                ; Is Sprite Depth = 4 colors (2 Bitplanes)
-    beq.s      .no16ColCopy            ; Yes -> Jump .no16ColCopy
-
-; ****************************************************************
-; ******** 5.4.3 Push 2nd Sprite Bitplanes 2-3 (only on 16 Colors Mode)
-.insertJoinedFor16Colors:
-;    move.w     #Spr1Pos,(a1)+
-    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
-    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
-    add.w      #8,d3                   ; Spr(X+1)Pos
-.no16ColCopy:
-
-; ******** 5.4.4 Calculate the next sprite X Position and required copper waits for it
-    cmp.w      T_AgaSprWordsWidth(a5),d6 ; D6 = D6 - SPrWidth > 0 ?; Image Width = Image Width - Sprite Width > 0 ?
-    bge.s      .fullWait
-.partialWait:
-    move.w     d6,T_SaveReg(a5)        ; T_SaveReg = Remaining Width used in the Sprite
-; ******** 5.4.4.B Reset Image Width & Sprite SprXPos Register counter
-    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
-    bsr        ResetSpriteID
-    cmp.w      #2,T_SaveReg(a5)        ; 
-    beq        .move32pix              ; 32 Pixels used in this sprite on the 64 available
-    blt        .move16pix              ; 16 Pixels used in this sprite on the 32 or 64 available
-
-; ******** 5.4.4.C Special move for 48 pixels width used in this sprite on the 64 available.
-.move48pix:
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
-    sub.w      #1,d4
-;    bmi        .forceNextLine
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
-    addq.w     #8,d2                  ; 8(.move48pix) + 8(.move32pix) + 8(.move1-pix) = 24
-    bra        .move32pix
-
-; ******** 5.4.5 Full Wait for full Sprite Width.
-.fullWait
-    sub.w      T_AgaSprWordsWidth(a5),d6
-; ******** 5.4.5.B Check is Image Width = 0, If Yes then Reset Sprite Counter and Reset Image Width
-    cmp.w      #0,d6
-    bgt.s      .noIWetSPRReset
-    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
-    bsr        ResetSpriteID
-.noIWetSPRReset:
-
-; ******** 5.4.6 Now, Insert the required Copper Wait, when needed
-    cmp.w      #aga32pixSprites,T_AgaSprWidth(a5)
-    blt        .move16pix
-    beq        .move32pix
-
-; ******** 5.4.6B move 64 pixels
-.move64pix:
-    add.w      #$10,d7                 ; D7 (+$20) = Next Copper X Position for 64 Pixels Width Sprites.
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
-    sub.w      #2,d4
-;    bmi        .endXLoop
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
-    add.w      #16,d2                  ; 16(.move64pix) + 8(.move32pix) + 8(.move1-pix) = 32
-
-; ******** 5.4.6C move 32 pixels
-.move32pix:
-    add.w      #$10,d7                 ; D7 (+$10) = Next Copper X Position for 32 Pixels Width Sprites.
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
-    sub.w      #1,d4
-;    bmi        .endXLoop
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
-    addq.w     #8,d2                  ; 8(.move32pix) + 8(.move1-pix) = 16
-
-; ******** 5.4.6D move 16 pixels
-.move16pix:
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
-    sub.w      #1,d4
-    bmi        .endXLoop
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
-    addq.w     #8,d2                  ; 8(.move1-pix) = 8
-
-; ******** 5.4.7 Now check that we do not reach SprXPos limit (0-7 or 0-5 on DPF)
-    tst.w      EcDual(a0)              ; If screen is attached to another in DualPlayfield mode we cannot display sprites 6/7
-    beq.s      .Check8Sprs
-    cmpi.w     #Spr6Pos,d3
-    blt.s      .LimitNotReached
-    bra.s      .resetSprImg
-.Check8Sprs:
-    cmpi.w     #Spr7Pos+8,d3
-    blt.s      .LimitNotReached
-
-; ******** 5.4.7.B If we are on a Dual Playfield Screen, we cannot display sprites 6 & 7, this will lead to a missing part of the image. We then restart at beginning of it.
-.resetSprImg:
-    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
-    bsr        ResetSpriteID
-.LimitNotReached:
-    dbf        d4,CopperXLoopCase01    ; Another copy of the whole sprite(s) ? Yes -> jump CopperXLoop
-.endXLoop:
-    rts
-
-
-
-
-
-
-
-
-
-
-
-; **************************************************************************************************************
-; ******** First case for Copper X Loop
-; Sprites Width = 128, 192 & 256 
-; Sprites Depth = 2 and 4 planes (4 and 16 colors)
-; Screen Depths : 1 to 7 bitplanes (2 to 128 colors)
-CopperXLoopCaseBASE:
-; ****************************************************************
-; ******** 5.4.1 Push the copper WAIT directly to the Sprite Position
-; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - START
-    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
-    beq.s      .noInsert
-
-    cmp.w      (a2),d6
-    bne.s      .noInsert
-
-    move.w     d7,(a1)+                ; Wait Line d7
-    move.w     #$FFFE,(a1)+
-.noInsert:
-; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - END
-
-; ****************************************************************
-; ******** 5.4.2 Push 1st Sprite Bitplanes 0-1 (4 Colors Mode)
-;    move.w     #Spr0Pos,(a1)+
-    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
-    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
-    add.w      #8,d3                   ; Spr(X+1)Pos
-    cmp.w      #2,4(a2)                ; Is Sprite Depth = 4 colors (2 Bitplanes)
-    beq.s      .no16ColCopy            ; Yes -> Jump .no16ColCopy
-
-; ****************************************************************
-; ******** 5.4.3 Push 2nd Sprite Bitplanes 2-3 (only on 16 Colors Mode)
-.insertJoinedFor16Colors:
-;    move.w     #Spr1Pos,(a1)+
-    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
-    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
-    add.w      #8,d3                   ; Spr(X+1)Pos
-.no16ColCopy:
-
-; ******** 5.4.4 Calculate the next sprite X Position and required copper waits for it
-    cmp.w      T_AgaSprWordsWidth(a5),d6 ; D6 = D6 - SPrWidth > 0 ?; Image Width = Image Width - Sprite Width > 0 ?
-    bge.s      .fullWait
-.partialWait:
-    move.w     d6,T_SaveReg(a5)        ; T_SaveReg = Remaining Width used in the Sprite
-; ******** 5.4.4.B Reset Image Width & Sprite SprXPos Register counter
-    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
-    bsr        ResetSpriteID
-    cmp.w      #2,T_SaveReg(a5)        ; 
-    beq        .move32pix              ; 32 Pixels used in this sprite on the 64 available
-    blt        .move16pix              ; 16 Pixels used in this sprite on the 32 or 64 available
-
-; ******** 5.4.4.C Special move for 48 pixels width used in this sprite on the 64 available.
-.move48pix:
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
-    sub.w      #1,d4
-;    bmi        .forceNextLine
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
-    addq.w     #8,d2                  ; 8(.move48pix) + 8(.move32pix) + 8(.move1-pix) = 24
-    bra        .move32pix
-
-; ******** 5.4.5 Full Wait for full Sprite Width.
-.fullWait
-    sub.w      T_AgaSprWordsWidth(a5),d6
-; ******** 5.4.5.B Check is Image Width = 0, If Yes then Reset Sprite Counter and Reset Image Width
-    cmp.w      #0,d6
-    bgt.s      .noIWetSPRReset
-    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
-    bsr        ResetSpriteID
-.noIWetSPRReset:
-
-; ******** 5.4.6 Now, Insert the required Copper Wait, when needed
-    cmp.w      #aga32pixSprites,T_AgaSprWidth(a5)
-    blt        .move16pix
-    beq        .move32pix
-
-; ******** 5.4.6B move 64 pixels
-.move64pix:
-    add.w      #$10,d7                 ; D7 (+$20) = Next Copper X Position for 64 Pixels Width Sprites.
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
-    sub.w      #2,d4
-;    bmi        .endXLoop
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
-    add.w      #16,d2                  ; 16(.move64pix) + 8(.move32pix) + 8(.move1-pix) = 32
-
-; ******** 5.4.6C move 32 pixels
-.move32pix:
-    add.w      #$10,d7                 ; D7 (+$10) = Next Copper X Position for 32 Pixels Width Sprites.
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
-    sub.w      #1,d4
-;    bmi        .endXLoop
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
-    addq.w     #8,d2                  ; 8(.move32pix) + 8(.move1-pix) = 16
-
-; ******** 5.4.6D move 16 pixels
-.move16pix:
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
-    sub.w      #1,d4
-    bmi        .endXLoop
-; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
-    addq.w     #8,d2                  ; 8(.move1-pix) = 8
-
-; ******** 5.4.7 Now check that we do not reach SprXPos limit (0-7 or 0-5 on DPF)
-    tst.w      EcDual(a0)              ; If screen is attached to another in DualPlayfield mode we cannot display sprites 6/7
-    beq.s      .Check8Sprs
-    cmpi.w     #Spr6Pos,d3
-    blt.s      .LimitNotReached
-    bra.s      .resetSprImg
-.Check8Sprs:
-    cmpi.w     #Spr7Pos+8,d3
-    blt.s      .LimitNotReached
-
-; ******** 5.4.7.B If we are on a Dual Playfield Screen, we cannot display sprites 6 & 7, this will lead to a missing part of the image. We then restart at beginning of it.
-.resetSprImg:
-    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
-    bsr        ResetSpriteID
-.LimitNotReached:
-    dbf        d4,CopperXLoopCaseBASE  ; Another copy of the whole sprite(s) ? Yes -> jump CopperXLoop
-.endXLoop:
-    rts
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ;
 ; *****************************************************************************************************************************
@@ -1931,27 +1771,77 @@ iDiskFileError:
 ; *************************************************************
   Lib_Par    SetSpriteAsBackdrop   ; d3 = Height of the effects in pixels.
     move.l     (a3)+,d4            ; d4 = YStart
-    move.l     (a3)+,d5            ; d5 = 1st Sprite ID
 ; ******** 1. Check if current screen is valid
     move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
     Rbeq       L_Err9              ; No current screen -> Error #12 "NoScreenAvailable"
     move.l     d0,a2               ; a2 = Current Screen pointer
-; ******** 2. Enable Sprites Playfield FX in current Screen
-    move.b     (a2),d0
+; ******** 2. Check Screen Depth, Sprite Width to check for compatibility.
+; ******** 2.1 Check AGA Sprite Width 64
+    cmp.w      #aga64pixSprites,T_AgaSprWidth(a5)
+    Rbne       L_Err17             ; Error #17 : Sprite Playfield FX Is available only on AGA Sprite with width = 64.
+; ******** 2.2 Check Screen Depth (Bitplanes 1-6)   
+    move.w     EcNPlan(a2),d1      ; d1 = Screen Bitplane Depth
+    move.w     EcDual(a2),d2
+    beq.s      .noMore
+    lsl.w      #2,d2
+    lea        T_EcAdr(a5),a1
+    move.l     -4(a1,d2.w),d2          ; We clear the 2nd one
+    beq.s      .noMore
+    move.l     d2,a1
+    add.w      EcNPlan(a1),d1      ; d1 = Screen A Bitplanes depth + Screen B (dualPlayfield) Bitplanes depth
+    move.w     d1,sprFX_ScrDepth+ScreenFXDatas(a1) ; Save Screen Depth into First Screen
+.noMore:
+    move.w     d1,sprFX_ScrDepth+ScreenFXDatas(a2) ; Save Screen Depth into First Screen
+    move.w     d1,T_YTest(a5)
+    cmp.w      #7,d1               ; Total screen(s) bitplanes depth equal 7 ? less ? more ?
+    blt.s      .continue           ; Using 64 Pixels width sprites is compatible with all depth < 7 bitplanes
+    beq.s      .check7bpls         ; on 7 Bitplanes depth, check for compatibilities
+    Rbra       L_Err18             ; Error #18 : Sprite Playfield FX is unavailable on 8 bitplanes depth screens
+.check7bpls
+    move.l     T_HsTable(a5),a1    ; a1 = HsTable (pointer to the sprite 0 in the table)
+    move.l     HsImage(a1),a1      ; a1 = Image used by the Sprite Itself
+    cmp.w      #4,4(a1)            ; Image Depth = 4 ? (16 colors)
+    beq.s      .check16c7bpls
+    cmp.w      #2,4(a1)            ; Image Depth = 2 ? (4 colors)
+    beq.s      .check4c7bpls
+    Rbra       L_Err21             ; Image used for Sprite Playfield FX must be 2 or 4 bitplanes depth (4 or 16 colors).
+.check16c7bpls:
+    cmp.w      #12,(a1)            ; d1 = Image Width < 12 words ( = 12 * 16 = 192 pixels width )
+    Rblt       L_Err20             ; Sprite Playfield FX is incompatible on 7 bitplanes on 16 colors sprites with width lower than 192 pixels.
+    bra.s      .continue
+.check4c7bpls:
+    cmp.w      #8,(a1)             ; d1 = Image Width < 8 Words ( = 8 * 16 = 128 pixels width )
+    Rblt       L_Err19             ; Sprite Playfield FX is incompatible on 7 bitplanes on 4 colors sprites with width lower than 128 pixels.
+.continue:
+    move.l     T_HsTable(a5),a1    ; a1 = HsTable (pointer to the sprite 0 in the table)
+    move.l     HsImage(a1),a0      ; a0 = Image used by the Sprite Itself
+    move.w     (a0),d1
+    cmp.w      #4,d1               ; 64 Pixels width
+    beq.s      .continueStep2      ;  Yes -> OK
+    cmp.w      #8,d1               ; 128 Pixels Width ?
+    beq.s      .continueStep2      ;  Yes -> OK
+    cmp.w      #12,d1              ; 192 Pixels Width ?
+    beq.s      .continueStep2      ;  Yes -> OK
+    cmp.w      #16,d1              ; 256 Pixels Width ?
+    beq.s      .continueStep2      ;  Yes -> OK
+    cmp.w      #20,d1              ; 320 Pixels Width ? (only using 4 colors)
+    beq.s      .continueStep2      ;  Yes -> OK
+    Rbra       L_Err22             ; Image width must be multiple of 64 (64, 128, 192, 256, 320(4 colors only)).
+.continueStep2:
+; ******** 3. Enable Sprites Playfield FX in current Screen
+    move.b     ScreenFX(a2),d0
     bset       #0,d0
-    move.b     d0,SpritesFX(a2)    ; Enable Sprite As Layer in the chosen Screen
+    move.b     d0,ScreenFX(a2)    ; Enable Sprite As Layer in the chosen Screen
     Dlea       PersonalUnityBranchs,d0
-    move.l     d0,SpritesFXCall(a2) ; Push Callable adress for FX
-; ******** 3. Save  Sprites Playfield FX datas in current Screen
-    move.w     d5,sprFX_Spr0+SpritesFXDatas(a2)   ; Save 1st SpriteID
-    move.w     d4,sprFX_YStart+SpritesFXDatas(a2) ; Save Y Start FX
-    move.w     d3,sprFX_Height+SpritesFXDatas(a2) ; Save Sprite Effect Height (amount of lines)
-; ******** 4. Ask AMOS to refresh screens (to insert the Sprite as layered background)
+    move.l     d0,ScreenFXCall(a2) ; Push Callable adress for FX
+; ******** 4. Save  Sprites Playfield FX datas in current Screen
+    move.w     d4,sprFX_YStart+ScreenFXDatas(a2) ; Save Y Start FX
+    move.w     d3,sprFX_Height+ScreenFXDatas(a2) ; Save Sprite Effect Height (amount of lines)
+; ******** 5. Ask AMOS to refresh screens (to insert the Sprite as layered background)
     addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
     bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
     moveq      #0,d0
     rts
-
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
@@ -1968,12 +1858,11 @@ iDiskFileError:
     Rbeq       L_Err9              ; No current screen -> Error #12 "NoScreenAvailable"
     move.l     d0,a2               ; a2 = Current Screen pointer
 ; ******** 
-    clr.b      SpritesFX(a2)       ; Disable Sprite As Layer in the chosen Screen
-    clr.l      SpritesFXCall(a2)   ; remove Callable adress for FX
+    clr.b      ScreenFX(a2)       ; Disable Sprite As Layer in the chosen Screen
+    clr.l      ScreenFXCall(a2)   ; remove Callable adress for FX
 
-    clr.w      sprFX_Spr0+SpritesFXDatas(a2)   ; Save 1st SpriteID
-    clr.w      sprFX_YStart+SpritesFXDatas(a2) ; Save Y Start FX
-    clr.w      sprFX_Height+SpritesFXDatas(a2) ; Save Sprite Effect Height (amount of lines)
+    clr.w      sprFX_YStart+ScreenFXDatas(a2) ; Save Y Start FX
+    clr.w      sprFX_Height+ScreenFXDatas(a2) ; Save Sprite Effect Height (amount of lines)
 ; ******** 2. Ask AMOS to refresh screens (to insert the Sprite as layered background)
     addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
     bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
@@ -2500,15 +2389,39 @@ ErDisk:
     Rbra    L_Errors
 
   Lib_Def Err14             ; This bank is not a memblock bank
-    moveq   #17,d0
+    moveq   #14,d0
     Rbra    L_Errors
 
   Lib_Def Err15            ; The requested position is out of memblock size/range
-    moveq   #18,d0
+    moveq   #15,d0
     Rbra    L_Errors
 
   Lib_Def Err16            ; The memblock position entered is not word aligned
+    moveq   #16,d0
+    Rbra    L_Errors
+
+  Lib_Def Err17            ; Sprite FX Is available only on AGA Sprite with width = 64
+    moveq   #17,d0
+    Rbra    L_Errors
+
+  Lib_Def Err18            ; Sprite Playfield FX is unavailable on 8 bitplanes depth screens
+    moveq   #18,d0
+    Rbra    L_Errors
+
+  Lib_Def Err19            ; Sprite Playfield FX is incompatible on 7 bitplanes on 4 colors sprites with width lower than 128 pixels.
+    moveq   #19,d0
+    Rbra    L_Errors
+
+  Lib_Def Err20            ; Sprite Playfield FX is incompatible on 7 bitplanes on 16 colors sprites with width lower than 192 pixels.
+    moveq   #20,d0
+    Rbra    L_Errors
+
+  Lib_Def Err21            ; Image used for Sprite Playfield FX must be 2 or 4 bitplanes depth (4 or 16 colors).
     moveq   #21,d0
+    Rbra    L_Errors
+
+  Lib_Def Err22            ; Image width must be multiple of 64(64, 128, 192, 256, 320(4 colors only)).
+    moveq   #22,d0
     Rbra    L_Errors
 
     Lib_Def Errors
@@ -2534,9 +2447,16 @@ ErrMess:
     dc.b    "Not enough free memory to allocate the requested memblock.",0                         * Error #11 USED
     dc.b    "Memblock Size is incorrect.",0                                                        * Error #12 USED
     dc.b    "There is no memblock bank at this slot.",0                                            * Error #13 USED
-    dc.b    "This bank is not a memblock bank.",0                                                  * Error #17 USED
-    dc.b    "The requested position is out of memblock size/range.",0                              * Error #18 USED
-    dc.b    "The memblock position entered is not word aligned.",0                                 * Error #21 USED
+    dc.b    "This bank is not a memblock bank.",0                                                  * Error #14 USED
+    dc.b    "The requested position is out of memblock size/range.",0                              * Error #15 USED
+    dc.b    "The memblock position entered is not word aligned.",0                                 * Error #16 USED
+
+    dc.b    "SFX Is available only on AGA Sprite with width = 64.",0                               * Error #17 USED
+    dc.b    "SFX is unavailable on 8 bitplanes views",0                                            * Error #18 USED
+    dc.b    "SFX 4 Colors Sprite Image Width must be 128 or higher with 7bpls.",0                  * Error #19 USED (Part1/2)
+    dc.b    "SXF 16 Colors Sprite Image Width must be 192 or higher with 7 bpls.",0                * Error #20 USED (Part1/2)
+    dc.b    "SFX Sprite Image Depth must be 2 or 4 bitplanes (4,16colors).",0                      * Error #21 USED
+    dc.b    "SFX Sprite Image width must be 64, 128, 192, 256 or 320.",0                           * Error #22 USED
 
 
 * IMPORTANT! Always EVEN!
