@@ -6,10 +6,12 @@ TO DO :
 - Interleaved Bitmaps for screens (Alper Snomez email 2021.04.04) and interleaved sprites/bobs/images bank.
 - Check if there is a limit of 256, in amount of blitter objects (BOBS) (Wayne Ashworth)
   ( see : https://www.facebook.com/groups/AmosPro/permalink/1429645217373474/?comment_id=1429708457367150&reply_comment_id=1430000350671294 )
+- Fix ECS scrolling issue (in Dual Playfield if I'm not wrong)
+- Integrat Sprite FX to ECS version of Amos Professional Unity Personal LIB
+- Update ECS screen sizes limits to 2048x2048 for next release
 
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
-- Update ECS screen sizes limits to 2048x2048 for next release
 
 
 BUG :
@@ -25,7 +27,10 @@ TO DO AFTER :
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
 
-- Update Unity Fade To Palette to fade to more colors than the screen use (to handle sprites fading)
+; ************************************************************************
+; 2021.04.15 :
+- Moved insertSpriteFX methods inside their target location "AmosPro_PersonalUnity.lib"
+
 
 ; ************************************************************************
 ; 2021.04.14 :

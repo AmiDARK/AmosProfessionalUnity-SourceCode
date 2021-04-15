@@ -112,6 +112,7 @@ EcH8Logic:     rs.l 8                  ; Define the non displayed bitmaps for IF
 True64Color    rs.b 1                  ; 2021.03.16 To allow tru 64 colors
 SpritesFX      rs.b 1                  ; 2021.04.08 If set, then use sprite 0 as Background Layer
 SpritesFXDatas rs.w 8                  ; 2021.05.10 Datas for SpritesFX
+SpritesFXCall  rs.l 1                  ; 2021.04.15 The method in the personal.lib to call for insertSpriteFX
 
 sprFX_Spr0     equ  0
 sprFX_YStart   equ  2

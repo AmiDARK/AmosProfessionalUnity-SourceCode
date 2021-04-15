@@ -425,6 +425,10 @@ BkCheck:
 PersonalUnityDatas:
 CurrentFIconBank:    dc.l 0
 
+PersonalUnityBranchs:
+    Rbra    L_insertSpriteFX
+    dc.l    0
+
 
 ; Now follow all the music routines. Some are just routines called by others,
 ; some are instructions. 
@@ -490,6 +494,417 @@ CurrentFIconBank:    dc.l 0
 ;                                                                                                 ***
 ;                                                                                              ***
 ;                                                                                           ************************
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : L_insertSpriteFX                            *
+; *-----------------------------------------------------------*
+; * Description : This method will insert a Sprite FX called  *
+; *                       <<Create Playfield From Sprite>>    *
+; *                                                           *
+; * Parameters :
+; *   A0 = Screen Structure inside which, FX will be inserted *
+; *   A1 = Logic Copper List (Where FX will be inserted)      *
+; *   D0 = Max Line to reach (never go up to this line)       *
+; *     sprFX_Spr0+SpritesFXDatas(ScrnPointer) =1st SpriteID  *
+; *     sprFX_YStart+SpritesFXDatas(ScrnPointer) ; Y Start FX *
+; *     sprFX_Height+SpritesFXDatas(ScrnPointer) = Sprite FX  *
+; *                                  Height (amount of lines) *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    insertSpriteFX
+    movem.l    d0-d7/a0-a3,-(sp)        ; Save registers before starting inserting SpriteFX
+    cmp.w      #0,d0
+    bge.s      .noNeg
+.neg:
+    neg.w      d0
+.noNeg:
+    sub.w      #EcYBase,d0
+; ******** 1. Load Sprite #0 informations
+    move.l     T_HsTable(a5),a3        ; A3 = Hardware Sprites Table (pointer to sprite 0 structure)
+; **************** NOT DONE : Insert here the calculation for Sprite #sprFX_Spr0 datas in the T_HsTable(a5) ****************
+    move.l     HsImage(a3),a2          ; a2 = Image used by the Sprite Itself
+    move.w     (a2),T_YTest(a5)
+; ******** 2. Calculate where the Sprite FX will really end (always before input D0 (Line To Reach))
+    move.w     HsY(a3),d1              ; D1 = Y Start Sprite Line Position  (D1 = Hardware sprite Y Position)
+    add.w      2(a2),d1                ; D1 = Y End Sprite Last Line        (D1 = Hardware sprite Y Position + Sprite Image Height in lines = Last Line Image will reach)
+    cmp.w      d1,d0                   ; is d0 (Line to reach) > d1 (Last line sprite image will reach)
+    blt.s      .partialDisplay         ; No -> Jump .fullDisplay
+.fullDisplay:
+    move.w     d1,d0                   ; d0 = Last Line Sprite image will reach (as smaller than copper list line to reach)
+.partialDisplay:
+    move.w     sprFX_YStart+SpritesFXDatas(a0),d1 ; D1 = Y Start for the Sprite FX
+    add.w      sprFX_Height+SpritesFXDatas(a0),d1 ; D1 = Y End of the Sprite FX
+    cmp.w      d1,d0
+    blt.s      .NoMoreRemoval
+.MoreRemoval:
+    move.w     d1,d0                   ; d0 = is reduced to be at Y End of the Sprite FX
+.NoMoreRemoval:
+; ******** 3. Define the 1st line where the graphics will be drawn
+    move.w     sprFX_YStart+SpritesFXDatas(a0),d1 ; d1 = Sprite FX Start Y Hardware Line
+    cmp.w      HsY(a3),d1              ; Is d1 > Hardware Sprite Y Start Line ?
+    bge.s      .noReduce               ; Yes, No reduction -> Jump .noReduce
+.ReduceStartToLater:
+    move.w     HsY(a3),d1              ; D1 = Sprite FX Start Y Hardware Line = Hardware Sprite Y Start Line (Step 3. Completed Here)
+.noReduce:                             ; d1 = First line of the effect
+    move.w     T_lastYLinePosition(a5),d2
+    sub.w      #EcYBase,d2
+    cmp.w      d2,d1 ; Is D1 > Last Line the copper was edited ?
+    bge.s      .noSecondReduce
+.StartAfterLastDefinedCopperLine:
+    move.w     d2,d1
+    addq.w     #1,d1                   ; d1 = First Line of the effect (after last defined copper list Y/line)
+.noSecondReduce:
+; ******** 4. Calculate the amount of lines to be FXized
+    move.w     d0,d5                   ; d5 = d0 = Last FX Line
+    sub.w      d1,d5                   ; d5 = Y End - Y Start = Y Size
+    bmi        SetEnding               ; Calculation issue (less than 1 line to insert -> Jump to end = error)
+
+; ******** 5. Start Y Loop
+CopperYLoop:
+
+; ****************************************************************
+; ******** 5.1 Calculate the Copper Wait for this line and insert Copper Line (Y) Wait.
+;    move.w #(DISPLAY_Y<<8)!$38!$0001,d0        ;$38 empiriquement déterminé, mais en fait c'est la valeur de DDFSTRT en lowres (4.5 cycles d'horloge vidéo avant DIWSTRT => $81/2-8.5 car résolution de DIWSTRT est le pixel mais de DDFSTRT est 4 pixels)
+    move.w     d1,d7                   ; d7 = Y Start / Y Current Line
+    and.l      #$FF,d7                 ; Y Line && 255 (to be sure it's inside view)
+    lsl.w      #8,d7                   ; Push d7.w = YYYYYYYY........
+    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
+    beq.s      .lowRate
+    or.w       #$08!$0001,d7           ; Add X Screen Position Start
+    bra.s      .WhatsNext
+.lowRate:
+    or.w       #$38!$0001,d7           ; Add X Screen Position Start
+.WhatsNext:
+
+; ******** 2021.04.13 Removed from here if Sprite Width > 16 - START
+    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
+    bgt.s      .noInsert
+.forceInsert:
+    move.w     d7,(a1)+                ; Wait Line d7
+    move.w     #$FFFE,(a1)+
+.noInsert:
+; ******** 2021.04.13 Removed from here if Sprite Width > 16 - END
+
+; ****************************************************************
+; ******** 5.2 Reset Sprite ID to 0 and Sprite Position
+    bsr        ResetSpriteID
+; ************************************** Calculate Sprite Position ((SPRITE_Y&$FF)<<8)!((SPRITE_X&$1FE)>>1),d2
+    move.w     HsY(a3),d2              ; d2 = Y Start / Y Current Line
+    and.l      #$FF,d2                 ; Y Line && 255 (to be sure it's inside view)
+    lsl.w      #8,d2                   ; Push d2.w = YYYYYYYY........
+    or.w       #((128&$1FE)>>1),d2     ; Add X Screen Position Start
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    move.l     #320,d4                 ; D4 = Screen Width (Pixels Count)
+    lsr.l      #4,d4                   ; D4 = Screen Width (Words Count)
+    addq.w     #1,d4
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+
+; ****************************************************************
+; ******** 5.3 Get Sprite Image Width for sprites range calculation
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+.noD7Update
+; ****************************************************************
+; ******** 5.4 Start of the XLoop
+CopperXLoop:
+    bsr        CopperXLoopCase01
+
+.forceNextLine:
+    addi.w     #$01,d1                 ; D1 = Next Copper Line Wait
+    dbf        d5,CopperYLoop          ; D5 = D5 - 1 ; if d5 > -1 -> Jump CopperYLoop (Another Y Line to draw ?)
+
+; ******** 5.5 End of the sprite FX insertion.
+SetEnding:
+    move.l    a1,T_SaveReg(a5)
+    movem.l   (sp)+,d0-d7/a0-a3     ; Load registers ater finishing the SpriteFX insertion
+    move.l    T_SaveReg(a5),a1
+    rts
+
+ResetSpriteID:
+    move.w     sprFX_Spr0+SpritesFXDatas(a0),d3
+    lsl.w      #3,d3                   ; Sprite ID * 8 (Each SprNPos to SprN+1Pos takes 8 bytes)
+    add.w      #Spr0Pos,d3             ; d3 = SprXPos register to the 1st sprite to push.
+;    move.w     #Spr0Pos,d3
+    rts
+
+
+
+
+
+
+
+
+
+
+; **************************************************************************************************************
+; ******** First case for Copper X Loop
+; Sprites Width = 128, 192 & 256 
+; Sprites Depth = 2 and 4 planes (4 and 16 colors)
+; Screen Depths : 1 to 7 bitplanes (2 to 128 colors)
+CopperXLoopCase01:
+; ****************************************************************
+; ******** 5.4.1 Push the copper WAIT directly to the Sprite Position
+; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - START
+    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
+    beq.s      .noInsert
+
+    cmp.w      (a2),d6
+    bne.s      .noInsert
+
+    cmp.w      #7,EcNPlan(a0)          ; Check if screen uses more than 5 bitplanes, then we do not insert the wait
+    bgt.s      .noInsert
+
+.insertMode1:
+    move.w     d7,(a1)+                ; Wait Line d7
+    move.w     #$FFFE,(a1)+
+.noInsert:
+; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - END
+
+; ****************************************************************
+; ******** 5.4.2 Push 1st Sprite Bitplanes 0-1 (4 Colors Mode)
+;    move.w     #Spr0Pos,(a1)+
+    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
+    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
+    add.w      #8,d3                   ; Spr(X+1)Pos
+    cmp.w      #2,4(a2)                ; Is Sprite Depth = 4 colors (2 Bitplanes)
+    beq.s      .no16ColCopy            ; Yes -> Jump .no16ColCopy
+
+; ****************************************************************
+; ******** 5.4.3 Push 2nd Sprite Bitplanes 2-3 (only on 16 Colors Mode)
+.insertJoinedFor16Colors:
+;    move.w     #Spr1Pos,(a1)+
+    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
+    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
+    add.w      #8,d3                   ; Spr(X+1)Pos
+.no16ColCopy:
+
+; ******** 5.4.4 Calculate the next sprite X Position and required copper waits for it
+    cmp.w      T_AgaSprWordsWidth(a5),d6 ; D6 = D6 - SPrWidth > 0 ?; Image Width = Image Width - Sprite Width > 0 ?
+    bge.s      .fullWait
+.partialWait:
+    move.w     d6,T_SaveReg(a5)        ; T_SaveReg = Remaining Width used in the Sprite
+; ******** 5.4.4.B Reset Image Width & Sprite SprXPos Register counter
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+    bsr        ResetSpriteID
+    cmp.w      #2,T_SaveReg(a5)        ; 
+    beq        .move32pix              ; 32 Pixels used in this sprite on the 64 available
+    blt        .move16pix              ; 16 Pixels used in this sprite on the 32 or 64 available
+
+; ******** 5.4.4.C Special move for 48 pixels width used in this sprite on the 64 available.
+.move48pix:
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+;    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    addq.w     #8,d2                  ; 8(.move48pix) + 8(.move32pix) + 8(.move1-pix) = 24
+    bra        .move32pix
+
+; ******** 5.4.5 Full Wait for full Sprite Width.
+.fullWait
+    sub.w      T_AgaSprWordsWidth(a5),d6
+; ******** 5.4.5.B Check is Image Width = 0, If Yes then Reset Sprite Counter and Reset Image Width
+    cmp.w      #0,d6
+    bgt.s      .noIWetSPRReset
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+    bsr        ResetSpriteID
+.noIWetSPRReset:
+
+; ******** 5.4.6 Now, Insert the required Copper Wait, when needed
+    cmp.w      #aga32pixSprites,T_AgaSprWidth(a5)
+    blt        .move16pix
+    beq        .move32pix
+
+; ******** 5.4.6B move 64 pixels
+.move64pix:
+    add.w      #$10,d7                 ; D7 (+$20) = Next Copper X Position for 64 Pixels Width Sprites.
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #2,d4
+;    bmi        .endXLoop
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    add.w      #16,d2                  ; 16(.move64pix) + 8(.move32pix) + 8(.move1-pix) = 32
+
+; ******** 5.4.6C move 32 pixels
+.move32pix:
+    add.w      #$10,d7                 ; D7 (+$10) = Next Copper X Position for 32 Pixels Width Sprites.
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+;    bmi        .endXLoop
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    addq.w     #8,d2                  ; 8(.move32pix) + 8(.move1-pix) = 16
+
+; ******** 5.4.6D move 16 pixels
+.move16pix:
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+    bmi        .endXLoop
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    addq.w     #8,d2                  ; 8(.move1-pix) = 8
+
+; ******** 5.4.7 Now check that we do not reach SprXPos limit (0-7 or 0-5 on DPF)
+    tst.w      EcDual(a0)              ; If screen is attached to another in DualPlayfield mode we cannot display sprites 6/7
+    beq.s      .Check8Sprs
+    cmpi.w     #Spr6Pos,d3
+    blt.s      .LimitNotReached
+    bra.s      .resetSprImg
+.Check8Sprs:
+    cmpi.w     #Spr7Pos+8,d3
+    blt.s      .LimitNotReached
+
+; ******** 5.4.7.B If we are on a Dual Playfield Screen, we cannot display sprites 6 & 7, this will lead to a missing part of the image. We then restart at beginning of it.
+.resetSprImg:
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+    bsr        ResetSpriteID
+.LimitNotReached:
+    dbf        d4,CopperXLoopCase01    ; Another copy of the whole sprite(s) ? Yes -> jump CopperXLoop
+.endXLoop:
+    rts
+
+
+
+
+
+
+
+
+
+
+
+; **************************************************************************************************************
+; ******** First case for Copper X Loop
+; Sprites Width = 128, 192 & 256 
+; Sprites Depth = 2 and 4 planes (4 and 16 colors)
+; Screen Depths : 1 to 7 bitplanes (2 to 128 colors)
+CopperXLoopCaseBASE:
+; ****************************************************************
+; ******** 5.4.1 Push the copper WAIT directly to the Sprite Position
+; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - START
+    cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
+    beq.s      .noInsert
+
+    cmp.w      (a2),d6
+    bne.s      .noInsert
+
+    move.w     d7,(a1)+                ; Wait Line d7
+    move.w     #$FFFE,(a1)+
+.noInsert:
+; ******** 2021.04.13 Removed from here and inserted inside the X Loop for direct sprites positionning - END
+
+; ****************************************************************
+; ******** 5.4.2 Push 1st Sprite Bitplanes 0-1 (4 Colors Mode)
+;    move.w     #Spr0Pos,(a1)+
+    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
+    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
+    add.w      #8,d3                   ; Spr(X+1)Pos
+    cmp.w      #2,4(a2)                ; Is Sprite Depth = 4 colors (2 Bitplanes)
+    beq.s      .no16ColCopy            ; Yes -> Jump .no16ColCopy
+
+; ****************************************************************
+; ******** 5.4.3 Push 2nd Sprite Bitplanes 2-3 (only on 16 Colors Mode)
+.insertJoinedFor16Colors:
+;    move.w     #Spr1Pos,(a1)+
+    move.w     d3,(a1)+                ; Insert SprXPos Function-> CopperList
+    move.w     d2,(a1)+                ; Insert SprXPosition Data -> CopperList
+    add.w      #8,d3                   ; Spr(X+1)Pos
+.no16ColCopy:
+
+; ******** 5.4.4 Calculate the next sprite X Position and required copper waits for it
+    cmp.w      T_AgaSprWordsWidth(a5),d6 ; D6 = D6 - SPrWidth > 0 ?; Image Width = Image Width - Sprite Width > 0 ?
+    bge.s      .fullWait
+.partialWait:
+    move.w     d6,T_SaveReg(a5)        ; T_SaveReg = Remaining Width used in the Sprite
+; ******** 5.4.4.B Reset Image Width & Sprite SprXPos Register counter
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+    bsr        ResetSpriteID
+    cmp.w      #2,T_SaveReg(a5)        ; 
+    beq        .move32pix              ; 32 Pixels used in this sprite on the 64 available
+    blt        .move16pix              ; 16 Pixels used in this sprite on the 32 or 64 available
+
+; ******** 5.4.4.C Special move for 48 pixels width used in this sprite on the 64 available.
+.move48pix:
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+;    bmi        .forceNextLine
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    addq.w     #8,d2                  ; 8(.move48pix) + 8(.move32pix) + 8(.move1-pix) = 24
+    bra        .move32pix
+
+; ******** 5.4.5 Full Wait for full Sprite Width.
+.fullWait
+    sub.w      T_AgaSprWordsWidth(a5),d6
+; ******** 5.4.5.B Check is Image Width = 0, If Yes then Reset Sprite Counter and Reset Image Width
+    cmp.w      #0,d6
+    bgt.s      .noIWetSPRReset
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+    bsr        ResetSpriteID
+.noIWetSPRReset:
+
+; ******** 5.4.6 Now, Insert the required Copper Wait, when needed
+    cmp.w      #aga32pixSprites,T_AgaSprWidth(a5)
+    blt        .move16pix
+    beq        .move32pix
+
+; ******** 5.4.6B move 64 pixels
+.move64pix:
+    add.w      #$10,d7                 ; D7 (+$20) = Next Copper X Position for 64 Pixels Width Sprites.
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #2,d4
+;    bmi        .endXLoop
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    add.w      #16,d2                  ; 16(.move64pix) + 8(.move32pix) + 8(.move1-pix) = 32
+
+; ******** 5.4.6C move 32 pixels
+.move32pix:
+    add.w      #$10,d7                 ; D7 (+$10) = Next Copper X Position for 32 Pixels Width Sprites.
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+;    bmi        .endXLoop
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    addq.w     #8,d2                  ; 8(.move32pix) + 8(.move1-pix) = 16
+
+; ******** 5.4.6D move 16 pixels
+.move16pix:
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - START
+    sub.w      #1,d4
+    bmi        .endXLoop
+; ******** 2021.04.12 Update to handle the screen display width (default 320 pix width) - END
+    addq.w     #8,d2                  ; 8(.move1-pix) = 8
+
+; ******** 5.4.7 Now check that we do not reach SprXPos limit (0-7 or 0-5 on DPF)
+    tst.w      EcDual(a0)              ; If screen is attached to another in DualPlayfield mode we cannot display sprites 6/7
+    beq.s      .Check8Sprs
+    cmpi.w     #Spr6Pos,d3
+    blt.s      .LimitNotReached
+    bra.s      .resetSprImg
+.Check8Sprs:
+    cmpi.w     #Spr7Pos+8,d3
+    blt.s      .LimitNotReached
+
+; ******** 5.4.7.B If we are on a Dual Playfield Screen, we cannot display sprites 6 & 7, this will lead to a missing part of the image. We then restart at beginning of it.
+.resetSprImg:
+    move.w     (a2),d6                 ; D6 = Sprite Image Width (in words count)
+    bsr        ResetSpriteID
+.LimitNotReached:
+    dbf        d4,CopperXLoopCaseBASE  ; Another copy of the whole sprite(s) ? Yes -> jump CopperXLoop
+.endXLoop:
+    rts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ;
 ; *****************************************************************************************************************************
@@ -1525,6 +1940,8 @@ iDiskFileError:
     move.b     (a2),d0
     bset       #0,d0
     move.b     d0,SpritesFX(a2)    ; Enable Sprite As Layer in the chosen Screen
+    Dlea       PersonalUnityBranchs,d0
+    move.l     d0,SpritesFXCall(a2) ; Push Callable adress for FX
 ; ******** 3. Save  Sprites Playfield FX datas in current Screen
     move.w     d5,sprFX_Spr0+SpritesFXDatas(a2)   ; Save 1st SpriteID
     move.w     d4,sprFX_YStart+SpritesFXDatas(a2) ; Save Y Start FX
@@ -1551,9 +1968,9 @@ iDiskFileError:
     Rbeq       L_Err9              ; No current screen -> Error #12 "NoScreenAvailable"
     move.l     d0,a2               ; a2 = Current Screen pointer
 ; ******** 
-    move.b     (a2),d0
-    bclr       #0,d0
-    move.b     d0,SpritesFX(a2)    ; Enable Sprite As Layer in the chosen Screen
+    clr.b      SpritesFX(a2)       ; Disable Sprite As Layer in the chosen Screen
+    clr.l      SpritesFXCall(a2)   ; remove Callable adress for FX
+
     clr.w      sprFX_Spr0+SpritesFXDatas(a2)   ; Save 1st SpriteID
     clr.w      sprFX_YStart+SpritesFXDatas(a2) ; Save Y Start FX
     clr.w      sprFX_Height+SpritesFXDatas(a2) ; Save Sprite Effect Height (amount of lines)

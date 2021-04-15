@@ -432,6 +432,12 @@ MCop1:
     beq.s     .notThisTime             ; No -> Jump .notThisTime
 ;    move.w    d0,T_YTest(a5)
     bsr       insertSpriteFX
+
+;    movem.l   a2,-(sp)
+;    move.l    SpritesFXCall(a0),a2
+;    jsr       (a2)
+;    movem.l   (sp)+,a2
+
     clr.l     T_lastScreenAdded(a5)
 ; ******** If the effect is enabled, then we push it - END
 .notThisTime:
@@ -1818,6 +1824,12 @@ CopperYLoop:
     lsl.w      #8,d7                   ; Push d7.w = YYYYYYYY........
     cmp.w      #aga16pixSprites,T_AgaSprWidth(a5)
     beq.s      .lowRate
+; For 64 Pixels Width Sprites :
+;    cmp.w      #6,EcNPlan(a0)
+;    bge.s      .HighRate
+    or.w       #$28!$0001,d7           ; Add X Screen Position Start
+    bra.s      .WhatsNext
+.HighRate:
     or.w       #$18!$0001,d7           ; Add X Screen Position Start
     bra.s      .WhatsNext
 .lowRate:
