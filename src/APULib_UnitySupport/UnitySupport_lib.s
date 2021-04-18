@@ -50,7 +50,8 @@ VersionUS  MACRO
            ENDM
 
 Bnk_BitPalette    Equ    5            ; = Bnk.BitReserved1
-
+Bnk_BitCopperFX   Equ    7            ; = Bnk_BitReserved3
+sprFX_BankID      Equ    0
 
 ; A usefull macro to find the address of data in the extension''s own 
 ; datazone (see later)...
@@ -271,6 +272,29 @@ C_Tk:
     dc.w    L_Nul,L_GetSpritePalette
     dc.b    "get sprite palett","e"+$80,"0",-1
 
+    dc.w    L_SetSpritesToLowres,L_Nul
+    dc.b    "set sprites to lowre","s"+$80,"I",-1
+    dc.w    L_SetSpritesToHires,L_Nul
+    dc.b    "set sprites to hire","s"+$80,"I",-1
+    dc.w    L_SetSpritesToSHres,L_Nul
+    dc.b    "set sprites to shre","s"+$80,"I",-1
+    dc.w    L_SetSpriteToECS,L_Nul
+    dc.b    "set sprites to ecs compatibilit","y"+$80,"I",-1
+    dc.w    L_Nul,L_GetSpritesResolution
+    dc.b    "get sprites resolutio","n"+$80,"0",-1
+
+    dc.w    L_CreateRainboxFX,L_Nul
+    dc.b    "create rainbow fx ban","k"+$80,"I0",-1             ; BankID
+    dc.w    L_SetRainbowFXColorID,L_Nul
+    dc.b    "set rainbow fx colo","r"+$80,"I0,0",-1             ; BankID,ColorIndex(000-255)
+    dc.w    L_SetRainbowFXColorValue,L_Nul
+    dc.b    "set rainbow fx color lin","e"+$80,"I0,0,0",-1      ; BankID,YLine,RGBValue(12/15/24)
+    dc.w    L_ApplyRainbowFXToScreen,L_Nul
+    dc.b    "apply rainbow fx to scree","n"+$80,"I0",-1         ; BankID (-> Current Screen)
+    dc.w    L_RemoveRainbowFXFromScreen,L_Nul
+    dc.b    "remove rainbow fx from scree","n"+$80,"I",-1
+    dc.w    L_Nul,L_getRainbowFXColorValue
+    dc.b    "get rainbow fx color lin","e"+$80,"00,0",-1        ; Rgb24ColorValue/-1= ( BankID,YLine)
 
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
@@ -732,10 +756,13 @@ colorSupport_Functions:
     Rbra       L_MergeRGBComponents
     Rbra       L_ForceToRGB24
     dc.l       0
-UnityVectors:
     ; **************** Amos Professional Unity System : New Color palette support, fading, etc. ****************
-    Rbra       L_UpdateLayeredSpriteInCopperList
+UnityVectors:
     dc.l       0
+
+    ; **************** Amos Professional Unity System : Other FX ****************
+RainbowFXCall:
+    Rbra       L_insertSimpleRainbowFX
 
 ; Now follow all the music routines. Some are just routines called by others,
 ; some are instructions. 
@@ -1271,44 +1298,6 @@ F24_inputFormats:
     move.b      d1,T_rgbOutput+1(a5)
 .part4:
     rts
-
-
-
-;                                                                                                                      ************************
-;                                                                                                                                        ***
-;                                                                                                                                     ***
-; *********************************************************************************************************************************************
-;                                                                                           *                                                 *
-;                                                                                           * AREA NAME :  Special method for layered sprites *
-;                                                                                           *                                                 *
-;                                                                                           ***************************************************
-;                                                                                                 ***
-;                                                                                              ***
-;                                                                                           ************************
-  Lib_Def       UpdateLayeredSpriteInCopperList
-
-; ******** 1. Load Sprite #0 informations
-    move.l     T_HsTable(a5),a0    ; A0 = Hardware Sprites Table (pointer to sprite 0 structure)
-    move.l     HsImage(a0),a1      ; a1 = Image used by the Sprite Itself
-    move.w     (a1),d0             ; d0 = Image width ( in number of words)
-    cmp.w      #4,4(a1)            ; if the image 4 colors or 16 colors ?
-    bcc.s      SetUsing16colorsMode
-; ******** Define sprites list using 4 colors mode and Sprite Width
-SetUsing4ColorsMode:
-
-    rts
-; ******** Define sprites list using 16 colors mode and Sprite Width
-SetUsing16colorsMode:
-
-
-
-
-
-
-    rts
-
-
-
 
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
@@ -2341,6 +2330,526 @@ noSet:
     Ret_Int
 
 
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    SetSpritesToLowres
+    tst.w      T_isAga(a5)
+    Rbeq       L_Err9
+    move.w     #$40,T_AgaSprResol(a5)     ; Low Res AGA Resolutions
+    Rbra       L_ForceDisplayUpdate
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    SetSpritesToHires
+    tst.w      T_isAga(a5)
+    Rbeq       L_Err9
+    move.w     #$80,T_AgaSprResol(a5)     ; Low Res AGA Resolutions
+    Rbra       L_ForceDisplayUpdate
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    SetSpritesToSHres
+    tst.w      T_isAga(a5)
+    Rbeq       L_Err9
+    move.w     #$C0,T_AgaSprResol(a5)     ; Low Res AGA Resolutions
+    Rbra       L_ForceDisplayUpdate
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    SetSpriteToECS
+    tst.w      T_isAga(a5)
+    Rbeq       L_Err9
+    move.w     #$00,T_AgaSprResol(a5)     ; Low Res AGA Resolutions
+    Rbra       L_ForceDisplayUpdate
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Def    ForceDisplayUpdate
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    GetSpritesResolution
+    clr.l      d3
+    move.w     T_AgaSprResol(a5),d3
+    lsr.l      #6,d3
+    Ret_Int
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    CreateRainboxFX
+    move.l      d3,d0
+    cmp.l       #5,d0
+    Rble        L_Err13                ; Rainbow FX Bank ID < 6 -> Error : Invalid range
+    cmp.l       #65535,d0
+    Rbhi        L_Err13                ; Rainbow FX Bank ID > 255 -> Error : Invalid range
+; ******** Now we will reserve the bank.
+    move.l      d0,T_SaveReg(a5)
+    move.l      #(1<<Bnk_BitCopperFX)+(1<<Bnk_BitData),d1   D1 = Flags ; Memblock,DATA, FAST
+    move.l      #258*4,d2              ; 256 Lines FX (Register.w+Datas.w) + 4 for the Color ID ( 0 - 255 ) +4 to save memblock size
+    lea         BkCopperFX1(pc),a0     ; A0 = Pointer to BkPal (Bank Name)
+    Rjsr        L_Bnk.Reserve
+    Rbeq        L_Err3                 ; Not Enough Memory to allocation memblock.
+    move.l      #258*4,(a0)+           ; Save Bank ID
+    move.w      #1,(a0)+               ; Effect Type 1, Simple Rainbow 1 color
+    move.w      #0,(a0)+               ; Color ID = 0 (per default)
+    move.w      #255,d0
+; ******** Push all 256 colors from 0-255 inside the effect to value RGB24(0,0,0)
+.setupColors:
+    move.l      #-1,(a0)+              ; Push All Copper Line to value -1 ( = Original Screen Color Value )
+    dbra        d0,.setupColors
+    moveq       #0,d0                  ; Everything is OK
+    rts
+BkCopperFX1:
+    dc.b       "CopperFX",0,0
+    Even
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par     SetRainbowFXColorID
+    move.l      d3,T_SaveReg(a5)      ; Color Index ( 000 - 255 )
+    move.l      (a3)+,d0              ; D0 = Rainbow FX Palette BankID
+; ******** Get Rainbow Bank Memory Pointer -> A0 if correct (check possibles errors)
+    Rbsr        L_GetRainbowBank
+    move.w      (a0)+,d0              ; d0 = FXType
+    cmp.w       #1,d0                 ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
+    Rbne        L_Err4                ; No -> Error
+; ******** Now we will push the color inside the bank position
+    move.l      T_SaveReg(a5),(a0)    ; Rainbow FX will now apply to chosen color
+    rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par     SetRainbowFXColorValue
+    move.l      d3,T_SaveReg(a5)      ; Save RGB12/15/24/Value
+    move.l      (a3)+,d1
+    move.l      d1,T_SaveReg2(a5)     ; Save Y Line
+    move.l      (a3)+,d0              ; D0 = Rainbow FX Palette BankID
+; ******** Get Rainbow Bank Memory Pointer -> A0 if correct (check possibles errors)
+    cmp.l       #40,d1
+    Rble        L_Err14               ; Rainbow FX Y Line > 40 & < 300
+    cmp.l       #255,d1
+    Rbhi        L_Err14               ; Rainbow FX Y Line > 40 & < 300
+    Rbsr        L_GetRainbowBank
+    move.w      (a0)+,d0              ; d0 = FXType
+    cmp.w       #1,d0                 ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
+    Rbne        L_Err4                ; No -> Error
+    add.w       #2,a0                 ; (do not care about colorID), jump A0 to Raster Line 0 in the definition.
+; ******** Now we will push the color inside the bank position
+    move.l      T_SaveReg2(a5),d0
+    move.l      T_SaveReg(a5),d1
+    lsl.l       #2,d0                 ; D0 = D0 * 4 ( 4 bytes = 1 long for 1 rainbow fx line definition)
+    cmp.l       #-1,d1
+    beq.s       .noRgb24
+    ForceToRGB24 d1,d1
+.noRgb24:
+    move.l      d1,(a0,d0.w)
+    rts
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : D0 = Bank ID                                 *
+; *                                                           *
+; * Return Value : A0 = Rainbow Bank (D0) memory pointer      *
+; *                                                           *
+; *************************************************************
+  Lib_Def    GetRainbowBank
+    cmp.l       #5,d0
+    Rble        L_Err13               ; Rainbow FX Bank ID < 6 -> Error : Invalid range
+    cmp.l       #65535,d0
+    Rbhi        L_Err13               ; Rainbow FX Bank ID > 255 -> Error : Invalid range
+; ******** Get Bank D0 Adress
+    clr.l       d3
+    Rjsr        L_Bnk.GetAdr          ; a0 = Bank Adress
+    Rbeq        L_Err4                ; No Bank -> Error
+    btst        #Bnk_BitCopperFX,d0   ; Is bank a CopperFX bank ?
+    Rbeq        L_Err4                ; Bank Is not a CopperFX Bank -> Error
+    move.l      (a0)+,d0              ; d0 = color palette block size
+    cmp.l       #258*4,d0             ; Is bank size the one for FXType=1 ?
+    Rbne        L_Err4                ; No -> Error
+    rts
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    ApplyRainbowFXToScreen
+    move.l      d3,T_SaveReg(a5)      ; Save BankID
+    move.l      d3,d0
+; ******** 1. Get Rainbow Bank Memory Pointer -> A0 if correct (check possibles errors)
+    Rbsr        L_GetRainbowBank
+    move.w      (a0)+,d0              ; d0 = FXType
+    cmp.w       #1,d0                 ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
+    Rbne        L_Err4                ; No -> Error
+    add.w       #2,a0                 ; (do not care about colorID), jump A0 to Raster Line 0 in the definition.
+; ******** 2. Check if current screen is valid
+    move.l     ScOnAd(a5),d0          ; D0 = Get Current Screen
+    Rbeq       L_Err15                ; No current screen -> Error #15 "NoScreenAvailable"
+    move.l     d0,a2                  ; a2 = Current Screen pointer
+; ******** Now we will push the FX to the screen
+    move.l      T_SaveReg(a5),d0      ; D0 = BankID
+; ******** 3. Enable RainbowFX in current Screen
+    move.b     #1,ScreenFX(a2)        ; Enable Simple Rainbow FX As Layer in the chosen Screen
+    Dlea       RainbowFXCall,d1
+    move.l     d1,ScreenFXCall(a2) ; Push Callable adress for FX
+; ******** 4. Save  Sprites Playfield FX datas in current Screen
+    move.w     d0,sprFX_BankID+ScreenFXDatas(a2) ; Bank to use for the Rainbow FX
+; ******** 5. Ask AMOS to refresh screens (to insert the Sprite as layered background)
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    moveq      #0,d0
+    rts
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par    RemoveRainbowFXFromScreen
+; ******** 1. Check if current screen is valid
+    move.l     ScOnAd(a5),d0          ; D0 = Get Current Screen
+    Rbeq       L_Err15                ; No current screen -> Error #15 "NoScreenAvailable"
+    move.l     d0,a2                  ; a2 = Current Screen pointer
+    move.b     #0,ScreenFX(a2)        ; Disable Simple Rainbow FX As Layer in the chosen Screen
+    clr.l      ScreenFXCall(a2)       ; Remove Callable adress for FX
+; ******** 2. Save  Sprites Playfield FX datas in current Screen
+    clr.w      sprFX_BankID+ScreenFXDatas(a2) ; Clear bank to use for FX.
+; ******** 3. Ask AMOS to refresh screens (to insert the Sprite as layered background)
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    moveq      #0,d0
+    rts
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name : L_insertSimpleRainbowFX                     *
+; *-----------------------------------------------------------*
+; * Description : This method will insert a Sprite FX called  *
+; *                       <<Create Playfield From Sprite>>    *
+; *                                                           *
+; * Parameters :
+; *   A0 = Screen Structure inside which, FX will be inserted *
+; *   A1 = Logic Copper List (Where FX will be inserted)      *
+; *   D0 = Max Line to reach (never go up to this line)       *
+; *      sprFX_BankID+ScreenFXDatas(ScrnPointer) = Bank To Use*
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Def    insertSimpleRainbowFX
+    movem.l    a4,-(sp)              ; Save A4 (Screen Color Palette)
+; ******** 1. We calculate the last line that can be updated with Simple Rainbow FX
+    cmp.w      #0,d0
+    bge.s      .noNeg
+.neg:
+    neg.w      d0
+.noNeg:
+    sub.w      #EcYBase,d0
+    sub.w      #1,d0                 ; D0 = Last Line To Reach (-1)
+    ext.l      d0
+; ******** 2. We calculate the 1st line that can be updated with Simple Rainbow FX
+    move.w     T_lastYLinePosition(a5),d1
+    sub.w      #EcYBase,d1           ; D1 = 1st line for the started screen
+    add.w      #1,d1                 ; D1 = 1st Start Line
+    ext.l      d1
+; ******** 3. We calculate the amount of lines that can be edited.
+    sub.w      d1,d0                 ; D0 = Amount of lines to edit.
+    move.l     d0,T_SaveReg(a5)      ; Save D0 = Lines Count
+    move.l     d1,T_SaveReg2(a5)     ; Save D1 = Y Start
+    movem.l    a0/a1,-(sp)           ; Save A0 = Screen Pointer / a1 = Copper list pointer
+; ******** 4. Now we get the bank defined in the screen to insert it in the copper list.
+    clr.l      d0
+    move.w     sprFX_BankID+ScreenFXDatas(a0),d0
+    clr.l      d3
+    Rjsr       L_Bnk.GetAdr          ; a0 = Bank Adress
+    beq        cleanScreen           ; No Bank -> Error
+    move.l     a0,a2
+    btst       #Bnk_BitCopperFX,d0   ; Is bank a CopperFX bank ?
+    beq        cleanScreen           ; Bank Is not a CopperFX Bank -> Error
+    move.l     (a2)+,d0              ; d0 = color palette block size
+    cmp.l      #258*4,d0             ; Is bank size the one for FXType=1 ?
+    bne        cleanScreen           ; No -> Error
+    move.w     (a2)+,d0              ; d0 = FXType
+    cmp.w      #1,d0                 ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
+    bne        cleanScreen    
+; ******** 5
+    movem.l    (sp)+,a0/a1           ; A0 = Screen Pointer / a1 = Copper list pointer / a2 = Rainbow FX Bank Pointer
+; ******** 5. Push A4 to the pointer of the screen color palette Color ID.
+    lea.l      EcPal(a0),a4          ; a4 = Screen Color #00
+    clr.l      d2
+    move.w     (a2)+,d2              ; d2 = Color chosen for the FX
+    move.w     (a2),d2
+    lsl.w      #1,d2
+    add.l      d2,a4                 ; a4 = Pointer to the color in the screen color palette
+    lsr.w      #1,d2
+; ******** 6. We Get the Color ID and prepare value for BplCon3 updates (Bit#9 for LOCT $200 for low, $000 for High, filter with SPRES value too.)
+    move.w     d2,d3
+    and.l      #%11100000,d3         ; d3 = Color banks in bits 05-07
+    and.l      #%11111,d2            ; d2 filtered in range 000-031 = Color Index Range 000-031
+    lsl.w      #8,d3                 ; d3 = Color Banks in bits 13-15 (BplCon3 bits)
+    lsl.w      #1,d2
+    or.w       #$180,d2              ; -----> d2 = Color Register to setup
+    or.w       T_AgaSprResol(a5),d3  ; -----> d3 = Color Banks in bits 13-15 + current AGA Sprites Resolutions (BplCon3 bits)
+
+; ******** 7. We jump to the 1st line in the Rainbow FX bank to use for editing
+    move.l     T_SaveReg(a5),d0      ; -----> Load D0 = Lines Count
+    move.l     T_SaveReg2(a5),d1     ; -----> Load D1 = Y Start
+    move.l     d1,d7
+    lsl.w      #2,d7                 ; D7 = Y Line * 4
+    add.l      d7,a2                 ; -----> A2 = Current line to edit
+
+; ****************************************************************
+; ******** 8 Push last calculation to original color
+    move.l     #-1,d6                  ; Color Value = -1 = Original color.
+
+; ******** 9 Start Y Loop for Rainbow Effect
+CopperYLoop:
+; ******** 10 Calculate the Copper Wait for this line and insert Copper Line (Y) Wait.
+;    move.w #(DISPLAY_Y<<8)!$38!$0001,d7 ;$38 empiriquement déterminé, mais en fait c'est la valeur de DDFSTRT en lowres (4.5 cycles d'horloge vidéo avant DIWSTRT => $81/2-8.5 car résolution de DIWSTRT est le pixel mais de DDFSTRT est 4 pixels)
+    move.w     d1,d7                   ; d7 = Y Start / Y Current Line
+    and.l      #$FF,d7                 ; Y Line && 255 (to be sure it's inside view)
+    lsl.w      #8,d7                   ; Push d7.w = YYYYYYYY........
+    or.w       #$08!$0001,d7           ; Add X Screen Position Start
+
+; ******** 11 Read new Rainbow FX line data and check what to do
+    move.l     (a2)+,d5                ; d5 = New color to implement
+    cmp.l      d5,d6                   ; Are old & new color the same ?
+    beq.s      .continue               ; Yes -> Do not push any color change (optimisation)
+    move.l     d5,d6                   ; Save new color for next line update checking
+
+; ******** 12 Push Y Line Wait.
+    move.w     d7,(a1)+                ; Wait Line d7
+    move.w     #$FFFE,(a1)+            ; -
+
+; ******** 13 Do we restore original color or push a new one ?
+    cmp.l      #-1,d5
+    beq.s      .restore
+.modify:
+
+; ******** 13.1 Cut Rgb24(D5) into two Rgb12H(d4) & Rgb12L(d5)
+    getRGB12Datas d5,d4,d5             ; D5=Rgb24->D4=Rgb12H,D5=Rgb12L
+
+; ******** 13.2 Push New Color Rgb12 High bits
+    bclr       #9,d3                   ; LOCT = 1 (Low Bits)
+    move.w     #BplCon3,(a1)+          ; BplCon3 = Modify Color High Bits
+    move.w     d3,(a1)+                ; Push BplCon3 value
+    move.w     d2,(a1)+                ; Color#XX register
+    move.w     d4,(a1)+                ; Color Value RGB12H
+
+; ******** 13.3 Push New Color Rgb12 Low bits
+    bset       #9,d3                   ; LOCT = 1 (Low Bits)
+    move.w     #BplCon3,(a1)+    
+    move.w     d3,(a1)+                ; Push BplCon3 value
+    move.w     d2,(a1)+                ; Color#XX register
+    move.w     d5,(a1)+                ; Color Value RGB12L
+    bra.s      .continue
+
+.restore:
+; ******** 14.1 Push Y Line Wait.
+    move.w     d7,(a1)+                ; Wait Line d7
+    move.w     #$FFFE,(a1)+            ; -
+
+; ******** 14.1 Push Original Color Rgb12 High bits
+    bclr       #9,d3                   ; LOCT = 1 (Low Bits)
+    move.w     #BplCon3,(a1)+          ; BplCon3 = Modify Color High Bits
+    move.w     d3,(a1)+                ; Push BplCon3 value
+    move.w     d2,(a1)+                ; Color#XX register
+    move.w     (a4),(a1)+              ; Color Value RGB12H
+; ******** 14.3 Push Original Color Rgb12 Low bits
+    bset       #9,d3                   ; LOCT = 1 (Low Bits)
+    move.w     #BplCon3,(a1)+    
+    move.w     d3,(a1)+                ; Push BplCon3 value
+    move.w     d2,(a1)+                ; Color#XX register
+    move.w     EcPalL-EcPal(a4),(a1)+  ; Color Value RGB12L
+
+; ******** 15 Continue to the next line
+.continue:
+    addi.w     #$01,d1                 ; D1 = Next Copper Line Wait
+    dbf        d0,CopperYLoop          ; D0 = D0 - 1 ; if d0 > -1 -> Jump CopperYLoop (Another Y Line to draw ?)
+
+; ******** 12 Do we restore original color after the end of the rainbow FX ?
+    cmp.l      #-1,d5
+    beq.s      .restoreDefColorPalette ; Do not push color 00 but return BplCon3 to default position.
+    or.w       #$00FF,d7
+    or.w       #$C8,d7                 ; Push D7 near the end of the line
+    move.w     d7,(a1)+                ; Wait Line d7
+    move.w     #$FFFE,(a1)+            ; -
+    ; * Push Original Color
+; ******** 14.2 Push Original Color Rgb12 High bits
+    bclr       #9,d3                   ; LOCT = 1 (Low Bits)
+    move.w     #BplCon3,(a1)+          ; BplCon3 = Modify Color High Bits
+    move.w     d3,(a1)+                ; Push BplCon3 value
+    move.w     d2,(a1)+                ; Color#XX register
+    move.w     (a4),(a1)+              ; Color Value RGB12H
+; ******** 14.3 Push Original Color Rgb12 Low bits
+    bset       #9,d3                   ; LOCT = 1 (Low Bits)
+    move.w     #BplCon3,(a1)+    
+    move.w     d3,(a1)+                ; Push BplCon3 value
+    move.w     d2,(a1)+                ; Color#XX register
+    move.w     EcPalL-EcPal(a4),(a1)+  ; Color Value RGB12L
+.restoreDefColorPalette:
+    and.w      #%11111111,d3           ; Leave only Sprites resolution datas, push Palette 00 HighBits(LOCT=0)
+    move.w     #BplCon3,(a1)+    
+    move.w     d3,(a1)+                ; Push BplCon3 value
+
+.endRainbowFX:
+    movem.l    (sp)+,a4                ; Restore Original a4
+    Rts
+
+; ******** 10. If an error happen (bank does no more exists, bad bank type, etc.) we remove FX from the screen.
+cleanScreen:
+    movem.l    (sp)+,a0/a1           ; A0 = Screen Pointer / a1 = Copper list pointer
+    move.b     #0,ScreenFX(a0)       ; Enable Simple Rainbow FX As Layer in the chosen Screen
+    clr.l      ScreenFXCall(a0)
+    clr.w      sprFX_BankID+ScreenFXDatas(a0)
+    rts
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par     getRainbowFXColorValue
+    move.l      d3,T_SaveReg(a5)      ; Save Y Line
+    move.l      (a3)+,d0              ; D0 = Rainbow FX Palette BankID
+; ******** Get Rainbow Bank Memory Pointer -> A0 if correct (check possibles errors)
+    cmp.l       #40,d1
+    Rble        L_Err14               ; Rainbow FX Y Line > 40 & < 300
+    cmp.l       #255,d1
+    Rbhi        L_Err14               ; Rainbow FX Y Line > 40 & < 300
+    Rbsr        L_GetRainbowBank
+    move.w      (a0)+,d0              ; d0 = FXType
+    cmp.w       #1,d0                 ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
+    Rbne        L_Err4                ; No -> Error
+    add.w       #2,a0                 ; (do not care about colorID), jump A0 to Raster Line 0 in the definition.
+; ******** Now we will push the color inside the bank position
+    move.l      T_SaveReg(a5),d0
+    lsl.l       #2,d0                 ; D0 = D0 * 4 ( 4 bytes = 1 long for 1 rainbow fx line definition)
+    move.l      (a0,d0.w),d3
+    Ret_Int
+    rts
+
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+
+
+
 
 ;                                                                                                                      ************************
 ;                                                                                                                                        ***
@@ -2777,11 +3286,11 @@ ErDisk:
     moveq   #2,d0
     Rbra    L_Errors
 
-  Lib_Def Err3             ; Error 03 : Not enough free memory to allocate the requested colors palette
+  Lib_Def Err3             ; Error 03 : Not enough free memory to allocate the requested memory bank.
     moveq   #3,d0
     Rbra    L_Errors
 
-  Lib_Def Err4             ; Error 04 : There is no colors palette bank at this slot
+  Lib_Def Err4             ; Error 04 : The requested bank does not exists or is not of the correct type.
     moveq   #4,d0
     Rbra    L_Errors
 
@@ -2801,7 +3310,7 @@ ErDisk:
     moveq   #8,d0
     Rbra    L_Errors
 
-  Lib_Def Err9            ;  
+  Lib_Def Err9            ; This command is available only on AGA Compatibles graphics chipsets.
     moveq   #9,d0
     Rbra    L_Errors
 
@@ -2817,6 +3326,18 @@ ErDisk:
     moveq   #12,d0
     Rbra    L_Errors
 
+  Lib_Def Err13           ; Valid Rainbow FX bank id range is 6-65535.
+    moveq   #13,d0
+    Rbra    L_Errors
+
+  Lib_Def Err14           ; Rainbow FX can only update from hardware line 40 to 255.
+    moveq   #14,d0
+    Rbra    L_Errors
+
+  Lib_Def Err15           ; No 'Current Screen' available.
+    moveq   #15,d0
+    Rbra    L_Errors
+
     Lib_Def Errors
     lea     ErrMess(pc),a0
     moveq   #0,d1        * Can be trapped
@@ -2829,19 +3350,23 @@ ErrMess:
 ; ******** Color Palette V2 error messages CURRENT VERSION
     dc.b    "Valid colors palette id range is 6-65535",0                                           * Error #1 USED
     dc.b    "Colors amount is incorrect (Valids values are 2,4,8,16,32,64,128,256)", 0             * Error #2 USED
-    dc.b    "Not enough free memory to allocate the requested colors palette",0                    * Error #3 USED
-    dc.b    "There is no colors palette bank at this slot",0                                       * Error #4 USED
+    dc.b    "Not enough free memory to allocate the requested memory bank",0                       * Error #3 USED
+    dc.b    "The requested bank does not exists or is not of the correct type.",0                  * Error #4 USED
     dc.b    "Sprites Width value is invalid. AGA Sprites Width can be 16,32 or 64.",0              * Error #5 USED
 ; *******
     dc.b    "The specified file is not an IFF/ILBM Color Map (CMAP) file.",0                       * Error #6 USED -> (#14)
     dc.b    "Cannot allocate memory to store the IFF/ILBM CMAP file.",0                            * Error #7 USED -> (#15)
 
     dc.b    "Sprites Width value is invalid. ECS Sprites Width can only be 16.",0                  * Error #8 USED
-    dc.b    "",0                                                                                   * Error #9 UNUSED -> (#20)
+    dc.b    "This command is available only on AGA Compatibles graphics chipsets.",0               * Error #9 USED
 ; *******
-    dc.b    "The input RGB format is not recognized.",0                                            * Error #10
-    dc.b    "The requested color index is out of the color palette range.",0                       * Error #11
-    dc.b    "No current screen detected.",0                                                        * Error #12
+    dc.b    "The input RGB format is not recognized.",0                                            * Error #10 USED
+    dc.b    "The requested color index is out of the color palette range.",0                       * Error #11 USED
+    dc.b    "No current screen detected.",0                                                        * Error #12 USED
+    dc.b    "Valid Rainbow FX bank id range is 6-65535.",0                                         * Error #13 USED
+    dc.b    "Rainbow FX can only update from hardware line 40 to 255",0                            * Error #14 USED
+    dc.b    "No 'Current Screen' available.",0                                                     * Error #15 USED
+
 
 
 

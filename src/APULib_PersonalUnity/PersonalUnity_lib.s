@@ -1771,15 +1771,18 @@ iDiskFileError:
 ; *************************************************************
   Lib_Par    SetSpriteAsBackdrop   ; d3 = Height of the effects in pixels.
     move.l     (a3)+,d4            ; d4 = YStart
-; ******** 1. Check if current screen is valid
+; ******** 1. Check if we are under AGA chipset or ECS/OCS one
+    tst.w      T_isAga(a5)
+    Rbeq       L_Err23
+; ******** 2. Check if current screen is valid
     move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
     Rbeq       L_Err9              ; No current screen -> Error #12 "NoScreenAvailable"
     move.l     d0,a2               ; a2 = Current Screen pointer
-; ******** 2. Check Screen Depth, Sprite Width to check for compatibility.
-; ******** 2.1 Check AGA Sprite Width 64
+; ******** 3. Check Screen Depth, Sprite Width to check for compatibility.
+; ******** 3.1 Check AGA Sprite Width 64
     cmp.w      #aga64pixSprites,T_AgaSprWidth(a5)
     Rbne       L_Err17             ; Error #17 : Sprite Playfield FX Is available only on AGA Sprite with width = 64.
-; ******** 2.2 Check Screen Depth (Bitplanes 1-6)   
+; ******** 3.2 Check Screen Depth (Bitplanes 1-7) allowed
     move.w     EcNPlan(a2),d1      ; d1 = Screen Bitplane Depth
     move.w     EcDual(a2),d2
     beq.s      .noMore
@@ -2424,6 +2427,10 @@ ErDisk:
     moveq   #22,d0
     Rbra    L_Errors
 
+  Lib_Def Err23            ; SFX Sprite effect is available only on AGA compatible graphics chipsets
+    moveq   #23,d0
+    Rbra    L_Errors
+
     Lib_Def Errors
     lea     ErrMess(pc),a0
     moveq   #0,d1        * Can be trapped
@@ -2439,7 +2446,7 @@ ErrMess:
     dc.b    "The requested memory bank does not exists.",0                                         * Error #4  USED
     dc.b    "The requested memory bank is not a F Icons one.",0                                    * Error #5  USED
     dc.b    "No Current Screen to grab the F Icon.",0                                              * Error #6  USED
-    dc.b    "The F Icon ID Number does not fit the current F Icon Bank amount",0                   * Error #7  USED
+    dc.b    "The F Icon ID Number does not fit the current F Icon Bank amount.",0                  * Error #7  USED
     dc.b    "The F Icon coordinates are out of screen sizes.",0                                    * Error #8  USED
     dc.b    "No 'Current Screen' available.",0                                                     * Error #9  USED
 ; ******** Memblocks error messages CURRENT VERSION
@@ -2452,11 +2459,12 @@ ErrMess:
     dc.b    "The memblock position entered is not word aligned.",0                                 * Error #16 USED
 
     dc.b    "SFX Is available only on AGA Sprite with width = 64.",0                               * Error #17 USED
-    dc.b    "SFX is unavailable on 8 bitplanes views",0                                            * Error #18 USED
+    dc.b    "SFX is unavailable on 8 bitplanes views.",0                                           * Error #18 USED
     dc.b    "SFX 4 Colors Sprite Image Width must be 128 or higher with 7bpls.",0                  * Error #19 USED (Part1/2)
     dc.b    "SXF 16 Colors Sprite Image Width must be 192 or higher with 7 bpls.",0                * Error #20 USED (Part1/2)
     dc.b    "SFX Sprite Image Depth must be 2 or 4 bitplanes (4,16colors).",0                      * Error #21 USED
     dc.b    "SFX Sprite Image width must be 64, 128, 192, 256 or 320.",0                           * Error #22 USED
+    dc.b    "SFX Sprite effect is available only on AGA compatible graphics chipsets.",0           * Error #23 USED
 
 
 * IMPORTANT! Always EVEN!

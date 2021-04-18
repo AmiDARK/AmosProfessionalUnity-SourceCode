@@ -430,9 +430,6 @@ MCop1:
     move.l    T_lastScreenAdded(a5),a0 ; A0 = Screen in which the SpriteFX will be checked as enabled/disabled
     tst.b     ScreenFX(a0)            ; is SpriteFX 1 enabled ?
     beq.s     .notThisTime             ; No -> Jump .notThisTime
-;    move.w    d0,T_YTest(a5)
-;    bsr       insertSpriteFX
-
 ; ******** 2021.04.15 Now SpriteFXCall is called
     movem.l    d0-d7/a0-a4,-(sp)        ; Save registers before calling the FX method
     move.l    ScreenFXCall(a0),a2
@@ -837,7 +834,7 @@ MkC5b:                                 ; Loop to put then entire screen palette 
     move.w     #BplCon3,(a1)+
 ; ******** 2021.04.13 Update to fix color palettes issues in Copper List - START
     move.l     #%1000000000000,d2
-    and.w      T_AgaSprResol(a5),d2
+    or.w        T_AgaSprResol(a5),d2
 ;    move.w     T_AgaSprResol(a5),(a1)+   ; 2020.08.14 Makes LOCT = 0, PF2OF2 = 1
     move.w     d2,(a1)+
 ; ******** 2021.04.13 Update to fix color palettes issues in Copper List - END
@@ -1049,7 +1046,7 @@ noFetchChanges2:
     move.w     #BplCon3,(a1)+          ; 2019.11.04 Added BplCon3 to support dual playfield 2x16 colors
 ; ******** 2021.04.13 Update to fix color palette issue in copper list - START
     move.w     #%1000000000000,d4
-    and.w      T_AgaSprResol(a5),d4
+    or.w       T_AgaSprResol(a5),d4
 ;    move.w     T_AgaSprResol(a5),(a1)+ ; 2019.11.04
     move.w     d5,(a1)+
 ; ******** 2021.04.13 Update to fix color palette issue in copper list - END
@@ -1570,11 +1567,11 @@ insertAGAColorsInCopper:
     Move.l     a0,T_AgaColor1L(a5)
     Move.l     a1,T_AgaColor2L(a5)
     lea        T_globAgaPalL(a5),a2     ; A2 = First color of AGA palette ( =32 ) of the curent screen (a0)
-    Move.l     #$200,d4                 ; (09) LOCT=1 ( Low bits )
+    Move.l     #$0200,d4                ; (09) LOCT=1 ( Low bits )
     bsr        insertAGACIC
 ; ******** 2021.04.13 update to fix color issue in copper list
     move.l     #%1000000000000,d4
-    and.w      T_AgaSprResol(a5),d4
+    or.w       T_AgaSprResol(a5),d4
     move.w     #BplCon3,(a0)+             ; uses BplCon3 bits 13-15 to set other color palettes in copper list 0
 ;    move.w     T_AgaSprResol(a5),(a0)+
     move.w     d4,(a0)+

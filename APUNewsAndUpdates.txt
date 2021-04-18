@@ -13,6 +13,17 @@ TO DO :
 Rainbow RGB24 Bits color support :
 - Identified 2 places where copper colors are push inside copper list in file CopperListSystem.s . Actually : #563 & #596
 
+PersonalUnity.lib :
+- ADD new Sprite FX commands like 
+    * Create Line Effects Bank BANKID
+    * Set Current Line Effects Bank BANKID
+    * Change Sprite Color Palette LINEID
+    * Change Colour Line LINEID, COLORID, RGB24Value
+    * Insert Full Screen Offset LINEID,OFFSETVALUE(Optional)
+    * Update Full Screen Offset LINEID,OFFSETVALUE
+    * Update Lines Effects (update the copper list with all effects)
+    * Remove Line Effects (clear all change sprite color palette, change colour line, screen offsets)
+
 
 BUG :
 - (Always existing ?) Save Iff on 32 colors, IFF file cannot be loaded by PPaint. (compression format not recognized)
@@ -26,6 +37,29 @@ TO DO AFTER :
 - check how APUCMP parameters are used to create Cli/Workbench/nogfx, etc. configurations to see if I can integrate a window mode.
 - Create a method that return the ID of the CPU, one for FPU (if available) and one for CPU frenquency if possible.
 - Reinsert error messages for IffBODY : IFFWidthTooBig, IFFHeightTooBig, IFFDepthTooBig
+
+Michael Ness Good Idea :
+- Try to makes blitter push 32 colors palette to reach maximum amount of colors in 1 raster line. Look how HsBlit do a single memory copy.
+Do once for all calls : BltModC,BltModD
+BltSrcC, BltSrcD
+
+; **** Memory Banks Bits defined in the project :
+Bnk_BitMemblock  Equ    4            ; = Bnk.BitReserved0
+Bnk_BitPalette   Equ    5            ; = Bnk.BitReserved1
+Bnk_BitFIcons    Equ    6            ; = Bnk_BitReserved2
+Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3
+
+
+
+; ************************************************************************
+; 2021.04.18 :
+- Added Unity command : Create Rainbow FX Bank BANKID
+- Added Unity command : Set Rainbow Fx Color BANKID,COLOR_INDEX
+- Added Unity command : Set Rainbow Fx Color Valuer BANKID, Y_HARDWARE_LINE, RGBVALUE(rgb12/15/24)
+- Added Unity command : Apply Rainbow Fx To Screen BANKID (CurrentScreen)
+- Added unity command : Remove Rainbow Fx From Screen (CurrentScreen)
+- Added Unity command : RGB24COLORVALUE = Get Rainbow Fx Color Line (BANKID, Y_HARDWARE_LINE)
+
 
 ; ************************************************************************
 ; 2021.04.15 :
