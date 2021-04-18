@@ -354,14 +354,43 @@ MkAFin:    clr.w    (a1)
     lea    64+4(a1),a1        * Saute les sprites
 * Rainbow?
     tst.w    T_RainBow(a5)
-    bne.s    CopBow
+    bne.w    CopBow
 ******* Fabrique NORMAL
 MCop0    move.l    T_EcCop(a5),a2
 MCop1    move.w    (a2)+,d0
     beq.s    MCopX
+; ******** 2021.04.08 Check if a call to the Layered/Playfield sprites is required or not - START
+    move.l    a0,T_SaveReg(a5)
+    tst.l     T_lastScreenAdded(a5)    ; Was a screen added before reaching this location again ?
+    beq.s     .notThisTime             ; No, we are then out of display view -> Jump .notThisTime
+; ******** A screen was defined, we have d0=bottom line+1 for SpriteFX, T_lastYLinePosition(a5)=top line-1 for SpriteFX,
+;          T_lastScreenAdded(a5) = Screen in which SpriteFX must be enabled for the effect to be activated.
+    move.l    T_lastScreenAdded(a5),a0 ; A0 = Screen in which the SpriteFX will be checked as enabled/disabled
+    tst.b     ScreenFX(a0)            ; is SpriteFX 1 enabled ?
+    beq.s     .notThisTime             ; No -> Jump .notThisTime
+; ******** 2021.04.15 Now SpriteFXCall is called
+    movem.l    d0-d7/a0-a4,-(sp)        ; Save registers before calling the FX method
+    move.l    ScreenFXCall(a0),a2
+    jsr       (a2)
+    move.l    a1,T_SaveReg(a6)
+    movem.l   (sp)+,d0-d7/a0-a4         ; Restore all registers excepted a1
+    move.l    T_SaveReg(a6),a1          ; To keep a1 (copper list) updated with special Screen
+    clr.l     T_lastScreenAdded(a5)
+; ******** 2021.04.15 Now SpriteFXCall is called
+; ******** If the effect is enabled, then we push it - END
+.notThisTime:
+    move.l    T_SaveReg(a5),a0
+; ******** 2021.04.08 Check if a call to the Layered/Playfield sprites is required or not - END
+
+    tst       d0
     bmi.s    MCop2
-* Debut d''un ecran
-    move.l    (a2)+,a0
+    ; **************** A Screen is defined, we must insert it in the CopperList
+    move.l    (a2)+,a0                 ; A0 = Current Screen structure adress
+
+; ******** 2021.04.08 Update datas for Layered/Playfield Sprites support - START
+    move.l    a0,T_lastScreenAdded(a5) ; 2021.04.08 The Current Screen to insert is saved for Layered/Playfield Sprites system
+    move.w    d0,T_lastYLinePosition(a5) ;
+; ******** 2021.04.08 Update datas for Layered/Playfield Sprites support - END
     bsr    EcCopHo
     bra.s    MCop1
 * Fin d''un ecran

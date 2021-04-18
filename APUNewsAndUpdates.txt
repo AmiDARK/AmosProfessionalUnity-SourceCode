@@ -59,7 +59,8 @@ Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3
 - Added Unity command : Apply Rainbow Fx To Screen BANKID (CurrentScreen)
 - Added unity command : Remove Rainbow Fx From Screen (CurrentScreen)
 - Added Unity command : RGB24COLORVALUE = Get Rainbow Fx Color Line (BANKID, Y_HARDWARE_LINE)
-
+- Git Push
+- Update EcsUnity/CopperListSystem to handle Sprite/Rainbow FX system
 
 ; ************************************************************************
 ; 2021.04.15 :

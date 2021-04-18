@@ -2482,7 +2482,7 @@ BkCopperFX1:
 ; * Return Value :                                            *
 ; *************************************************************
   Lib_Par     SetRainbowFXColorID
-    move.l      d3,T_SaveReg(a5)      ; Color Index ( 000 - 255 )
+    move.w      d3,T_SaveReg(a5)      ; Color Index ( 000 - 255 )
     move.l      (a3)+,d0              ; D0 = Rainbow FX Palette BankID
 ; ******** Get Rainbow Bank Memory Pointer -> A0 if correct (check possibles errors)
     Rbsr        L_GetRainbowBank
@@ -2490,7 +2490,7 @@ BkCopperFX1:
     cmp.w       #1,d0                 ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
     Rbne        L_Err4                ; No -> Error
 ; ******** Now we will push the color inside the bank position
-    move.l      T_SaveReg(a5),(a0)    ; Rainbow FX will now apply to chosen color
+    move.w      T_SaveReg(a5),(a0)    ; Rainbow FX will now apply to chosen color
     rts
 
 ;
@@ -2651,7 +2651,7 @@ BkCopperFX1:
 ; ******** 2. We calculate the 1st line that can be updated with Simple Rainbow FX
     move.w     T_lastYLinePosition(a5),d1
     sub.w      #EcYBase,d1           ; D1 = 1st line for the started screen
-    add.w      #1,d1                 ; D1 = 1st Start Line
+    add.w      #2,d1                 ; D1 = 1st Start Line
     ext.l      d1
 ; ******** 3. We calculate the amount of lines that can be edited.
     sub.w      d1,d0                 ; D0 = Amount of lines to edit.
@@ -2679,18 +2679,21 @@ BkCopperFX1:
     lea.l      EcPal(a0),a4          ; a4 = Screen Color #00
     clr.l      d2
     move.w     (a2)+,d2              ; d2 = Color chosen for the FX
-    move.w     (a2),d2
+;    move.w     (a2),d2
     lsl.w      #1,d2
     add.l      d2,a4                 ; a4 = Pointer to the color in the screen color palette
     lsr.w      #1,d2
 ; ******** 6. We Get the Color ID and prepare value for BplCon3 updates (Bit#9 for LOCT $200 for low, $000 for High, filter with SPRES value too.)
+    tst.w      T_isAga(a5)
+    beq.s      .noBankCalculation
     move.w     d2,d3
     and.l      #%11100000,d3         ; d3 = Color banks in bits 05-07
-    and.l      #%11111,d2            ; d2 filtered in range 000-031 = Color Index Range 000-031
     lsl.w      #8,d3                 ; d3 = Color Banks in bits 13-15 (BplCon3 bits)
+    or.w       T_AgaSprResol(a5),d3  ; -----> d3 = Color Banks in bits 13-15 + current AGA Sprites Resolutions (BplCon3 bits)
+.noBankCalculation:
+    and.l      #%11111,d2            ; d2 filtered in range 000-031 = Color Index Range 000-031
     lsl.w      #1,d2
     or.w       #$180,d2              ; -----> d2 = Color Register to setup
-    or.w       T_AgaSprResol(a5),d3  ; -----> d3 = Color Banks in bits 13-15 + current AGA Sprites Resolutions (BplCon3 bits)
 
 ; ******** 7. We jump to the 1st line in the Rainbow FX bank to use for editing
     move.l     T_SaveReg(a5),d0      ; -----> Load D0 = Lines Count
@@ -2710,84 +2713,99 @@ CopperYLoop:
     move.w     d1,d7                   ; d7 = Y Start / Y Current Line
     and.l      #$FF,d7                 ; Y Line && 255 (to be sure it's inside view)
     lsl.w      #8,d7                   ; Push d7.w = YYYYYYYY........
-    or.w       #$08!$0001,d7           ; Add X Screen Position Start
+    or.w       #$18!$0001,d7           ; Add X Screen Position Start
 
 ; ******** 11 Read new Rainbow FX line data and check what to do
     move.l     (a2)+,d5                ; d5 = New color to implement
     cmp.l      d5,d6                   ; Are old & new color the same ?
-    beq.s      .continue               ; Yes -> Do not push any color change (optimisation)
+    beq.w      continue               ; Yes -> Do not push any color change (optimisation)
     move.l     d5,d6                   ; Save new color for next line update checking
 
-; ******** 12 Push Y Line Wait.
+; ******** 12 Push Y Line Wait if we are lower than the current Screen Y Line  position
     move.w     d7,(a1)+                ; Wait Line d7
-    move.w     #$FFFE,(a1)+            ; -
+    move.w     #$FFFE,(a1)+            ; 
 
 ; ******** 13 Do we restore original color or push a new one ?
     cmp.l      #-1,d5
     beq.s      .restore
 .modify:
-
-; ******** 13.1 Cut Rgb24(D5) into two Rgb12H(d4) & Rgb12L(d5)
+; ******** 14.1 Cut Rgb24(D5) into two Rgb12H(d4) & Rgb12L(d5)
     getRGB12Datas d5,d4,d5             ; D5=Rgb24->D4=Rgb12H,D5=Rgb12L
-
-; ******** 13.2 Push New Color Rgb12 High bits
+; ******** 14.2 Do we push AGA or ECS/OCS Color in the copper list ?
+    tst.w      T_isAga(a5)             ; Are we on AGA or ECS/OCS ?
+    beq.s      .ecsColor
+.agaColor:
+; ******** 15.1 Push New AGA Color Rgb12 High bits
     bclr       #9,d3                   ; LOCT = 1 (Low Bits)
     move.w     #BplCon3,(a1)+          ; BplCon3 = Modify Color High Bits
     move.w     d3,(a1)+                ; Push BplCon3 value
     move.w     d2,(a1)+                ; Color#XX register
     move.w     d4,(a1)+                ; Color Value RGB12H
 
-; ******** 13.3 Push New Color Rgb12 Low bits
+; ******** 15.2 Push New AGA Color Rgb12 Low bits
     bset       #9,d3                   ; LOCT = 1 (Low Bits)
     move.w     #BplCon3,(a1)+    
     move.w     d3,(a1)+                ; Push BplCon3 value
     move.w     d2,(a1)+                ; Color#XX register
     move.w     d5,(a1)+                ; Color Value RGB12L
-    bra.s      .continue
+    bra.s      continue
+; ******** 15.2 Push New ECS Color Rgb12  bits
+.ecsColor:
+    move.w     d2,(a1)+                ; Color#XX register
+    move.w     d4,(a1)+                ; Color Value RGB12H
+    bra.s      continue
 
 .restore:
-; ******** 14.1 Push Y Line Wait.
-    move.w     d7,(a1)+                ; Wait Line d7
-    move.w     #$FFFE,(a1)+            ; -
-
-; ******** 14.1 Push Original Color Rgb12 High bits
+; ******** 16 Do we push AGA or ECS/OCS Original Color in the copper list ?
+    tst.w      T_isAga(a5)             ; Are we on AGA or ECS/OCS ?
+    beq.s      .ecsOriginalColor
+; ******** 17.1 Push Original AGA Color Rgb12 High bits
+.agaOriginalColor:
     bclr       #9,d3                   ; LOCT = 1 (Low Bits)
     move.w     #BplCon3,(a1)+          ; BplCon3 = Modify Color High Bits
     move.w     d3,(a1)+                ; Push BplCon3 value
     move.w     d2,(a1)+                ; Color#XX register
     move.w     (a4),(a1)+              ; Color Value RGB12H
-; ******** 14.3 Push Original Color Rgb12 Low bits
+; ******** 17.2 Push Original AGA Color Rgb12 Low bits
     bset       #9,d3                   ; LOCT = 1 (Low Bits)
     move.w     #BplCon3,(a1)+    
     move.w     d3,(a1)+                ; Push BplCon3 value
     move.w     d2,(a1)+                ; Color#XX register
     move.w     EcPalL-EcPal(a4),(a1)+  ; Color Value RGB12L
-
-; ******** 15 Continue to the next line
-.continue:
+    bra.s      continue
+; ******** 18 Push Original ECS Color Rgb12 bits
+.ecsOriginalColor:
+    move.w     d2,(a1)+                ; Color#XX register
+    move.w     (a4),(a1)+              ; Color Value RGB12H
+; ******** 19 Continue to the next line
+continue:
     addi.w     #$01,d1                 ; D1 = Next Copper Line Wait
     dbf        d0,CopperYLoop          ; D0 = D0 - 1 ; if d0 > -1 -> Jump CopperYLoop (Another Y Line to draw ?)
 
-; ******** 12 Do we restore original color after the end of the rainbow FX ?
-    cmp.l      #-1,d5
-    beq.s      .restoreDefColorPalette ; Do not push color 00 but return BplCon3 to default position.
-    or.w       #$00FF,d7
-    or.w       #$C8,d7                 ; Push D7 near the end of the line
-    move.w     d7,(a1)+                ; Wait Line d7
-    move.w     #$FFFE,(a1)+            ; -
-    ; * Push Original Color
-; ******** 14.2 Push Original Color Rgb12 High bits
-    bclr       #9,d3                   ; LOCT = 1 (Low Bits)
-    move.w     #BplCon3,(a1)+          ; BplCon3 = Modify Color High Bits
-    move.w     d3,(a1)+                ; Push BplCon3 value
-    move.w     d2,(a1)+                ; Color#XX register
-    move.w     (a4),(a1)+              ; Color Value RGB12H
-; ******** 14.3 Push Original Color Rgb12 Low bits
-    bset       #9,d3                   ; LOCT = 1 (Low Bits)
-    move.w     #BplCon3,(a1)+    
-    move.w     d3,(a1)+                ; Push BplCon3 value
-    move.w     d2,(a1)+                ; Color#XX register
-    move.w     EcPalL-EcPal(a4),(a1)+  ; Color Value RGB12L
+; ******** 20 If we are on ECS/OCS, ne BplCon3/Pal0 restore required
+    tst.w      T_isAga(a5)             ; Are we on AGA or ECS/OCS ?
+    beq.s      .endRainbowFX
+
+; ******** 21 Do we restore original color after the end of the rainbow FX ?
+;    cmp.l      #-1,d5
+;    beq.s      .restoreDefColorPalette ; Do not push color 00 but return BplCon3 to default position (Color Palette Selection #0).
+;    or.w       #$00FF,d7
+;    or.w       #$C8,d7                 ; Push D7 near the end of the line
+;    move.w     d7,(a1)+                ; Wait Line d7
+;    move.w     #$FFFE,(a1)+            ; -
+;    ; * Push Original Color
+;; ******** 21.1 Push Original Color Rgb12 High bits
+;    bclr       #9,d3                   ; LOCT = 1 (Low Bits)
+;    move.w     #BplCon3,(a1)+          ; BplCon3 = Modify Color High Bits
+;    move.w     d3,(a1)+                ; Push BplCon3 value
+;    move.w     d2,(a1)+                ; Color#XX register
+;    move.w     (a4),(a1)+              ; Color Value RGB12H
+;; ******** 21.2 Push Original Color Rgb12 Low bits
+;    bset       #9,d3                   ; LOCT = 1 (Low Bits)
+;    move.w     #BplCon3,(a1)+    
+;    move.w     d3,(a1)+                ; Push BplCon3 value
+;    move.w     d2,(a1)+                ; Color#XX register
+;    move.w     EcPalL-EcPal(a4),(a1)+  ; Color Value RGB12L
 .restoreDefColorPalette:
     and.w      #%11111111,d3           ; Leave only Sprites resolution datas, push Palette 00 HighBits(LOCT=0)
     move.w     #BplCon3,(a1)+    
@@ -2800,9 +2818,10 @@ CopperYLoop:
 ; ******** 10. If an error happen (bank does no more exists, bad bank type, etc.) we remove FX from the screen.
 cleanScreen:
     movem.l    (sp)+,a0/a1           ; A0 = Screen Pointer / a1 = Copper list pointer
-    move.b     #0,ScreenFX(a0)       ; Enable Simple Rainbow FX As Layer in the chosen Screen
     clr.l      ScreenFXCall(a0)
     clr.w      sprFX_BankID+ScreenFXDatas(a0)
+    movem.l    a4,-(sp)              ; Save A4 (Screen Color Palette)
+    move.b     #0,ScreenFX(a0)       ; Enable Simple Rainbow FX As Layer in the chosen Screen
     rts
 ;
 ; *****************************************************************************************************************************
@@ -2819,9 +2838,9 @@ cleanScreen:
     move.l      d3,T_SaveReg(a5)      ; Save Y Line
     move.l      (a3)+,d0              ; D0 = Rainbow FX Palette BankID
 ; ******** Get Rainbow Bank Memory Pointer -> A0 if correct (check possibles errors)
-    cmp.l       #40,d1
+    cmp.l       #40,d3
     Rble        L_Err14               ; Rainbow FX Y Line > 40 & < 300
-    cmp.l       #255,d1
+    cmp.l       #255,d3
     Rbhi        L_Err14               ; Rainbow FX Y Line > 40 & < 300
     Rbsr        L_GetRainbowBank
     move.w      (a0)+,d0              ; d0 = FXType
