@@ -21,8 +21,8 @@ ExtNb            Equ    13-1         ; Extension number #13
 ;    Include the files automatically calculated by
 ;    Library_Digest.AMOS
 ;---------------------------------------------------------------------
-    Include    "PersonalUnity_lib_Size.s"
-    Include    "PersonalUnity_lib_Labels.s"
+    Include    "AMOSProUnity_SpecialFX_Size.s"
+    Include    "AMOSProUnity_SpecialFX_Labels.s"
 
 ; +++ You must include this file, it will decalre everything for you.
     include    "src/AMOS_Includes.s"
@@ -1772,8 +1772,8 @@ iDiskFileError:
   Lib_Par    SetSpriteAsBackdrop   ; d3 = Height of the effects in pixels.
     move.l     (a3)+,d4            ; d4 = YStart
 ; ******** 1. Check if we are under AGA chipset or ECS/OCS one
-    tst.w      T_isAga(a5)
-    Rbeq       L_Err23
+;    tst.w      T_isAga(a5)
+;    Rbeq       L_Err23
 ; ******** 2. Check if current screen is valid
     move.l     ScOnAd(a5),d0       ; D0 = Get Current Screen
     Rbeq       L_Err9              ; No current screen -> Error #12 "NoScreenAvailable"
@@ -1843,6 +1843,7 @@ iDiskFileError:
 ; ******** 5. Ask AMOS to refresh screens (to insert the Sprite as layered background)
     addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
     bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    move.w     #2,T_doubleRefresh(a5)
     moveq      #0,d0
     rts
 ;
@@ -1869,6 +1870,7 @@ iDiskFileError:
 ; ******** 2. Ask AMOS to refresh screens (to insert the Sprite as layered background)
     addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
     bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    move.w     #2,T_doubleRefresh(a5)
     rts
 
   Lib_Par    ValueTest

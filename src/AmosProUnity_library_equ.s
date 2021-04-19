@@ -256,6 +256,7 @@ HsNb        equ     64
         Rl    SprAttach,1          ; 2021.04.02 Sprites attachment for AGA chipset
         Rw    RefreshForce,1       ; 2021.04.02 Force refresh of sprite buffer when changing the Sprite Width
         Rw    AgaSprColorPal,1     ; 2021.04.03 Define which color palette will be used for sprites.
+        Rw    doubleRefresh,1      ; 2021.04.19 Force the refresh of both logic/physic copper when inserting/removing special FX.
 
 ; ******** 2021.03.31 Bits set for FMODE AGA Sprites Width - START
 aga16pixSprites equ    0

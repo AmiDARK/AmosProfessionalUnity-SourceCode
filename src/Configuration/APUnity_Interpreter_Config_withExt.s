@@ -133,7 +133,7 @@ Txt1		EdT	1,<APUSystem/>
 		EdT	25,<>
 		EdT	26,<>
 		EdT	27,<>
-		EdT	28,<AmosProUnity_Personal.lib>
+		EdT	28,<AmosProUnity_SpecialFX.lib>
 		EdT	29,<>
 		EdT	30,<>
 		EdT	31,<>

@@ -24,7 +24,6 @@ PersonalUnity.lib :
     * Update Lines Effects (update the copper list with all effects)
     * Remove Line Effects (clear all change sprite color palette, change colour line, screen offsets)
 
-
 BUG :
 - (Always existing ?) Save Iff on 32 colors, IFF file cannot be loaded by PPaint. (compression format not recognized)
 - Fix a strange bug that prevent AMOS Professional Unity from starting (probably in the sprite setup update)
@@ -50,6 +49,11 @@ Bnk_BitFIcons    Equ    6            ; = Bnk_BitReserved2
 Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3
 
 
+; ************************************************************************
+; 2021.04.20 :
+- Fixed bug in AmosProUnityAGA.library/Sprites.s that caused memory issues and crash at startup (checking added)
+- Fixed bug in AmosProUnityAGA.library/Screens.s/EcDouble/ that caused double buffer bitmaps not being free at closing screen.
+- Renamed AmosProUnity_Personal.lib to AmosProUnity_SpecialFX.lib
 
 ; ************************************************************************
 ; 2021.04.18 :

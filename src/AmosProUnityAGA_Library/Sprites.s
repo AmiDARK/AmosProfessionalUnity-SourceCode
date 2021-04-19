@@ -170,6 +170,7 @@ HsRBuf:
     bra.s    .continue
 .defineAGABuffer:
     move.w   T_AgaSprBytesWidth(a5),d1 ; d1 = Width
+    beq.s    .defineECSBuffer
     lsl.w    #4,d1              ; d1 = Width * 8 (Sprites amount) * 2 (2 Bitplanes)
     mulu     d1,d0              ; d0 = d0 * Width * 8 Sprites (like above for ECS/OCS)
     move.l   d0,d1

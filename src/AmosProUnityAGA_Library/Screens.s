@@ -208,27 +208,28 @@ EcDouble:
 
 ;************************************** 2020.09.11 Updated and optimised to create Double Buffer Bitplanes - Start
 
+    movem.l    a3,-(sp)                ; 2021.04.19 Updated to use a3 for EcDBOriginalBPL save
+
     move.w     EcNPlan(a4),d6          ; 2019.11.12 Directly moves EcNPlan instead of D4 datas
     subq.w     #1,d6
-    moveq      #0,d2                   ; D2 start at offset 0
-    Lea        EcDBOriginalBPL(a4),a0  ; AO = Original Bitmaps to save
+    moveq      #0,d2                   ; D2 start at offset 0 to save real allocation pointer not 64 bits shifted
+    Lea        EcDBOriginalBPL(a4),a3  ; A3 = Original Bitmaps to save - 2021.04.19 update
 EcDb1:
     move.l     EcTPlan(a4),d0          ; 2019.11.12 Directly moves ECTPlan in d0 instead of D7 register
     Add.l      #8,d0                   ; Add 8 bytes in total bitmap memory size allow manual 64 bits alignment.
     bsr        ChipMm
     beq        EcDbE
-    move.l     d0,(a0)+                ; Save Original Bitmap Position
-    And.l      #$FFFFFFC0,d0           ; Align D0 to 64bits address in range 0 <= Start of memory allocation <= 8
+    move.l     d0,(a3)+                ; Save Original Bitmap Position - 2021.04.19 update
+    And.l      #$FFFFFFF8,d0           ; Align D0 to 64bits address in range 0 <= Start of memory allocation <= 8
     Add.l      #8,d0                   ; ADD + 8 to d0 to be at the higher limit of its memory allocation without bytes over
-    move.l     d0,EcCurrent(a4,d2.w)   ; Save bitmaps to EcCurrent
-    move.l     d0,EcLogic(a4,d2.w)     ; Save Bitmaps to EcLogic
-
-    move.l     EcPhysic(a4,d2.w),a0    ; A0 = Current EcPhysic Bitplane
+    move.l     d0,EcLogic(a4,d2.w)     ; Save Bitmaps to EcLogic           ( original : move.l  d0,(a3)+ )
+    move.l     d0,EcCurrent(a4,d2.w)   ; Save bitmaps to EcCurrent         ( original : move.l  d0,(a6)+ )
     move.l     d0,a1                   ; A1 = Current EcLogic Bitplane
+    move.l     EcPhysic(a4,d2.w),a0    ; A0 = Current EcPhysic Bitplane    ( original : move.l  (a2)+,a0 )
     move.l     EcTPlan(a4),d0          ; D0 = Bitplane Size in Pixels
     lsr.w      #4,d0                   ; D0 = Bitplane Size in 4x Long ( Byte Size / 16 )
     subq.w     #1,d0                   ; D0 -1 (for negative result at the end of copy)
-; **** Start Copy EcPhysic Bitplant To EcLogic one:
+; **** Start Copy EcPhysic Bitplanes To EcLogic one:
 EcDb2:
     move.l     (a0)+,(a1)+
     move.l     (a0)+,(a1)+
@@ -238,50 +239,9 @@ EcDb2:
 ; *** Loop to create Double Buffer bitplanes:
     addq.l     #4,d2
     dbra       d6,EcDb1
-;* Allocate memory for bitplanes :
-;    move.w     EcNplan(a4),d6          ; D6 = Amount of bitplanes in the current screen
-;    subq.w     #1,d6                   ; D6 = Bpl Count -1 (to makes negative value quit loop)
-;    lea        EcPhysic(a4),a2         ; A2 = Current A4 Screen EcPhysic.Bpl0
-;    lea        EcLogic(a4),a3          ; A3 = Current A4 Screen EcLogic.Bpl0
-;    lea        EcCurrent(a4),a6        ; A6 = Current A4 Screen EcCurrent.Bpl0
-;; *************************************2019.11.25 Update to handle 64 bits bitmaps alignment in case of Hires/SHRes/UHres requirments.
-;    Lea        EcDBOriginalBPL(a4),a0  ; 2019.11.25 A0 = Original Bitmaps to save
-;    Move.l     a0,d7                   ; D7 = A0 = Original Bitmaps to save for release memory.
-;EcDb1:
-;    ; **************************** Create original bitmap with 8 bytes size more thant required to add 64 bits alignment.
-;    move.l     EcTPlan(a4),d0          ; 2019.11.25 D0 = 1 Bitplane bytes size
-;    Add.l      #8,d0                   ; D0 = 1 Bitplane bytes size + 8
-;    bsr        ChipMm                  ; Alloc Chip Mem for Bitplane
-;    beq        EcDbE                   ; =NULL, Jump -> EcDbE (No more memory)
-;    Move.l     d7,a0                   ; a0 = Current original Bitmap to save
-;    Move.l     d0,(a0)                 ; Save Original Double Buffer Bitmap Position
-;    add.l      #4,d7                   ; D7 = Pointer to next bitpmap
-;    ; **************************** Now, we proceed to the 64 bits alignment for potential Hires/UHres/SHRes resolution use.
-;    ; **************************** 2020.09.11 Reversed AND and ADD as they were in the wrong order regarding EcCree method.
-;    And.l      #$FFFFFFC0,d0           ; 2019.11.25 Align D0 to 64bits address in range 0 <= Start of memory allocation <= 8
-;    Add.l      #8,d0                   ; 2019.11.25 ADD + 8 to d0 to be at the higher limit of its memory allocation without bytes over
-;; *************************************2019.11.25 End of Update to handle 64 bits bitmaps alignment in case of Hires/SHRes/UHres requirments.
-;    ; **************************** Now, we can put Bitmaps directly into registers EcLogic & EcCurrent
-;    move.l     d0,(a3)+                ; Save created bitmap into EcLogic list
-;    move.l     d0,(a6)+                ; Save created bitmap into EcCurrent list
-;    move.l     d0,a1                   ; A1 = New Double Buffer bitmap #x
-;    move.l     (a2)+,a0                ; A0 = Original EcPhysic Bitmap #x
-;    move.l     EcTPlan(a4),d0          ; D0 = Bitplane Size in bytes
-;    lsr.w      #4,d0                   ; D0 = Bitplane Size in 4x Long ( Byte Size / 16 )
-;    subq.w     #1,d0                   ; D0 -1 (for negative result at the end of copy)
-;; ******************** Copy the whole Original Screen Bitmap to it''s double buffer one.
-;EcDb2:
-;    move.l     (a0)+,(a1)+
-;    move.l     (a0)+,(a1)+
-;    move.l     (a0)+,(a1)+
-;    move.l     (a0)+,(a1)+
-;    dbra       d0,EcDb2
-;; ******************** End of copy.
-;    dbra       d6,EcDb1                ; Loop until all bitplanes were created.
-
 ;************************************** 2020.09.11 Updated and optimised to create Double Buffer Bitplanes - End
 
-
+    movem.l    (sp)+,a3                ; 2021.04.19 update
 
 ; ******************** Set flags for update / AutoBack
     bset       #BitDble,EcFlags(a4)
@@ -290,6 +250,13 @@ EcDb2:
     bsr        TAbk1                   ; AUTOBACK 1 support call
     bsr        TAbk2                   ; AUTOBACK 2 support call
     bsr        TAbk3                   ; AUTOBACK 3 support call
+; ******** 2021.04.19 Support for ScreenFX on both copper list at the same time - START
+    tst        ScreenFX(a4)    ; Is there a ScreenFX running on this screen ?
+    beq        EcOk            ; No -> Jump to EcOk directly
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    move.w     #2,T_doubleRefresh(a5)
+; ******** 2021.04.19 Support for ScreenFX on both copper list at the same time - END
     bra        EcOk
 
 ; ******************** On error, clear the whole screen

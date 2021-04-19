@@ -162,7 +162,7 @@ EcCT1:  move.b  (a0)+,(a1)+
     clr.l   EcPat(a4)
 * Pas de fonte
     clr.w   EcFontFlag(a4)
-* Cree l'ecran dans les tables
+* Cree l''ecran dans les tables
     bset    #BitClone,EcFlags(a4)
     move.l  (sp)+,d1
     move.w  d1,EcNumber(a4)
@@ -210,8 +210,16 @@ EcDb2:  move.l  (a0)+,(a1)+
     bsr TAbk1
     bsr TAbk2
     bsr TAbk3
+; ******** 2021.04.19 Support for ScreenFX on both copper list at the same time - START
+    tst        ScreenFX(a4)    ; Is there a ScreenFX running on this screen ?
+    beq        EcOk            ; No -> Jump to EcOk directly
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    move.w     #2,T_doubleRefresh(a5)
+; ******** 2021.04.19 Support for ScreenFX on both copper list at the same time - END
     bra EcOk
-* Erreur! Efface l'ecran entier
+
+* Erreur! Efface l''ecran entier
 EcDbE   moveq   #0,d1
     move.w  EcNumber(a4),d1
     bsr EcDel

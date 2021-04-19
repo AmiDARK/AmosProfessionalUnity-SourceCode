@@ -1,5 +1,5 @@
-echo "***Assembling AMOSPro_PersonalUnity.Lib"
-c/Library_Digest src/APULib_PersonalUnity/PersonalUnity_lib.s
-c/Genam FROM src/APULib_PersonalUnity/PersonalUnity_lib.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Personal.Lib
-delete >NIL: src/APULib_PersonalUnity/PersonalUnity_lib_Labels.s
-delete >NIL: src/APULib_PersonalUnity/PersonalUnity_lib_Size.s
+echo "***Assembling AMOSPro_SpecialFX.Lib"
+c/Library_Digest src/APULib_SpecialFX/AMOSProUnity_SpecialFX.s
+c/Genam FROM src/APULib_SpecialFX/AMOSProUnity_SpecialFX.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_SpecialFX.Lib
+delete >NIL: src/APULib_SpecialFX/AMOSProUnity_SpecialFX_Labels.s
+delete >NIL: src/APULib_SpecialFX/AMOSProUnity_SpecialFX_Size.s

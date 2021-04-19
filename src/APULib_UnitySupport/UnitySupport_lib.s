@@ -2591,6 +2591,7 @@ BkCopperFX1:
 ; ******** 5. Ask AMOS to refresh screens (to insert the Sprite as layered background)
     addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
     bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    move.w     #2,T_doubleRefresh(a5)
     moveq      #0,d0
     rts
 
@@ -2617,6 +2618,7 @@ BkCopperFX1:
 ; ******** 3. Ask AMOS to refresh screens (to insert the Sprite as layered background)
     addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
     bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    move.w     #2,T_doubleRefresh(a5)
     moveq      #0,d0
     rts
 

@@ -419,8 +419,19 @@ MCopSw    move.l    T_CopLogic(a5),a0
 * Fini!
 PasCop    movem.l    (sp)+,d1-d7/a1-a6
     moveq    #0,d0
+; ******** 2021.04.19 Support for ScreenFX on both copper list at the same time - START
+    tst.w     T_doubleRefresh(a5)
+    bne.s     forceRefresh
+; ******** 2021.04.19 Support for ScreenFX on both copper list at the same time - END
     rts
 
+; ******** 2021.04.19 Support for ScreenFX on both copper list at the same time - START
+forceRefresh:
+    sub.w     #1,T_doubleRefresh(a5)
+    addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    rts   
+; ******** 2021.04.19 Support for ScreenFX on both copper list at the same time - END
 
 ;
 ; *****************************************************************************************************************************
