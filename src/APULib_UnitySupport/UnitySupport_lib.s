@@ -2165,7 +2165,7 @@ FD_Errors:
 .nodpf:
 .Enforced:
     move.w     d0,T_FadeFlag(a5)       ; T_FadeFlag(a5) = D0 = Colour amount to Update
-    sub.w      #1,d0                   ; D0 = D0 -1 (to use -1 as end of color handling loop)
+;    sub.w      #1,d0                   ; D0 = D0 -1 (to use -1 as end of color handling loop)
     Move.w     d0,T_FadeNb(a5)         ; T_FadeNb(a5) = Amount of colors of the Screen -1
 
 ; ******** Here start the loop that store the full color palette in RGB24 format for easier fading calculation.

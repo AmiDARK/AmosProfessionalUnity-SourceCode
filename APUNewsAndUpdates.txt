@@ -56,6 +56,8 @@ Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3
 - Renamed AmosProUnity_Personal.lib to AmosProUnity_SpecialFX.lib
 - Git Push
 - Fixed crash when using Simple Rainbow FX in direct mode
+- Git Push
+- fixed AGA Unity Fading did not fade the last color (#255)
 
 ; ************************************************************************
 ; 2021.04.18 :
