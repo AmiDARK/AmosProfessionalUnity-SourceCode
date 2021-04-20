@@ -429,7 +429,7 @@ BkCheck:
 PersonalUnityDatas:
 CurrentFIconBank:    dc.l 0
 
-PersonalUnityBranchs:
+SpritesPlayfieldFXCall:
     Rbra    L_insertSpriteFX
     dc.l    0
 
@@ -1833,9 +1833,9 @@ iDiskFileError:
 .continueStep2:
 ; ******** 3. Enable Sprites Playfield FX in current Screen
     move.b     ScreenFX(a2),d0
-    bset       #0,d0
+    or.b       #2,d0              ; Set bit #1(=2) for Sprites Playfield FX (Bit#0(=1) for Simple Playfield FX)
     move.b     d0,ScreenFX(a2)    ; Enable Sprite As Layer in the chosen Screen
-    Dlea       PersonalUnityBranchs,d0
+    Dlea       SpritesPlayfieldFXCall,d0
     move.l     d0,ScreenFXCall(a2) ; Push Callable adress for FX
 ; ******** 4. Save  Sprites Playfield FX datas in current Screen
     move.w     d4,sprFX_YStart+ScreenFXDatas(a2) ; Save Y Start FX

@@ -52,6 +52,7 @@ VersionUS  MACRO
 Bnk_BitPalette    Equ    5            ; = Bnk.BitReserved1
 Bnk_BitCopperFX   Equ    7            ; = Bnk_BitReserved3
 sprFX_BankID      Equ    0
+SimpleRainbowFX   Equ    0            ; The Bit ID of the Simple Rainbow FX effect to be used.
 
 ; A usefull macro to find the address of data in the extension''s own 
 ; datazone (see later)...
@@ -1419,15 +1420,43 @@ ScNOp1:
     ; (Integer)RGB24
     ;
   Lib_Par      retRgb24Color
-    And.l      #$FF,d3       ; D3 = ......B8
-    Move.b     3(a3),d2      ; D2 = xxxxxxG8
-    Move.b     7(a3),d1      ; D1 = xxxxxxR8
+; Check Blue8 limits
+    cmp.l      #255,d3
+    ble.s      .noOverD3a
+    move.l     #255,d3
+.noOverD3a:
+    tst.l      d3
+    bpl.s      .noOverD3b
+    move.l     #0,d3
+.noOverD3b:
+
+    move.l     (a3)+,d2
+; Check Green limits
+    cmp.l      #255,d2
+    ble.s      .noOverD2a
+    move.l     #255,d2
+.noOverD2a:
+    tst.l      d2
+    bpl.s      .noOverD2b
+    move.l     #0,d2
+.noOverD2b:
+
+    move.l     (a3)+,d1
+; Check Red limits
+    cmp.l      #255,d1
+    ble.s      .noOverD1a
+    move.l     #255,d1
+.noOverD1a:
+    tst.l      d1
+    bpl.s      .noOverD1b
+    move.l     #0,d1
+.noOverD1b:
+; Add RGB24 Bits flag
     Or.l       #modeRgb24,d3 ; D3 = .F....B8
-    And.l      #$FF,d1       ; D1 = ......R8
+; Create RGB24 color using .FD1D2D3
     lsl.w      #8,d2         ; D2 = xxxxG8..
     swap       d1            ; D1 = ..R8....
     or.w       d2,d3         ; D3 = .F..G8B8
-    adda.l     #8,a3         ; Push A3 like if it was read with (a3)+
     Or.l       d1,d3         ; D3 = .FR8G8B8
     Ret_Int
 
@@ -1468,15 +1497,42 @@ ScNOp1:
 
     ; ************************************
   Lib_Par    retRgb12Color
-    Move.b     3(a3),d2  ; xxxxxxxG
-    Move.b     7(a3),d1  ; xxxxxxxR
-    And.w      #$F,d2    ; xxxx...G
-    And.w      #$F,d1    ; xxxx...R
-    And.l      #$F,d3    ; .......B
+; Check Blue8 limits
+    cmp.l      #15,d3
+    ble.s      .noOverD3a
+    move.l     #15,d3
+.noOverD3a:
+    tst.l      d3
+    bpl.s      .noOverD3b
+    move.l     #0,d3
+.noOverD3b:
+
+    move.l     (a3)+,d2
+; Check Green limits
+    cmp.l      #15,d2
+    ble.s      .noOverD2a
+    move.l     #15,d2
+.noOverD2a:
+    tst.l      d2
+    bpl.s      .noOverD2b
+    move.l     #0,d2
+.noOverD2b:
+
+    move.l     (a3)+,d1
+; Check Red limits
+    cmp.l      #15,d1
+    ble.s      .noOverD1a
+    move.l     #15,d1
+.noOverD1a:
+    tst.l      d1
+    bpl.s      .noOverD1b
+    move.l     #0,d1
+.noOverD1b:
+; Create RGB12 color using ..........D1D2D3
+
     Lsl.l      #8,d1     ; xx...R..
     Or.w       d1,d3     ; .....R.B
     Lsl.w      #4,d2     ; xxx...G.
-    adda.l     #8,a3     ; Push A3 like if it was read with (a3)+
     Or.w       d2,d3     ; .....RGB
     Ret_Int
 
@@ -2583,6 +2639,8 @@ BkCopperFX1:
 ; ******** Now we will push the FX to the screen
     move.l      T_SaveReg(a5),d0      ; D0 = BankID
 ; ******** 3. Enable RainbowFX in current Screen
+    move.w     ScreenFX(a2),d2
+    btst       #SimpleRainbowFX,d2    ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
     move.b     #1,ScreenFX(a2)        ; Enable Simple Rainbow FX As Layer in the chosen Screen
     Dlea       RainbowFXCall,d1
     move.l     d1,ScreenFXCall(a2) ; Push Callable adress for FX
@@ -2591,7 +2649,7 @@ BkCopperFX1:
 ; ******** 5. Ask AMOS to refresh screens (to insert the Sprite as layered background)
     addq.w     #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
     bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
-    move.w     #2,T_doubleRefresh(a5)
+;    move.w     #2,T_doubleRefresh(a5)
     moveq      #0,d0
     rts
 
@@ -2648,21 +2706,24 @@ BkCopperFX1:
     neg.w      d0
 .noNeg:
     sub.w      #EcYBase,d0
-    sub.w      #1,d0                 ; D0 = Last Line To Reach (-1)
-    ext.l      d0
 ; ******** 2. We calculate the 1st line that can be updated with Simple Rainbow FX
-    move.w     T_lastYLinePosition(a5),d1
+    move.w     T_lastYLinePosition(a5),d1 ; D1 = Last line that was processed by Amos Professional Copper List System (screen insertion)
     sub.w      #EcYBase,d1           ; D1 = 1st line for the started screen
-    add.w      #2,d1                 ; D1 = 1st Start Line
-    ext.l      d1
+    add.w      #1,d1                 ; D1 = 1st Start Line
 ; ******** 3. We calculate the amount of lines that can be edited.
+    cmp.w      #254,d0
+    ble.s      .ctNC
+    move.l     #254,d0
+.ctNC:
     sub.w      d1,d0                 ; D0 = Amount of lines to edit.
     move.l     d0,T_SaveReg(a5)      ; Save D0 = Lines Count
     move.l     d1,T_SaveReg2(a5)     ; Save D1 = Y Start
     movem.l    a0/a1,-(sp)           ; Save A0 = Screen Pointer / a1 = Copper list pointer
 ; ******** 4. Now we get the bank defined in the screen to insert it in the copper list.
+    cmp.w      #2,d0
+    ble.s      cleanScreen
     clr.l      d0
-    move.w     sprFX_BankID+ScreenFXDatas(a0),d0
+    move.w     sprFX_BankID+ScreenFXDatas(a0),d0 ; D0 = Amos Professional Bank used to get Simple Rainbow FX Datas.
     clr.l      d3
     Rjsr       L_Bnk.GetAdr          ; a0 = Bank Adress
     beq        cleanScreen           ; No Bank -> Error
@@ -2673,8 +2734,8 @@ BkCopperFX1:
     cmp.l      #258*4,d0             ; Is bank size the one for FXType=1 ?
     bne        cleanScreen           ; No -> Error
     move.w     (a2)+,d0              ; d0 = FXType
-    cmp.w      #1,d0                 ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
-    bne        cleanScreen    
+    btst       #SimpleRainbowFX,d0   ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
+    beq        cleanScreen    
 ; ******** 5
     movem.l    (sp)+,a0/a1           ; A0 = Screen Pointer / a1 = Copper list pointer / a2 = Rainbow FX Bank Pointer
 ; ******** 5. Push A4 to the pointer of the screen color palette Color ID.
@@ -2743,7 +2804,6 @@ CopperYLoop:
     move.w     d3,(a1)+                ; Push BplCon3 value
     move.w     d2,(a1)+                ; Color#XX register
     move.w     d4,(a1)+                ; Color Value RGB12H
-
 ; ******** 15.2 Push New AGA Color Rgb12 Low bits
     bset       #9,d3                   ; LOCT = 1 (Low Bits)
     move.w     #BplCon3,(a1)+    
@@ -2756,7 +2816,6 @@ CopperYLoop:
     move.w     d2,(a1)+                ; Color#XX register
     move.w     d4,(a1)+                ; Color Value RGB12H
     bra.s      continue
-
 .restore:
 ; ******** 16 Do we push AGA or ECS/OCS Original Color in the copper list ?
     tst.w      T_isAga(a5)             ; Are we on AGA or ECS/OCS ?
@@ -2782,37 +2841,15 @@ CopperYLoop:
 ; ******** 19 Continue to the next line
 continue:
     addi.w     #$01,d1                 ; D1 = Next Copper Line Wait
-    dbf        d0,CopperYLoop          ; D0 = D0 - 1 ; if d0 > -1 -> Jump CopperYLoop (Another Y Line to draw ?)
+    dbra       d0,CopperYLoop          ; D0 = D0 - 1 ; if d0 > -1 -> Jump CopperYLoop (Another Y Line to draw ?)
 
 ; ******** 20 If we are on ECS/OCS, ne BplCon3/Pal0 restore required
     tst.w      T_isAga(a5)             ; Are we on AGA or ECS/OCS ?
     beq.s      .endRainbowFX
-
-; ******** 21 Do we restore original color after the end of the rainbow FX ?
-;    cmp.l      #-1,d5
-;    beq.s      .restoreDefColorPalette ; Do not push color 00 but return BplCon3 to default position (Color Palette Selection #0).
-;    or.w       #$00FF,d7
-;    or.w       #$C8,d7                 ; Push D7 near the end of the line
-;    move.w     d7,(a1)+                ; Wait Line d7
-;    move.w     #$FFFE,(a1)+            ; -
-;    ; * Push Original Color
-;; ******** 21.1 Push Original Color Rgb12 High bits
-;    bclr       #9,d3                   ; LOCT = 1 (Low Bits)
-;    move.w     #BplCon3,(a1)+          ; BplCon3 = Modify Color High Bits
-;    move.w     d3,(a1)+                ; Push BplCon3 value
-;    move.w     d2,(a1)+                ; Color#XX register
-;    move.w     (a4),(a1)+              ; Color Value RGB12H
-;; ******** 21.2 Push Original Color Rgb12 Low bits
-;    bset       #9,d3                   ; LOCT = 1 (Low Bits)
-;    move.w     #BplCon3,(a1)+    
-;    move.w     d3,(a1)+                ; Push BplCon3 value
-;    move.w     d2,(a1)+                ; Color#XX register
-;    move.w     EcPalL-EcPal(a4),(a1)+  ; Color Value RGB12L
 .restoreDefColorPalette:
     and.w      #%11111111,d3           ; Leave only Sprites resolution datas, push Palette 00 HighBits(LOCT=0)
     move.w     #BplCon3,(a1)+    
     move.w     d3,(a1)+                ; Push BplCon3 value
-
 .endRainbowFX:
     movem.l    (sp)+,a4                ; Restore Original a4
     Rts
@@ -2820,10 +2857,7 @@ continue:
 ; ******** 10. If an error happen (bank does no more exists, bad bank type, etc.) we remove FX from the screen.
 cleanScreen:
     movem.l    (sp)+,a0/a1           ; A0 = Screen Pointer / a1 = Copper list pointer
-    clr.l      ScreenFXCall(a0)
-    clr.w      sprFX_BankID+ScreenFXDatas(a0)
-    movem.l    a4,-(sp)              ; Save A4 (Screen Color Palette)
-    move.b     #0,ScreenFX(a0)       ; Enable Simple Rainbow FX As Layer in the chosen Screen
+    movem.l    (sp)+,a4              ; Restore Original a4
     rts
 ;
 ; *****************************************************************************************************************************
@@ -2846,8 +2880,8 @@ cleanScreen:
     Rbhi        L_Err14               ; Rainbow FX Y Line > 40 & < 300
     Rbsr        L_GetRainbowBank
     move.w      (a0)+,d0              ; d0 = FXType
-    cmp.w       #1,d0                 ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
-    Rbne        L_Err4                ; No -> Error
+    btst        #SimpleRainbowFX,d0   ; Is the CopperFX Bank type FXType=1 (simple RainbowFX) ?
+    Rbeq        L_Err4                ; No -> Error
     add.w       #2,a0                 ; (do not care about colorID), jump A0 to Raster Line 0 in the definition.
 ; ******** Now we will push the color inside the bank position
     move.l      T_SaveReg(a5),d0

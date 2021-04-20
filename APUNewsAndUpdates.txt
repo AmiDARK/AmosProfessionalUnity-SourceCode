@@ -54,6 +54,8 @@ Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3
 - Fixed bug in AmosProUnityAGA.library/Sprites.s that caused memory issues and crash at startup (checking added)
 - Fixed bug in AmosProUnityAGA.library/Screens.s/EcDouble/ that caused double buffer bitmaps not being free at closing screen.
 - Renamed AmosProUnity_Personal.lib to AmosProUnity_SpecialFX.lib
+- Git Push
+- Fixed crash when using Simple Rainbow FX in direct mode
 
 ; ************************************************************************
 ; 2021.04.18 :

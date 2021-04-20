@@ -438,6 +438,7 @@ MCop1:
     movem.l   (sp)+,d0-d7/a0-a4         ; Restore all registers excepted a1
     move.l    T_SaveReg(a6),a1          ; To keep a1 (copper list) updated with special Screen
     clr.l     T_lastScreenAdded(a5)
+    clr.w     T_lastYLinePosition(a5)
 ; ******** 2021.04.15 Now SpriteFXCall is called
 ; ******** If the effect is enabled, then we push it - END
 .notThisTime:
