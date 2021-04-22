@@ -79,11 +79,14 @@ EcA2:    move.b    EcAWT(a1),d0
     beq.s    EcAct3
     cmp.w    EcTY(a1),d1
     bcs.s    EcAc
-EcAg:    move.w    EcTY(a1),d1
-EcAc:    btst    #2,EcCon0+1(a1)
+EcAg:
+    move.w    EcTY(a1),d1
+EcAc:
+    btst    #2,EcCon0+1(a1)
     beq.s    EcA2a
     lsr.w    #1,d1
-EcA2a:    move.w    d1,EcWTy(a1)
+EcA2a:
+    move.w    d1,EcWTy(a1)
     addq.w    #1,d7
 * Changement en WTX
 EcAct3:    btst    #1,d0
@@ -968,15 +971,28 @@ CreeDual:
     or.w    d7,d2
     move.w    d2,EcCon0(a0)
     bra    PluDual
-CrDu1:    move.l    d2,a2
+CrDu1:
+    move.l    d2,a2
 * Adresses bitplanes PAIRS!
     move.w    d1,-(sp)
     add.w    EcVY(a0),d1        * Decalage ecran
     mulu    EcTLigne(a0),d1
     move.w    EcVx(a0),d2
+    move.w    d2,d5                    ; 2019.11.08 From AMOS Factory Dual Playfield Fix
     lsr.w    #4,d2
     lsl.w    #1,d2
     add.w    d2,d1
+; ************************************** 2019.11.08 From AMOS Factory Dual Playfield fix
+    move.w     #$F,d4
+    btst       #7,EcCon0(a0)
+    beq.s      MkDC0
+    sub.w      #1,d4
+MkDC0: 
+    and.w      d4,d5
+    bne.s      MkDC0a
+; bitplane fetch starts 2 bytes early if no finescroll remainder
+    sub.l      #2,d1
+; ************************************** 2019.11.08 End of AMOS Factory Dual Playfield fix
     move.l    a1,d3
     moveq    #EcPhysic,d2
     move.w    EcNPlan(a0),d6
@@ -1008,13 +1024,23 @@ MrkDC1    tst.l    (a4)
     move.l    d3,-8(a4)
     move.l    d1,-4(a4)
 * Adresses bitplanes IMPAIRS!
-MrkDC2    move.w    (sp)+,d1
+MrkDC2:
+    move.w    (sp)+,d1
     add.w    EcVY(a2),d1        * Decalage ecran
     mulu    EcTLigne(a2),d1
     move.w    EcVx(a2),d2
+    move.w     d2,d5                   ; 2019.11.08 From AMOS Factory Dual Playfield Fix
     lsr.w    #4,d2
     lsl.w    #1,d2
     add.w    d2,d1
+; ************************************** 2019.11.08 From AMOS Factory Dual Playfield fix
+MkDC0b:
+    and.w     d4,d5
+    bne.s    MkDC0c
+    ; Bitplane fetch starts 2 bytes early if no finescroll reminder
+    sub.l     #2,d1
+MkDC0c:
+; ************************************** 2019.11.08 End of AMOS Factory Dual Playfield fix
     move.l    a1,d3
     moveq    #EcPhysic,d2
     move.w    EcNPlan(a2),d6
@@ -1099,14 +1125,16 @@ MkdC2b:
 * Calcul DDF Start/Stop---> D1/D2
     move.w    EcVX(a0),d6
     move.w    EcVX(a2),d7
-    move.w    d6,d1
-    and.w    #15,d1
-    bne.s    Mkd2d
-    and.w    #$FFF0,d7
-Mkd2d:    move.w    d7,d1
-    and.w    #15,d1
-    bne.s    Mkd2e
-    and.w    #$FFF0,d6
+; ************************************** 2019.11.08 From AMOS Factory Dual Playfield fix
+;    move.w    d6,d1
+;    and.w    #15,d1
+;    bne.s    Mkd2d
+;    and.w    #$FFF0,d7
+;Mkd2d:    move.w    d7,d1
+;    and.w    #15,d1
+;    bne.s    Mkd2e
+;    and.w    #$FFF0,d6
+; ************************************** 2019.11.08 End of AMOS Factory Dual Playfield fix
 Mkd2e:    move.w    EcWXr(a0),d1
     move.w    EcWTxr(a0),d2
     btst    #7,EcCon0(a0)
@@ -1118,14 +1146,25 @@ Mkd2e:    move.w    EcWXr(a0),d1
     lsr.w    #1,d2
     subq.w    #8,d2
     add.w    d1,d2
-    and.w    #15,d6
-    and.w    #15,d7
-    beq.s    MkdC3
+; ************************************** 2019.11.08 From AMOS Factory Dual Playfield fix
+;    and.w    #15,d6
+;    and.w    #15,d7
+;    beq.s    MkdC3
+; ************************************** 2019.11.08 End of AMOS Factory Dual Playfield fix
     subq.w    #8,d1
     subq.w    #2,d4
     subq.w    #2,d5
+; ************************************** 2019.11.08 From AMOS Factory Dual Playfield fix
+    and.w     #$F,d6
+    beq     .next
+; ************************************** 2019.11.08 End of AMOS Factory Dual Playfield fix
     neg.w    d6
     add.w    #16,d6
+; ************************************** 2019.11.08 From AMOS Factory Dual Playfield fix
+.next:
+    and.w     #$F,d7
+    beq     MkdC3
+; ************************************** 2019.11.08 End Of AMOS Factory Dual Playfield fix
     neg.w    d7
     add.w    #16,d7
     bra.s    MkdC3

@@ -1,3 +1,6 @@
+
+http://oldwww.nvg.ntnu.no/amiga/MC680x0_Sections/mc68000timing.HTML
+
 ; **************************************************************
 TO DO :
 - AGA Rainbow compatible with ECS ones
@@ -26,11 +29,8 @@ PersonalUnity.lib :
 
 BUG :
 - (Always existing ?) Save Iff on 32 colors, IFF file cannot be loaded by PPaint. (compression format not recognized)
-- Fix a strange bug that prevent AMOS Professional Unity from starting (probably in the sprite setup update)
-
 
 TO DO AFTER :
-- Update ECS EcCree to allocate bitmaps like AGA version (Alignment)
 - Create a compilation process that allow to load .ASCII, tokenise them (test) and then compiles them to .exe (like compiler) to make .ASCII being compilable from commons IDE.
 - Use APUCMP from Cli to compile Amos Professional Unity applications.
 - check how APUCMP parameters are used to create Cli/Workbench/nogfx, etc. configurations to see if I can integrate a window mode.
@@ -46,7 +46,11 @@ BltSrcC, BltSrcD
 Bnk_BitMemblock  Equ    4            ; = Bnk.BitReserved0
 Bnk_BitPalette   Equ    5            ; = Bnk.BitReserved1
 Bnk_BitFIcons    Equ    6            ; = Bnk_BitReserved2
-Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3
+Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3 -> Used for all Screen(s)FX banks. A word inside the bank define the ID of the FX.
+
+; ************************************************************************
+; 2021.04.22 :
+- Fixed ECS Dual playfield bug (in ECS CopperListSystem.s file using Amos Factory fix like it was the case in previous Amos Professional AGA project and in the AGA CopperListSystem.s file)
 
 
 ; ************************************************************************
@@ -69,6 +73,7 @@ Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3
 - Added Unity command : RGB24COLORVALUE = Get Rainbow Fx Color Line (BANKID, Y_HARDWARE_LINE)
 - Git Push
 - Update EcsUnity/CopperListSystem to handle Sprite/Rainbow FX system
+- Found and reintroducted to help in development true AmosPersonal.lib version 1.1c source code with SpecialFX lib files (latest)
 
 ; ************************************************************************
 ; 2021.04.15 :
