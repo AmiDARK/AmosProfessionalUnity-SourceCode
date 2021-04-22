@@ -3,13 +3,13 @@
 *    MARCHE / ARRET de menus
 StaMn:    bsr    Ec_Push
     move.w    #1,T_PaPeek(a5)
-* Branche d'autres zones
+* Branche d''autres zones
     move.l    T_EcCourant(a5),a0
     move.l    EcAZones(a0),T_SaveZo(a5)
     move.w    EcNZones(a0),T_SaveNZo(a5)
     clr.l    EcAZones(a0)
     clr.w    EcNZones(a0)
-* Clippe tout l'ecran
+* Clippe tout l''ecran
     moveq    #0,d0
     moveq    #0,d1
     move.w    EcTx(a0),d2

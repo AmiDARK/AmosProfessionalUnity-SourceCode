@@ -43,7 +43,7 @@ SyIn:    bra     ClInky            ;0 -Inkey:
     bra    CreAMAL            ;41-AMALCre:     Demarre AMAL
     bra    MvOAMAL            ;42-AMALMvO:     On/Off/Freeze AMAL
     bra    DAllAMAL        ;43-AMALDAll:     Enleve TOUT!
-    bra    Animeur            ;44-AMAL:     Un coup d'animation
+    bra    Animeur            ;44-AMAL:     Un coup d''animation
     bra    RegAMAL            ;45-AMALReg:     Registre!
     bra    ClrAMAL            ;46-AMALClr:     Clear
     bra    FrzAMAL            ;47-AMALFrz:     FREEZE all
@@ -93,7 +93,7 @@ SyIn:    bra     ClInky            ;0 -Inkey:
     bra    WMemChipClear        ;91-MemChipClear    
     bra    WMemFast        ;92-MemFast        
     bra    WMemChip        ;93-MemChip        
-    bra    WSend_FakeEvent        ;94-Send_FakeEvent    Envoi d'un faux event souris
+    bra    WSend_FakeEvent        ;94-Send_FakeEvent    Envoi d''un faux event souris
     bra    WTest_Cyclique        ;95-Test_Cyclique    Tests cyclique AMOS
     bra    WAddFlushRoutine    ;96-AddFlushRoutine    Ajoute une routine FLUSH
     bra    WMemFlush        ;97-MemFlush         Force un memory FLUSH

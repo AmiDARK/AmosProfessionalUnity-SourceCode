@@ -57,24 +57,19 @@ MemList_Size    equ    1024*8
 WMemFastClear
     move.l    d1,-(sp)
     move.l    #Public|Clear,d1
-    bsr    WMemReserve
-    movem.l    (sp)+,d1
-    rts
+    bra.s     WMemAllocate
 WMemFast
     move.l    d1,-(sp)
     move.l    #Public,d1
-    bsr    WMemReserve
-    movem.l    (sp)+,d1
-    rts
+    bra.s     WMemAllocate
 WMemChipClear
     move.l    d1,-(sp)
     move.l    #Chip|Public|Clear,d1
-    bsr    WMemReserve
-    movem.l    (sp)+,d1
-    rts
+    bra.s     WMemAllocate
 WMemChip
     move.l    d1,-(sp)
     move.l    #Chip|Public,d1
+WMemAllocate:
     bsr    WMemReserve
     movem.l    (sp)+,d1
     rts

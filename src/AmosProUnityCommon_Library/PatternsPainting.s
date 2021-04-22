@@ -398,7 +398,7 @@ PntDb1    rts
 
 ******* SET PATTERN ecran courant!
 SPat:    movem.l    d1-d7/a0-a6,-(sp)
-* Efface l'ancien
+* Efface l''ancien
     bsr    EffPat
 * Met le nouveau
     tst.w    d1
@@ -474,7 +474,7 @@ SPat8:    move.w    (a0),(a1)+
     dbra    d3,SPat8
 SPat9:    add.w    d5,a2
     dbra    d6,SPat7
-* Pas d'erreur
+* Pas d''erreur
 SPatX:    moveq    #0,d0
 SPatex:    movem.l    (sp)+,d1-d7/a0-a6
     rts
@@ -482,7 +482,7 @@ SPatex:    movem.l    (sp)+,d1-d7/a0-a6
 SPatE:    moveq    #1,d0
     bra.s    SPatex
 
-******* Efface le pattern de l'ecran courant
+******* Efface le pattern de l''ecran courant
 EffPat:    movem.l    a0-a1/d0-d2,-(sp)
     move.l    T_EcCourant(a5),a0
     move.l    EcPat(a0),d0

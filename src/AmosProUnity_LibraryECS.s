@@ -75,11 +75,11 @@ BugBug:
 
         Version
 
-    include    "src/AmosProUnityECS_library/Collision.s"
+    include    "src/AmosProUnityCommon_Library/Collision.s"
 
     include    "src/AmosProUnityECS_library/BlitterObjects.s"
 
-    include    "src/AmosProUnityECS_library/SpritesBobsFlipping.s"
+    include    "src/AmosProUnityCommon_Library/SpritesBobsFlipping.s"
 
 
 
@@ -125,7 +125,7 @@ ACol1    move.l    0(a0,d0.w),d0
 
     include "src/AmosProUnityECS_library/Screens_Init.s"
 
-    include "src/AmosProUnityECS_library/BraList_Screens.s"
+    include "src/AmosProUnityCommon_Library/BraList_Screens.s"
 
 
 
@@ -153,23 +153,23 @@ TNTSC    moveq    #0,d0
 
     include "src/AmosProUnityECS_library/Autoback.s"
 
-    include "src/AmosProUnityECS_library/Drawing2D.s"
+    include "src/AmosProUnityCommon_Library/Drawing2D.s"
 
     include "src/AmosProUnityECS_library/RainbowsSystem.s"
 
-    include "src/AmosProUnityECS_library/Clipping.s"
+    include "src/AmosProUnityCommon_Library/Clipping.s"
 
-    include "src/AmosProUnityECS_library/PatternsPainting.s"
+    include "src/AmosProUnityCommon_Library/PatternsPainting.s"
 
-    include "src/AmosProUnityECS_library/Fonts.s"
+    include "src/AmosProUnityCommon_Library/Fonts.s"
 
-    include "src/AmosProUnityECS_library/Menus.s"
+    include "src/AmosProUnityCommon_Library/Menus.s"
 
-    include "src/AmosProUnityECS_library/Sliders2D.s"
+    include "src/AmosProUnityCommon_Library/Sliders2D.s"
 
-    include "src/AmosProUnityECS_library/Flash.s"
+    include "src/AmosProUnityCommon_Library/Flash.s"
 
-    include "src/AmosProUnityECS_library/Shifter2D.s"
+    include "src/AmosProUnityCommon_Library/Shifter2D.s"
 
     include "src/AmosProUnityECS_library/FadingSystem.s"
 
@@ -194,24 +194,24 @@ Att:    bsr    MBout
 
     include    "src/AmosProUnityECS_library/Blitter.s"
     
-    include    "src/AmosProUnityECS_library/Vbl.s"
+    include    "src/AmosProUnityCommon_Library/Vbl.s"
 
 
 ******* RESERVATION MEMOIRE
 
-	include    "src/AmosProUnityECS_library/MemoryHandler.s"
+	include    "src/AmosProUnityCommon_Library/MemoryHandler.s"
 
-    include    "src/AmosProUnityECS_library/ChrStr.s"
+    include    "src/AmosProUnityCommon_Library/ChrStr.s"
 
-    include    "src/AmosProUnityECS_library/AmalSystem.s"
+    include    "src/AmosProUnityCommon_Library/AmalSystem.s"
 
     include    "src/AmosProUnityECS_library/AmosProLibrary_Start.s"
 
     include    "src/AmosProUnityECS_library/AmosProLibrary_End.s"
 
-    include    "src/AmosProUnityECS_library/InternalsSystem.s"
+    include    "src/AmosProUnityCommon_Library/InternalsSystem.s"
 
-    include    "src/AmosProUnityECS_library/BraList_System.s"
+    include    "src/AmosProUnityCommon_Library/BraList_System.s"
 
     include    "src/AmosProUnityECS_library/InternalMouseHandler.s"
 
@@ -243,15 +243,15 @@ JoyNo    moveq    #0,d1
 JoyTab:    dc.b     %0000,%0010,%1010,%1000,%0001,%0000,%0000,%1001
     dc.b     %0101,%0000,%0000,%0000,%0100,%0110,%0000,%0000
 
-    include "src/AmosProUnityECS_library/Zones.s"
+    include "src/AmosProUnityCommon_Library/Zones.s"
 
     include "src/AmosProUnityECS_library/Sprites.s"
 
-    include "src/AmosProUnityECS_library/Blocks.s"
+    include "src/AmosProUnityCommon_Library/Blocks.s"
 
-    include "src/AmosProUnityECS_library/InternalDevicesAndHandlers.s"
+    include "src/AmosProUnityCommon_Library/InternalDevicesAndHandlers.s"
 
-    include "src/AmosProUnityECS_library/InternalKeyboardHandler.s"
+    include "src/AmosProUnityCommon_Library/InternalKeyboardHandler.s"
 
 
 
@@ -330,9 +330,9 @@ AMOS_Stopped
     movem.l    (sp)+,a0-a6/d0-d7
     rts    
 
-    include "src/AmosProUnityECS_library/BraList_Windows.s"
+    include "src/AmosProUnityCommon_Library/BraList_Windows.s"
 
-    include "src/AmosProUnityECS_library/Windows.s"
+    include "src/AmosProUnityCommon_Library/Windows.s"
 
     include "src/AmosProUnityECS_library/Text.s"
 
@@ -372,15 +372,15 @@ WErF:    move.l    (sp)+,d0
     movem.l    (sp)+,d1-d7/a1-a6
     rts
 
-    include "src/AmosProUnityECS_library/Requesters.s"
+    include "src/AmosProUnityCommon_Library/Requesters.s"
 
     include "src/AmosProUnityECS_library/ExtractedFromAmosPro_lib.s"
 
 ***********************************************************
 
-    include "src/AmosProUnityECS_library/BraList_Controls.s"
+    include "src/AmosProUnityCommon_Library/BraList_Controls.s"
 
-    include "src/AmosProUnityECS_library/BraList_Escapes.s"
+    include "src/AmosProUnityCommon_Library/BraList_Escapes.s"
 
 
 ***********************************************************

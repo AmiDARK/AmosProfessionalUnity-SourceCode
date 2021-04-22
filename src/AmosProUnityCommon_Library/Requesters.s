@@ -310,7 +310,7 @@ NoAuto    SyCall    Inkey
     beq.s    ReqYes    
     cmp.w    #27,d1        * ASCII-> ESC
     beq.s    ReqNo    
-; Don't you think it is better than this wierd Amiga V and B?
+; Don''t you think it is better than this wierd Amiga V and B?
 ; Sometime I ask myself what they were thinking when they chose such
 ; key combinations!
     swap    d1
@@ -373,7 +373,7 @@ ReqX    bsr    UnMix2
 ReqXX    move.l    T_Req_Pos(a5),(sp)    ReqPos>>> D0
     movem.l    (sp)+,a0-a6/d0-d7
     rts
-;    Can't open screen!!!
+;    Can''t open screen!!!
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~
 NoReq    clr.l    -(sp)
     bra.s    ReqX
@@ -665,7 +665,7 @@ TNeg1        dc.b 27,"B4",27,"P3",27,"I0",24,30,30,27,"X"
 XTNeg        dc.b "0",27,"Z0",0
 TNeg2        dc.b 27,"Z2",0
         even
-;         Insertion de l'image de fond
+;         Insertion de l''image de fond
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 RPic_Sx        equ    112
 RPic_Sy        equ    56

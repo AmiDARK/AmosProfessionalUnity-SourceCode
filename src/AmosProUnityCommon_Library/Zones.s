@@ -51,7 +51,7 @@ SyRzz1:    clr.l    (a0)+
     bra    ZoOk
 
 ***********************************************************
-*    SET ZONE dans l'ecran courant 
+*    SET ZONE dans l''ecran courant 
 *    D1-D2/D3/D4/D5 n-dx/dy/fx/fy
 ***********************************************************
 SySetZ: move.l     T_EcCourant(a5),a1
@@ -120,7 +120,7 @@ ZoEc3:    add.w    EcVx(a1),d1
 ZoEcX:    moveq    #0,d1
     rts
 
-******* Explore la table de l'ecran A1
+******* Explore la table de l''ecran A1
 GZone:    movem.l    a2/d3,-(sp)
     cmp.w    EcNumber(a1),d5
     bls.s    GZo3

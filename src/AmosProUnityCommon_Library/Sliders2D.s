@@ -65,7 +65,7 @@ SliVer    movem.l    d1-d7/a4,-(sp)
     bsr    SliDess
     bra.s    SlOk
 
-******* Dessine l'interieur du slider
+******* Dessine l''interieur du slider
 *    D0= X
 *    D1= Y
 *    D2= X1

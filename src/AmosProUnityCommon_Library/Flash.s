@@ -8,7 +8,7 @@ razfl1: clr.b     (a0)+
         dbra     d0,razfl1
         rts
 
-; FLASH OFF: arrete les flash de l'ecran active
+; FLASH OFF: arrete les flash de l''ecran active
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FlStop:    move.l    T_EcCourant(a5),d0
     addq.b    #1,T_NbFlash+1(a5)    Inhibe les interruptions
@@ -66,7 +66,7 @@ flshi3: clr.b     (a2)+
     move.l    a0,a2
     move.w    d1,(a2)+        ;Numero de la couleur
     move.w    #1,(a2)+        ;Compteur
-        move.l     d2,(a2)+            ;Adresse de l'ecran
+        move.l     d2,(a2)+            ;Adresse de l''ecran
     clr.w    (a2)+            ;Position
         moveq     #-1,d4
 flshi4: move.b    (a1)+,d0
@@ -104,7 +104,7 @@ flshi4: move.b    (a1)+,d0
         bra     flshi4
 flshi5: tst.b     d0                    ;la chaine doit etre finie!
         bne     flsynt
-        clr.l     d0                    ;pas d'erreur
+        clr.l     d0                    ;pas d''erreur
         bra     flout
 ; Erreurs flash
 FlToo    moveq    #7,d0            * Too many flash
@@ -143,7 +143,7 @@ FlShL    move.w     (a0)+,d0
     sub.w     #1,(a0)            * Compteur
         bne.s     FlShN
     lea    2(a0),a1
-    move.l    (a1)+,a2        * Adresse de l'ecran
+    move.l    (a1)+,a2        * Adresse de l''ecran
     add.w    (a1)+,a1        * Pointe
     move.w    (a1)+,(a0)
     bne.s    Flsh4

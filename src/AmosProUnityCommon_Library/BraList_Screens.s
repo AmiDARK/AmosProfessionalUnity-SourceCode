@@ -49,8 +49,8 @@ EcIn:
     bra    SliVer        ;- VerSli:        Slider vertical
     bra    SliHor        ;- HorSli:        Slider horizontal
     bra    SliSet        ;- SetSli:        Set slider params
-    bra    StaMn        ;- MnStart:    Sauve l'ecran 
-    bra    StoMn        ;- MnStop:        Remet l'ecran
+    bra    StaMn        ;- MnStart:    Sauve l''ecran 
+    bra    StoMn        ;- MnStop:        Remet l''ecran
     bra    TRDel        ;- RainDel:    Delete RAINBOW
     bra    TRSet        ;- RainSet:    Set RAINBOW
     bra    TRDo        ;- RainDo:        Do RAINBOW

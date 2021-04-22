@@ -50,7 +50,11 @@ Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3 -> Used for all Screen
 
 ; ************************************************************************
 ; 2021.04.22 :
-- Fixed ECS Dual playfield bug (in ECS CopperListSystem.s file using Amos Factory fix like it was the case in previous Amos Professional AGA project and in the AGA CopperListSystem.s file)
+- Fixed ECS Dual playfield bug
+- Git Push
+- Relabelled AmosProUnityAll_Library to AmosProUnityCommon_Library
+- Optimised AmosProUnityECS/AGA_library files pushing common unchanged files to AmosProUnityCommon_Library
+
 
 
 ; ************************************************************************

@@ -35,7 +35,7 @@ Cls5i:    cmp.w    d2,d4
     bls    Cls5x
     sub.w    d3,d5
     bls    Cls5x
-* Gestion de l'autoback!
+* Gestion de l''autoback!
     tst.w    EcAuto(a5)
     beq.s    Cls5W
     movem.l    d0-d7/a0-a2,-(sp)
@@ -52,7 +52,7 @@ Cls5X:    movem.l    (sp)+,d1-d7/a0/a1/a5/a6
     moveq    #0,d0
     rts
 
-* Routine d'effacement!
+* Routine d''effacement!
 ClsR:    lea    Circuits,a6
     bsr    OwnBlit
     lea    MCls(pc),a0        * Masques

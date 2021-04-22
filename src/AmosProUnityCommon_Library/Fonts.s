@@ -92,7 +92,7 @@ TSFont    bsr    CFont
     move.w    (a0),d0
     cmp.w    #1,d0
     beq.s    .Ram
-; Fonte DISQUE: essaie d'abord en ROM, au cas zou
+; Fonte DISQUE: essaie d''abord en ROM, au cas zou
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l    #502,d0            50 Fontes retournées
     moveq    #1,d1            Fontes RAM
@@ -132,7 +132,7 @@ TSFont    bsr    CFont
     jsr    OpenFont(a6)
     tst.l    d0
     beq.s    .Err
-; Change le rastport et marque l'ecran
+; Change le rastport et marque l''ecran
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .Suit    move.l    d0,a0
     move.l    T_RastPort(a5),a1
@@ -146,7 +146,7 @@ TSFont    bsr    CFont
 .Err    moveq    #1,d0
     bra.s    .X
 
-;    Ferme la fonte de l'ecran courant
+;    Ferme la fonte de l''ecran courant
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 CFont:    movem.l    d0-d1/a0-a1/a6,-(sp)
     move.l    T_EcCourant(a5),d0

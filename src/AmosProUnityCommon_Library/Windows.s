@@ -88,7 +88,7 @@ WiMd0:    move.l    d1,d0
     beq.s    WiMdX
     move.l    d0,WiDBuf(a5)
     move.l    d1,WiTBuf(a5)
-* Copie le contenu de l'ecran!
+* Copie le contenu de l''ecran!
 WiMd1:    move.l    WiDBuf(a5),a3
     move.w    WiDyR(a5),d0
     move.w    EcTLigne(a4),d1
@@ -196,7 +196,7 @@ WiEf1:    move.w    d5,d4
     move.w    2(sp),d5
     bsr    WiClip
     bne    WiEf4
-* Adresse dans l'ecran
+* Adresse dans l''ecran
     move.w    d7,d3
     mulu    EcTLigne(a4),d3
     add.l    d4,d3
@@ -464,7 +464,7 @@ Wo4:    bsr    AdColor
     moveq    #1,d1            ;Scrollings
     bsr    Scroll
 
-* Stocke (s'il faut!) la fenetre courante
+* Stocke (s''il faut!) la fenetre courante
     move.l    EcWindow(a4),d0
     beq.s    Wo5
     move.l    a5,-(sp)
@@ -481,7 +481,7 @@ Wo5:
     beq.s    PaBor
     bsr    DesBord
 PaBor:
-* Effacement de l'interieur
+* Effacement de l''interieur
     bsr    WiInt
     btst    #0,d6
     beq.s    .Skip
@@ -497,7 +497,7 @@ InCu:    move.b    (a0)+,(a1)+
     bset    #1,WiSys(a5)
     bsr    AffCur
 
-* Premiere fenetre de l'ecran / Fenetre courante
+* Premiere fenetre de l''ecran / Fenetre courante
     move.l    EcWindow(a4),d0
     move.l    a5,EcWindow(a4)
     clr.l    WiPrev(a5)
@@ -570,7 +570,7 @@ WAdE4:    moveq    #13,d0
 WQWind:    movem.l    d1-d7/a1-a6,-(sp)
     move.l    T_EcCourant(a5),a4
     move.l    EcWindow(a4),a5
-; Trouve l'adresse de la fenetre
+; Trouve l''adresse de la fenetre
     bsr    WindFind
     bne    WErr1
 ; Deja activee?
@@ -598,10 +598,10 @@ QWi1:
     move.w    WiFyR(a5),d7
     bsr    WiEff            * Redessine
     bsr    WiEffBuf        * Plus besoin de buffer
-* Plus d'escape!
+* Plus d''escape!
     bsr    AffCur
 QWiF    clr.w    WiEsc(a5)
-* Pas d'erreur
+* Pas d''erreur
 WOk:    movem.l    (sp)+,d1-d7/a1-a6
 *    clr.w    T_WiRep(a5)
     moveq    #0,d0
@@ -955,7 +955,7 @@ DesBord:movem.l    d1-d7/a1-a6,-(sp)
     bsr    Loca
     bsr    DVert
 
-; Pas d'erreur
+; Pas d''erreur
     bsr    WiInt
     bra    WOk
 
@@ -1264,7 +1264,7 @@ ScGLine:move.w    WiY(a5),d0
     move.w    WiTyCar(a5),d2
     bra    ScGFin
 ***********************************************************
-*    SCROLLING VERS LA GAUCHE DE TOUT L'ECRAN
+*    SCROLLING VERS LA GAUCHE DE TOUT L''ECRAN
 ***********************************************************
 ScGWi:    move.l    WiAdhgI(a5),d0
     lea    EcCurrent(a4),a0
@@ -1326,7 +1326,7 @@ ScDLine:move.w    WiY(a5),d0
     move.w    WiTyCar(a5),d2
     bra    ScDFin
 ***********************************************************
-*    SCROLLING VERS LA GAUCHE DE TOUT L'ECRAN
+*    SCROLLING VERS LA GAUCHE DE TOUT L''ECRAN
 ***********************************************************
 ScDWi:    move.l    WiAdhgI(a5),d0
     lea    EcCurrent(a4),a0
