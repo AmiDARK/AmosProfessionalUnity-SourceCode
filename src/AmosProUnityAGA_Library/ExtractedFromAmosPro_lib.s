@@ -1665,30 +1665,36 @@ AMP_InScreenDisplay:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Routine SCREEN COPY
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;  D0 = XStart, D1 = YStart, D2 = XDest, D3 = YDest, D4 = XEnd, D5 = YEnd, D6 = Mode
 AMP_ScreenCopy0:                       ; Sco0
 ; - - - - - - - - - - - - -
     movem.l    a3/a6,-(sp)
-    tst.w      d0
-    bpl.s      Sco1
-    sub.w      d0,d2
-    clr.w      d0
+; ******** if XStart < 0 Then XDest = XDest + Abs(XStart) and XStart = 0 ( Adjust XDest position if XStart < 0 )
+    tst.w      d0          ; XStart >=0 ?
+    bpl.s      Sco1        ; Yes -> Jump Sco1
+    sub.w      d0,d2       ; D2 = XDest - XStart
+    clr.w      d0          ; D0 = 0
 Sco1:
-    tst.w      d1
-    bpl.s      Sco2
-    sub.w      d1,d3
+; ******** if YStart < 0 Then YDest = YDest + Abs(YStart) and YStart = 0 ( Adjust YDest position if YStart < 0 )
+    tst.w      d1          ; YStart >=0 ?
+    bpl.s      Sco2        ; Yes -> Jump Sco2
+    sub.w      d1,d3       ; D3 = YDest - YStart
     clr.w      d1
 Sco2:
+; ******** if XDest < 0 Then XStart = XSTart + Abs(XDest) and XDest = 0 ( Adjust XStart position if XDest < 0 )
     tst.w      d2
     bpl.s      Sco3
     sub.w      d2,d0
     clr.w      d2
 Sco3:
+; ******** if YDest < 0 Then YStart = YSTart + Abs(YDest) and YDest = 0 ( Adjust YStart position if YDest < 0 )
     tst.w      d3
     bpl.s      Sco4
     sub.w      d3,d1
     clr.w      d3
 Sco4:
-    cmp.w      EcTx(a0),d0
+; 
+    cmp.w      EcTx(a0),d0             ; 
     bcc        ScoX
     cmp.w      EcTy(a0),d1
     bcc        ScoX
@@ -1726,46 +1732,62 @@ Sco7:
     sub.w      d7,d5
     bls.s      ScoX
 Sco8:
-    ext.l      d0
-    ext.l      d1
-    ext.l      d2
-    ext.l      d3
-    ext.l      d4
-    ext.l      d5
+    ext.l      d0                      ; d0 = SrcX  -> .l
+    ext.l      d1                      ; d1 = SrcY  -> .l
+    ext.l      d2                      ; d2 = DestX -> .l
+    ext.l      d3                      ; d3 = DestY -> .l
+    ext.l      d4                      ; d4 = SizeX -> .l
+    ext.l      d5                      ; d5 = SizeY -> .l
 ; Cree des faux bitmaps
-    move.l     T_ChipBuf(a5),a2    Buffer en CHIP
-    lea        40(a2),a3
-    move.w     EcTLigne(a0),(a2)+
-    move.w     EcTLigne(a1),(a3)+
-    move.w     EcTy(a0),(a2)+
-    move.w     EcTy(a1),(a3)+
-    move.w     EcNPlan(a0),(a2)+
-    move.w     EcNPlan(a1),(a3)+
-    clr.w      (a2)+
-    clr.w      (a3)+
-    move.l     SccEcO(a5),a0
-    move.l     SccEcD(a5),a1
-    moveq    #7,d7                      ; 2019.11.28 Updated to 8 bitplanes instead of initially 6 max.
+    move.l     T_ChipBuf(a5),a2        ; Buffer en CHIP
+; ******** 2021.04.26 Updated to handle directly the Bitmap Structure Size - START
+;    lea        40(a2),a3
+    lea        bm_SIZEOF(a2),a3
+; ******** 2021.04.26 Updated to handle directly the Bitmap Structure Size - END
+    move.w     EcTLigne(a0),(a2)+      ; (src) bm_BytesPerRow
+    move.w     EcTLigne(a1),(a3)+      ; (dst) bm_BytesPerRow
+    move.w     EcTy(a0),(a2)+          ; (src) bm_Rows
+    move.w     EcTy(a1),(a3)+          ; (dst) bm_Rows 
+    move.w     EcNPlan(a0),(a2)+       ; (src) bm_Flags.b, bm_Depth.b
+    move.w     EcNPlan(a1),(a3)+       ; (dst) bm_Flags.b, bm_Depth.b
+    clr.w      (a2)+                   ; (src) bm_Pad
+    clr.w      (a3)+                   ; (dst) bm_Pad
+    move.l     SccEcO(a5),a0           ; a0 = Src Bitplanes
+    move.l     SccEcD(a5),a1           ; a1 = Dst Bitplanes
+;    moveq      #7,d7                  ; 2019.11.28 Updated to 8 bitplanes instead of initially 6 max.
+    moveq      #EcMaxPlans-1,d7        ; 2021.04.25 Updated to 8 bitplanes instead of initially 6 max.
 .BM:
-    move.l     (a0)+,(a2)+
-    move.l     (a1)+,(a3)+
-    dbra       d7,.BM    
+    move.l     (a0)+,(a2)+             ; (src) bm_Planes #EcMaxPlans-d7 (range 0-7)
+    move.l     (a1)+,(a3)+             ; (dst) bm_Planes #EcMaxPlans-d7 (range 0-7)
+    dbra       d7,.BM                  ; d7=d7-1 ; d7>-1 ->.BM
 ; Appelle les routines
-    move.l     T_ChipBuf(a5),a0
-    lea        40(a0),a1
-    lea        40(a1),a2
-    move.l     T_EcVect(a5),a6
-    jsr        ScCpyW*4(a6)
+    move.l     T_ChipBuf(a5),a0        ; a0 = SrcBitMap (Src Bitmap Structure)
+; ******** 2021.04.26 Updated to handle directly the Bitmap Structure Size - START
+;    lea        40(a0),a1
+    lea        bm_SIZEOF(a0),a1        ; a1 = DestBitMap (Dst Bitmap Structure)
+;    lea        40(a1),a2
+    lea        bm_SIZEOF(a1),a2        ; a2 = TempA (Temp Bitmap Structure)
+; ******** 2021.04.26 Updated to handle directly the Bitmap Structure Size - END
+; ******** 2021.04.26 Updated for more understandable call - START
+;    move.l     T_EcVect(a5),a6
+;    jsr        ScCpyW*4(a6)            ; -> ?????
+    EcCallA6   ScCpyW
+; ******** 2021.04.26 Updated for more understandable call - END
     beq.s      ScoX
-    moveq      #-1,d7
+    moveq      #-1,d7                  ; D7 = Mask = 0xFF
     move.l     T_GfxBase(a5),a6
+
     jsr        BltBitMap(a6)
 ScoX:
     movem.l    (sp)+,a3/a6
     rts
 
+; Graphics.Library/BltBitMap :
+; *** A0=SrcBitMap, D0=SrcX, D1=SrcY, A1=DestBitMap, D2=DestX, D3=DestY, D4=SizeX, D5=SizeY, D6=MinTerm, D7=Mask (, A2=TempA)
+
+
 unpackDepthLimit equ 8
-    include "src/AmosProUnityAll_Library/ExtractedFromAmosPro_lib_Unpack.s"
+    include "src/AmosProUnityCommon_Library/ExtractedFromAmosPro_lib_Unpack.s"
 
 AMP_Bnk.SaveA0:
 ; - - - - - - - - - - - - -
@@ -3321,7 +3343,7 @@ rgbFadeLoop:
     sub.w      d2,d3                   ; D3 = D3 + D2 = Fade de la couleur vers le noir ou le blanc ********************************
     cmp.w      #0,d3
     bge.s      .ctd
-    moveq.w    #0,d3
+    move.w     #0,d3                ; Original moveq.w  #0,d3 not accepted by vAsm
 .ctd:
     bra.s      continueFadeAGA
 
@@ -3469,6 +3491,7 @@ AMP_Dia_RScOpen:
     lsl.w    #2,d0
     lea    2(a1,d0.w),a1
     move.w    (a1)+,d6        Nombre couleurs
+;    move.w    #16,d6                   ; 2021.04.26 Forces RESOURCES SCREEN to be 16 colors instead of 8.
     ext.l    d6
     move.w    (a1)+,d5        Mode
 
@@ -3495,7 +3518,7 @@ AMP_Dia_RScOpen:
     beq.s      .ScOo2
     lsl.w      #1,d0
     addq.w     #1,d4
-    cmp.w      #EcMaxPlans-1,d4        ; 2021.03.27 Updated to handle directly max amount of planes allowed (original was = #7)
+    cmp.w      #EcMaxPlans+1,d4        ; 2021.03.27 Updated to handle directly max amount of planes allowed (original was = #7)
     bcs.s      .ScOo1
 .ScOo2:
     EcCall   Cree

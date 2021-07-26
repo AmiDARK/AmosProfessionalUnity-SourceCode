@@ -133,7 +133,7 @@ Ed_DiaImages    equ    66        Debut des images dialogue dans la banque
 ;
 Ed_Cold    
     clr.b    Ed_Ok(a5)        Pas en etat de marche!
-    bsr    Ed_Available
+    bsr      Ed_Available
     cmp.l    #50*1024,d1        Au moins 50k de CHIP
     bcs.s    .Mem
     cmp.l    #110*1024,d0        Au moins 110k de memoire en tout!
@@ -145,41 +145,43 @@ Ed_Cold
     bne.s    .UnKill
 ; Chargement vraiment à froid
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    bsr    Ed_LoadAllConfig    Charge les fichiers
+    bsr      Ed_LoadAllConfig    Charge les fichiers
     bne.s    .Err
-    bsr    Ed_Computee        Des fenetres vides
+    bsr      Ed_Computee        Des fenetres vides
     bne.s    .Err
-    bsr    Ed_OpenEditor        Ouvre l'editeur
+    bsr      Ed_OpenEditor        Ouvre l'editeur
     bne.s    .Err
-    move.b    #1,Ed_Warm(a5)        Flag change!
-    move.w    #-1,EsFlag(a5)        Force appear
+    move.b   #1,Ed_Warm(a5)        Flag change!
+    move.w   #-1,EsFlag(a5)        Force appear
     clr.w    Direct(a5)        Pas mode direct
     moveq    #0,d0            Pas d'erreur
     rts
 ; Chargement apres un KILL EDITOR
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.UnKill    bsr    Ed_LoadAllConfig    Recharge les configs
+.UnKill      bsr    Ed_LoadAllConfig    Recharge les configs
     bne.s    .Err
     moveq    #0,d0
     rts
 ; Une erreur
 ; ~~~~~~~~~~
-.Mem    moveq    #1,d0
-.Err    move.l    d0,-(sp)
-    bsr    Ed_CloseEditor
-    bsr    Ed_FreeAllConfig
-    move.l    (sp)+,d0
+.Mem:
+    moveq    #1,d0
+.Err:
+    move.l   d0,-(sp)
+    bsr      Ed_CloseEditor
+    bsr      Ed_FreeAllConfig
+    move.l   (sp)+,d0
     rts
 
 ; Apparition du titre de l'editeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ed_Title
-    bsr    Ed_Appear
-    bsr    Ed_WarmStart        Un Warmstart?
+    bsr      Ed_Appear
+    bsr      Ed_WarmStart      ; Un Warmstart?
     moveq    #"A",d0            
-    bsr    Ed_SamPlay        Bonjour!
-    bsr    Ed_About        Titre
-    bsr    Ed_Loca            Curseur
+    bsr      Ed_SamPlay        ; Bonjour!
+    bsr      Ed_About          ; Titre
+    bsr      Ed_Loca           ; Curseur
     rts
 
 ; Fenetres d'origines déja computées?
@@ -188,13 +190,14 @@ Ed_Computee
     move.l    Prg_List(a5),d0
     move.l    Edt_List(a5),a4
     move.w    #2,Ed_WMax(a5)        Par default, au moins
-.Loop    move.l    d0,a6
-    tst.b    Prg_Edited(a6)
-    bne.s    .Deja
-    moveq    #-1,d0            Visible
-    moveq    #-1,d1            Pas de structure PRG
-    bsr    Edt_OpWindow        Va ouvrir >>> fenetre courante
-    bne.s    .Err
+.Loop:
+    move.l    d0,a6
+    tst.b     Prg_Edited(a6)
+    bne.s     .Deja
+    moveq     #-1,d0            Visible
+    moveq     #-1,d1            Pas de structure PRG
+    bsr       Edt_OpWindow        Va ouvrir >>> fenetre courante
+    bne.s     .Err
     move.l    a6,Edt_Prg(a4)
     addq.b    #1,Prg_Edited(a6)
 .Deja    move.l    Prg_Next(a6),d0
@@ -207,10 +210,10 @@ Ed_Computee
 ; Effacement de tous les fichiers de config
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ed_FreeAllConfig
-    bsr    Ed_SamEnd        Les sons
-    bsr    EdMa_End        Les macros
-    bsr    EdC_Free        Les configs
-    bsr    Ed_ResourceFree        La resource
+    bsr    Ed_SamEnd           ; Les sons
+    bsr    EdMa_End            ; Les macros
+    bsr    EdC_Free            ; Les configs
+    bsr    Ed_ResourceFree     ; La resource
     rts
 ; Chargement de tous les fichiers de config
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -218,29 +221,30 @@ Ed_LoadAllConfig
 ; Charge la configuration de l'editeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     moveq    #7,d0
-    JJsr    L_Sys_GetMessage
+    JJsr     L_Sys_GetMessage
     JJsrR    L_Sys_AddPath,a1
-    bsr    EdC_Load
+    bsr      EdC_Load
     bne.s    .Err
 ; Charge la banque de resource
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     moveq    #45,d0
-    bsr    Ed_GetSysteme
+    bsr      Ed_GetSysteme
     JJsrR    L_Sys_AddPath,a1
-    bsr    Ed_ResourceLoad
+    bsr      Ed_ResourceLoad
     bne.s    .Err
 ; Charge les macros par defaut
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     moveq    #46,d0
-    bsr    Ed_GetSysteme
+    bsr      Ed_GetSysteme
     JJsrR    L_Sys_AddPath,a1
-    bsr    EdMa_Load
+    bsr      EdMa_Load
     bne.s    .Err
 ; Charge les sons par defaut
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~
-    bsr    Ed_SamChanged
+    bsr      Ed_SamChanged
     moveq    #0,d0
-.Err    rts
+.Err:
+    rts
 
 
 ;______________________________________________________________________________
@@ -267,221 +271,232 @@ Ed_End    tst.b    Ed_Ok(a5)            Systeme installe?
 
 Ed_OpenEditor
     movem.l    d1-d7/a0-a6,-(sp)
-    tst.b    Ed_Opened(a5)
-    bne.s    .Ok
+    tst.b      Ed_Opened(a5)
+    bne.s      .Ok
 
-    bsr    Ed_OpenIt        Premier essai
-    beq.s    .Ok
+    bsr        Ed_OpenIt        Premier essai
+    beq.s      .Ok
 
-    bsr    Ed_CloseIt        Out of mem, on efface
-    bsr    EdM_Program        Menus du programme
-    move.l    Edt_Current(a5),a4
-    move.l    Edt_Prg(a4),a6
-    JJsr    L_Prg_SetBanks        Change les banques
-    JJsr    L_MemMaximum        Nettoie au maximum!
+    bsr        Ed_CloseIt        Out of mem, on efface
+    bsr        EdM_Program        Menus du programme
+    move.l     Edt_Current(a5),a4
+    move.l     Edt_Prg(a4),a6
+    JJsr       L_Prg_SetBanks        Change les banques
+    JJsr       L_MemMaximum        Nettoie au maximum!
 
-    bsr    Ed_OpenIt        Deuxieme essai!
-    beq.s    .Ok
-    bsr    Ed_CloseIt
-    bsr    EdM_Program
-    move.l    Edt_Current(a5),a4
-    move.l    Edt_Prg(a4),a6
-    JJsr    L_Prg_SetBanks        Change les banques
-    JJsr    L_MemDelBanks        Ligne: effacer les banques?
-    beq    Ed_System        NON: on sort!
-    JJsr    L_Bnk.EffAll        Efface toutes les banques
-    JJsr    L_Bnk.Change        Changement de banques
+    bsr        Ed_OpenIt        Deuxieme essai!
+    beq.s      .Ok
+    bsr        Ed_CloseIt
+    bsr        EdM_Program
+    move.l     Edt_Current(a5),a4
+    move.l     Edt_Prg(a4),a6
+    JJsr       L_Prg_SetBanks        Change les banques
+    JJsr       L_MemDelBanks        Ligne: effacer les banques?
+    beq        Ed_System        NON: on sort!
+    JJsr       L_Bnk.EffAll        Efface toutes les banques
+    JJsr       L_Bnk.Change        Changement de banques
     
-    bsr    Ed_OpenIt
-    beq.s    .Ok
-    bsr    Ed_CloseIt
-    moveq    #1,d0            Out of mem
-    bra.s    .Out
-.Ok    move.b    #1,Ed_Opened(a5)    Flag!
-    moveq    #0,d0            C'est bon!
-.Out    movem.l    (sp)+,d1-d7/a0-a6
+    bsr        Ed_OpenIt
+    beq.s      .Ok
+    bsr        Ed_CloseIt
+    moveq      #1,d0            Out of mem
+    bra.s      .Out
+.Ok:
+    move.b     #1,Ed_Opened(a5)    Flag!
+    moveq      #0,d0            C'est bon!
+.Out:
+    movem.l    (sp)+,d1-d7/a0-a6
     rts
 
 ; Routine d'ouverture de l'editeur...
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ed_OpenIt
-    bsr    Ed_SetBanks
-    bsr    EdM_Editor
+    bsr        Ed_SetBanks
+    bsr        EdM_Editor
 ; Verification de la taille des fenetres / Config
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    tst.b    EdC_Modified(a5)    
-    beq    .ModX
-    clr.b    EdC_Modified(a5)
-    move.l    Edt_Current(a5),d0    Des fenetres?
-    beq    .ModX
+    tst.b      EdC_Modified(a5)    
+    beq        .ModX
+    clr.b      EdC_Modified(a5)
+    move.l     Edt_Current(a5),d0    Des fenetres?
+    beq        .ModX
 ; Verification de la taille en Y
-    move.l    d0,a4            Fenetre courante
-    moveq    #-1,d0            Sans toucher les autres
-    bsr    Edt_WMaxSize
-    cmp.w    Edt_WindTy(a4),d0    Pareil?
-    beq.s    .Mod5
-    moveq    #0,d0            Reduit les autres
-    bsr    Edt_WSchrinkAll
-    moveq    #-1,d0
-    bsr    Edt_WMaxSize        Taille maxi acceptable
-    move.w    d0,Edt_WindTy(a4)
-    bgt    .Mod5            Ok!
-.Mod2    move.w    #1,Edt_WindTy(a4)    Taille mini!
-    moveq    #Ed_TitreSy,d1        Compte la taille necessaire!
-    move.l    Edt_List(a5),d0        Toute la liste
-.Mod3    move.l    d0,a0
-    tst.b    Edt_Hidden(a0)        Deja cachee
-    bne.s    .Mod4
-    add.w    #Edt_EtatSy+Edt_BasSy,d1
-    move.w    Edt_WindTy(a0),d0
-    lsl.w    #3,d0
-    add.w    d0,d1
-.Mod4    move.l    Edt_Next(a0),d0
-    bne.s    .Mod3
-    move.w    d1,Ed_Sy(a5)        Change la config!!!!    
+    move.l     d0,a4            Fenetre courante
+    moveq      #-1,d0            Sans toucher les autres
+    bsr        Edt_WMaxSize
+    cmp.w      Edt_WindTy(a4),d0    Pareil?
+    beq.s      .Mod5
+    moveq      #0,d0            Reduit les autres
+    bsr        Edt_WSchrinkAll
+    moveq      #-1,d0
+    bsr        Edt_WMaxSize        Taille maxi acceptable
+    move.w     d0,Edt_WindTy(a4)
+    bgt        .Mod5            Ok!
+.Mod2:
+    move.w     #1,Edt_WindTy(a4)    Taille mini!
+    moveq      #Ed_TitreSy,d1        Compte la taille necessaire!
+    move.l     Edt_List(a5),d0        Toute la liste
+.Mod3:
+    move.l     d0,a0
+    tst.b      Edt_Hidden(a0)        Deja cachee
+    bne.s      .Mod4
+    add.w      #Edt_EtatSy+Edt_BasSy,d1
+    move.w     Edt_WindTy(a0),d0
+    lsl.w      #3,d0
+    add.w      d0,d1
+.Mod4:
+    move.l     Edt_Next(a0),d0
+    bne.s      .Mod3
+    move.w     d1,Ed_Sy(a5)        Change la config!!!!    
 ; Verification de la position du curseur en X
-.Mod5    move.w    Ed_Sx(a5),d1        Derniere limite curseur
-    lsr.w    #3,d1
-    subq.w    #3,d1
-    move.l    Edt_List(a5),d0        Toute la liste
-.Mod6    move.l    d0,a0
-    tst.b    Edt_Hidden(a0)        Deja cachee
-    bne.s    .Mod7
-    move.w    Edt_XCu(a0),d0
-    cmp.w    d1,d0
-    bcs.s    .Mod7
-    move.w    d1,Edt_XCu(a0)
-    sub.w    d1,d0
-    add.w    d0,Edt_XPos(a0)
-.Mod7    move.l    Edt_Next(a0),d0
-    bne.s    .Mod6
+.Mod5:
+    move.w     Ed_Sx(a5),d1        Derniere limite curseur
+    lsr.w      #3,d1
+    subq.w     #3,d1
+    move.l     Edt_List(a5),d0        Toute la liste
+.Mod6:
+    move.l     d0,a0
+    tst.b      Edt_Hidden(a0)        Deja cachee
+    bne.s      .Mod7
+    move.w     Edt_XCu(a0),d0
+    cmp.w      d1,d0
+    bcs.s      .Mod7
+    move.w     d1,Edt_XCu(a0)
+    sub.w      d1,d0
+    add.w      d0,Edt_XPos(a0)
+.Mod7:
+    move.l     Edt_Next(a0),d0
+    bne.s      .Mod6
 .ModX
-    bsr    EdC_SetPalette        Update de la palette
+    bsr        EdC_SetPalette        Update de la palette
 
-    moveq    #EcFonc,d0        Ouverture de l'ecran de fonctions
-    move.w    Ed_Sx(a5),d1
-    ext.l    d1
-    moveq    #Es_TitleSy,d2
-    moveq    #0,d3
-    move.l    Ed_Resource(a5),a0
-    add.l    2(a0),a0
-    moveq    #0,d4
-    JJsrR    L_Dia_RScOpen,a1
-    bne    .Error
-    bset    #BitHide,EcFlags(a0)
-    move.w    Ed_Wx(a5),EcAWX(a0)
-    moveq    #20,d1
-    SyCall    ResZone
-    bne    .Error
+    moveq      #EcFonc,d0        Ouverture de l'ecran de fonctions
+    move.w     Ed_Sx(a5),d1
+    ext.l      d1
+    moveq      #Es_TitleSy,d2
+    moveq      #0,d3
+    move.l     Ed_Resource(a5),a0
+    add.l      2(a0),a0
+    moveq      #0,d4
+    JJsrR      L_Dia_RScOpen,a1
+    bne        .Error
+    bset       #BitHide,EcFlags(a0)
+    move.w     Ed_Wx(a5),EcAWX(a0)
+    moveq      #20,d1
+    SyCall     ResZone
+    bne        .Error
 
-    moveq    #EcEdit,d0        Ouverture de l'ecran principal
-    move.w    Ed_Sx(a5),d1
-    ext.l    d1
-    move.w    Ed_Sy(a5),d2
-    addq.w    #7,d2
-    and.w    #$FFF8,d2
-    move.w    d2,d3
-    sub.w    #16,d3
-    sub.w    #Ed_YTop,d3
-    lsr.w    #3,d3
-    move.w    d3,Ed_Ty(a5)
-    ext.l    d2
-    moveq    #1,d3
-    moveq    #0,d4            Interlaced?
-    move.b    Ed_Inter(a5),d4
-    move.l    Ed_Resource(a5),a0
-    add.l    2(a0),a0
-    JJsrR    L_Dia_RScOpen,a1
-    bne.s    .Error
-    bset    #BitHide,EcFlags(a0)
-    move.w    Ed_Wx(a5),EcAWX(a0)
-    move.w    Ed_Wy(a5),EcAWY(a0)
-    moveq    #10,d0
-    bsr    Et_Print
+    moveq      #EcEdit,d0        Ouverture de l'ecran principal
+    move.w     Ed_Sx(a5),d1
+    ext.l      d1
+    move.w     Ed_Sy(a5),d2
+    addq.w     #7,d2
+    and.w      #$FFF8,d2
+    move.w     d2,d3
+    sub.w      #16,d3
+    sub.w      #Ed_YTop,d3
+    lsr.w      #3,d3
+    move.w      d3,Ed_Ty(a5)
+    ext.l      d2
+    moveq      #1,d3
+    moveq      #0,d4            Interlaced?
+    move.b     Ed_Inter(a5),d4
+    move.l     Ed_Resource(a5),a0
+    add.l      2(a0),a0
+    JJsrR      L_Dia_RScOpen,a1
+    bne.s      .Error
+    bset       #BitHide,EcFlags(a0)
+    move.w     Ed_Wx(a5),EcAWX(a0)
+    move.w     Ed_Wy(a5),EcAWY(a0)
+    moveq      #10,d0
+    bsr        Et_Print
 
-    move.w    Ed_Ty(a5),d0        Buffer d'edition
-    mulu    #256,d0
-    SyCall    MemFast
-    move.l    a0,Ed_BufE(a5)
-    beq    .Error
+    move.w     Ed_Ty(a5),d0        Buffer d'edition
+    mulu       #256,d0
+    SyCall     MemFast
+    move.l     a0,Ed_BufE(a5)
+    beq        .Error
 
-    moveq    #0,d0            Nombre maximum de programmes
-    move.w    Ed_Ty(a5),d0
-    subq.w    #6,d0
-    divu    #3,d0
-    move.w    d0,Ed_WMax(a5)
+    moveq      #0,d0            Nombre maximum de programmes
+    move.w     Ed_Ty(a5),d0
+    subq.w     #6,d0
+    divu       #3,d0
+    move.w     d0,Ed_WMax(a5)
 
-    jsr    Tok_Init        Les tables de tokenisation 
-    bne.s    .Error
-    bsr    Ed_InitDialogues    Les dialogues
-    bne.s    .Error
-    bsr    EdM_Init        Cree les menus
-    bne.s    .Error
-    bsr    Prg_CreateUndos        Les buffers UNDOS de programmes
+    jsr        Tok_Init        Les tables de tokenisation 
+    bne.s      .Error
+    bsr        Ed_InitDialogues    Les dialogues
+    bne.s      .Error
+    bsr        EdM_Init        Cree les menus
+    bne.s      .Error
+    bsr        Prg_CreateUndos        Les buffers UNDOS de programmes
 
 ; Pas d'erreur
-    clr.b    EdC_Modified(a5)    Config adaptee...
-    moveq    #0,d0            Pas d'erreur!
+    clr.b      EdC_Modified(a5)    Config adaptee...
+    moveq      #0,d0            Pas d'erreur!
     rts
 ; Out of memory
-.Error    moveq    #1,d0            Out of memory
+.Error:
+    moveq      #1,d0            Out of memory
     rts
 
 
 ;     Fermeture generale de l'editeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ed_KillEditor
-    bsr    Ed_CloseEditor        Plus rien
-    bsr    Ed_FreeAllConfig    Plus aucune configuration
-    clr.b    Ed_Ok(a5)        Plus en etat de marche...
+    bsr        Ed_CloseEditor        Plus rien
+    bsr        Ed_FreeAllConfig    Plus aucune configuration
+    clr.b      Ed_Ok(a5)        Plus en etat de marche...
     rts
 
 ;    Fermeture de l'éditeur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ed_CloseEditor
-    tst.b    Ed_Opened(a5)
-    beq.s    .Skip
-    clr.b    Ed_Opened(a5)
+    tst.b      Ed_Opened(a5)
+    beq.s      .Skip
+    clr.b      Ed_Opened(a5)
     movem.l    d0-d7/a0-a6,-(sp)
-    bsr    Ed_CloseIt
+    bsr        Ed_CloseIt
     movem.l    (sp)+,d0-d7/a0-a6
-.Skip    rts
+.Skip:
+    rts
 
 ; Routine de fermeture..
 ; ~~~~~~~~~~~~~~~~~~~~~~
 Ed_CloseIt
-    bsr    Ed_SetBanks        Banques de l'editeur
-    bsr    Prg_FreeUndos        Plus de buffer UNDOS
-    bsr    Esc_KMemEnd        Plus de touches de mode direct
-    bsr    Ed_AllAverFin        Plus d'avertissement
-    bsr    Ed_BlocFree        Plus de bloc
-    bsr    EdM_End            Plus de menus
-    bsr    Ed_EndDialogues        Plus de dialogues
-    bsr    Edt_DelAllZones        Plus de zones de fenetres
-    EcCalD    Del,EcEdit        Plus d'ecrans
-    EcCalD    Del,EcFonc        
-    jsr    Tok_Del            Plus de tokenisation
-    move.l    Ed_BufE(a5),d0        Plus de buffer d'edition
-    beq.s    .Skip
-    clr.l    Ed_BufE(a5)
-    move.l    d0,a1
-    move.w    Ed_Ty(a5),d0
-    mulu    #256,d0
-    SyCall    MemFree
-.Skip    rts
+    bsr        Ed_SetBanks        Banques de l'editeur
+    bsr        Prg_FreeUndos        Plus de buffer UNDOS
+    bsr        Esc_KMemEnd        Plus de touches de mode direct
+    bsr        Ed_AllAverFin        Plus d'avertissement
+    bsr        Ed_BlocFree        Plus de bloc
+    bsr        EdM_End            Plus de menus
+    bsr        Ed_EndDialogues        Plus de dialogues
+    bsr        Edt_DelAllZones        Plus de zones de fenetres
+    EcCalD     Del,EcEdit        Plus d'ecrans
+    EcCalD     Del,EcFonc        
+    jsr        Tok_Del            Plus de tokenisation
+    move.l     Ed_BufE(a5),d0        Plus de buffer d'edition
+    beq.s      .Skip
+    clr.l      Ed_BufE(a5)
+    move.l     d0,a1
+    move.w     Ed_Ty(a5),d0
+    mulu       #256,d0
+    SyCall     MemFree
+.Skip:
+    rts
 
 ; Retourne la memoire libre dans la machine
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ed_Available
     movem.l    a0/a1/a6,-(sp)
-    move.l    $4.w,a6
-    move.l    #Public|Fast,d1
-    jsr    _LVOAvailMem(a6)
-    move.l    d0,d2
-    move.l    #Public|Chip,d1
-    jsr    _LVOAvailMem(a6)
-    move.l    d0,d1
-    add.l    d2,d0
+    move.l     $4.w,a6
+    move.l     #Public|Fast,d1
+    jsr        _LVOAvailMem(a6)
+    move.l     d0,d2
+    move.l     #Public|Chip,d1
+    jsr        _LVOAvailMem(a6)
+    move.l     d0,d1
+    add.l      d2,d0
     movem.l    (sp)+,a0/a1/a6
     rts
 
@@ -491,20 +506,20 @@ Ed_Available
 ;______________________________________________________________________________
 ;
 Ed_WarmStart
-; Fichier "Last Cession" present?
-    moveq    #47,d0
-    bsr    Ed_GetSysteme
-    JJsrR    L_Sys_AddPath,a1
-    JJsr    L_RExist
-    beq    .Out
+; ******** Fichier "Last Cession" present?
+    moveq      #47,d0
+    bsr        Ed_GetSysteme
+    JJsrR      L_Sys_AddPath,a1
+    JJsr       L_RExist
+    beq        .Out
 ; Message
-    move.w    #159,d0
-    bsr    Ed_AverMess
+    move.w     #159,d0
+    bsr        Ed_AverMess
 ; Efface la premiere fenetre systeme
-    move.l    Edt_List(a5),d0
-    beq.s    .No1
-    move.l    d0,a4
-    bsr    Edt_DelWindow
+    move.l     Edt_List(a5),d0
+    beq.s      .No1
+    move.l     d0,a4
+    bsr        Edt_DelWindow
 .No1
 ; PHASE 1: re-creation des listes
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -13916,16 +13931,17 @@ Ed_TiWait
 ;
 Es_Unpack
     move.l    T_EcAdr+EcFonc*4(a5),a1
-    bra.s    EdU
-Ed_Unpack
+    bra.s     EdU
+Ed_Unpack:
     move.l    T_EcAdr+EcEdit*4(a5),a1
-EdU    move.l    Ed_Resource(a5),a0
-    add.l    2(a0),a0
-    lsl.w    #2,d0
-    add.l    -4+2(a0,d0.w),a0
-    ext.l    d1
-    ext.l    d2
-    JJsrP    L_UnPack_Bitmap,a2
+EdU:
+    move.l    Ed_Resource(a5),a0
+    add.l     2(a0),a0
+    lsl.w     #2,d0
+    add.l     -4+2(a0,d0.w),a0
+    ext.l     d1
+    ext.l     d2
+    JJsrP     L_UnPack_Bitmap,a2
     rts
 
 ; ___________________________________________________________________
@@ -13945,21 +13961,21 @@ Bt_RoutIn
 Bt_EsCDraw
     move.l    d2,-(sp)
     move.w    Bt_Image(a2),d0
-    add.w    Bt_Pos(a2),d0
+    add.w     Bt_Pos(a2),d0
     move.w    Bt_X(a2),d1
     move.w    Bt_Y(a2),d2
-    bsr    Es_Unpack
+    bsr       Es_Unpack
     move.l    (sp)+,d2
     rts
 ; Dessin d'un bouton EDITOR!
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~                         ; 2021.04.26
 Bt_EdDraw
     move.l    d2,-(sp)
     move.w    Bt_Image(a2),d0
-    add.w    Bt_Pos(a2),d0
+    add.w     Bt_Pos(a2),d0
     move.w    Bt_X(a2),d1
     move.w    Bt_Y(a2),d2
-    bsr    Ed_Unpack
+    bsr       Ed_Unpack
     move.l    (sp)+,d2
     rts
 

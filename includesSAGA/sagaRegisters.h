@@ -17,7 +17,7 @@
     ChipsetBase    equ     $dff000     ; This value must be added to chipset registers values for direct registers write
 
     ; This value must be added to the register values when long writes must be done inside a copperlist
-    longWrite      equ     $008000     ; Used to long copper list instructions (instead of default word ones)
+    longWrite      equ     $000800     ; Used to long copper list instructions (instead of default word ones)
 
     ;
     BPLHMOD        equ     $0001e6     ; Chunky plane modulo
@@ -126,6 +126,37 @@
     Aud7Crtl       equ     $00041a
     Aud7Per        equ     $00041c
 
+; **************************************************************************************************
+; Videos modes from : http://wiki.apollo-accelerators.com/doku.php/saga:registers:saga_video_mode
+
+; A valid SAGA Video Mode value ( GFXMODE(=$DFF1F4) ) is an addition of :
+;     -> Low byte: SAGA_VIDEO_FORMAT
+;     -> High byte: SAGA_VIDEO_DBLSCAN
+
+; Low byte: SAGA_VIDEO_FORMAT
+; This enumeration is used to describe the PixelFormat of the Video.
+;-----------------------------------------------------------------------------
+;   Name                       Value    ; Bytes per Pixel ; Description
+;-----------------------------------------------------------------------------
+    SAGA_VIDEO_FORMAT_OFF      equ 0    ;        -        ;  Chunky DMA Off
+    SAGA_VIDEO_FORMAT_CLUT8    equ 1    ;        1        ;  CLUT8
+    SAGA_VIDEO_FORMAT_RGB16    equ 2    ;        2        ;  R5|G6|B5
+    SAGA_VIDEO_FORMAT_RGB15    equ 3    ;        2        ;  -|R5|G5|B5
+    SAGA_VIDEO_FORMAT_RGB24    equ 4    ;        3        ;  R8|G8|B8
+    SAGA_VIDEO_FORMAT_RGB32    equ 5    ;        4        ;  -|R8|G8|B8
+    SAGA_VIDEO_FORMAT_YUV422   equ 6    ;        2        ;  Y4|U2|V2
+;-----------------------------------------------------------------------------
+
+; High byte: SAGA_VIDEO_DBLSCAN
+; This enumeration is used to describe the DoubleScan flag of the Video.
+;-----------------------------------------------------------------------------
+;   Name                       Value    ; Description
+;-----------------------------------------------------------------------------
+    SAGA_VIDEO_DBLSCAN_OFF     equ 0    ; Normal Display
+    SAGA_VIDEO_DBLSCAN_X       equ 1    ; Double output each X-Pixel (X-DoubleScan)
+    SAGA_VIDEO_DBLSCAN_Y       equ 2    ; Double output each Row (Y-DoubleScan)
+    SAGA_VIDEO_DBLSCAN_XY      equ 3    ; DOuble output (XY-DoubleScan)
+;-----------------------------------------------------------------------------
 
 ; *********************************************************************************************
 ; 
@@ -166,7 +197,7 @@
 ;          | 07.00 | Pixelformat | $00                                  |
 ;          |       |               $01 = 8bit0                          |
 ;          |       |               $02 = 16bit R5G6B5                   |
-;          |       |               $03 = 15bit 1R6G5B5                  |
+;          |       |               $03 = 15bit 1R5G5B5                  |
 ;          |       |               $04 = 24bit R8G8B8                   |
 ;          |       |               $05 = 32bit A8R8G8B8                 |
 ;          |       |               $06 = YUV                            |
@@ -174,7 +205,7 @@
 ;          |       |               $08 = PLANAR 1BIT                    |
 ;          |       |               $09 = PLANAR 2BIT                    |
 ;          |       |               $0A = PLANAR 4BIT                    |
-;          |       |               $0B = 640x360                        |
+;          |       |               $0B =                                |
 ;          +-------+----------+-----------------------------------------+ 
 ; 
 ; *********************************************************************************************

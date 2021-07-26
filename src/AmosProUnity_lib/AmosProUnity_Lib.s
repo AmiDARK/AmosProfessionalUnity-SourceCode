@@ -9135,6 +9135,7 @@ ScNoDef    moveq    #28,d0
     move.l    #$CC,d3
     Rbra    L_InScreenCopy9
 ; - - - - - - - - - - - - -
+; ******** Screen Copy source number,x1 ,y1 ,x2,y2 To destination number,x3,y3,mode
     Lib_Par InScreenCopy9
 ; - - - - - - - - - - - - -
 * Adresse ecran 2
@@ -9148,18 +9149,20 @@ ScNoDef    moveq    #28,d0
     move.l    d0,SccEcO(a5)
 * Prend les coordonnees
     movem.l    d5-d7,-(sp)
-    move.l    d3,d6
-    move.l    (a3)+,d3
-    move.l    (a3)+,d2
-    addq.l    #4,a3
-    move.l    (a3)+,d5
-    move.l    (a3)+,d4
-    move.l    (a3)+,d1
-    move.l    (a3)+,d0
-    addq.l    #4,a3
+    move.l    d3,d6    ; Mode
+    move.l    (a3)+,d3 ; YDest
+    move.l    (a3)+,d2 ; XDest
+    addq.l    #4,a3    ; Target Screen
+    move.l    (a3)+,d5 ; YStartBottom
+    move.l    (a3)+,d4 ; XStartBottom
+    move.l    (a3)+,d1 ; YStartTop
+    move.l    (a3)+,d0 ; XStartTop
+    addq.l    #4,a3    ; Source Screen
 * Appelle la routine
+; ******** D0 = XStart, D1 = YStart, D4 = XEnd, D5 = YEnd, D2 = XDest, D3 = YDest, D6 = Mode
     Rbsr    L_Sco0
     movem.l    (sp)+,d5-d7
+
     rts
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;                     Routine SCREEN COPY
@@ -13617,10 +13620,10 @@ hx3:    Rjsr     L_LongToBin
     Rbsr    L_Dia_GetPuzzle
     move.l    a1,a0
     moveq    #-1,d4            Interlaced comme la banque
-;    move.l    (a3)+,d3
-    move.l    (a3)+,d2
-    move.l    (a3)+,d1
-    move.l    (a3)+,d0
+;    move.l    (a3)+,d3        ; D3 = Flash (default)
+    move.l    (a3)+,d2         ; D2 = Height
+    move.l    (a3)+,d1         ; D1 = Width
+    move.l    (a3)+,d0         ; D0 = Screen ID
     cmp.l    #8,d0
     Rbcc    L_IllScN
     Rjsr    L_Dia_RScOpen
@@ -13646,7 +13649,7 @@ hx3:    Rjsr     L_LongToBin
     Lib_Def    Dia_GetPuzzle
 ; - - - - - - - - - - - - -
     move.l    IDia_BankPuzzle(a5),d0
-    Rbeq    L_Dia_GetDefault
+    Rbeq      L_Dia_GetDefault
 ; Une banque normale
     move.l    a3,-(sp)
     Rbsr    L_Bnk.GetAdr
@@ -13685,14 +13688,14 @@ hx3:    Rjsr     L_LongToBin
     Lib_Def    Dia_GetDefault
 ; - - - - - - - - - - - - -
     move.l    Sys_Resource(a5),d0
-    Rbeq    L_BkNoRes
+    Rbeq      L_BkNoRes
     move.l    d0,a0
     move.l    a0,a1
-    add.l    2+0(a0),a1        Base des graphiques
+    add.l     2+0(a0),a1        Base des graphiques
     move.l    a0,a2
-    add.l    2+4(a0),a2        Base des messages
-    add.l    2+8(a0),a0        Base des programmes
-    moveq    #0,d0            Programmes par defaut
+    add.l     2+4(a0),a2        Base des messages
+    add.l     2+8(a0),a0        Base des programmes
+    moveq     #0,d0            Programmes par defaut
     rts
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -19711,78 +19714,6 @@ SlDInit    dc.b 0,0,0,1,4,4,4,1
     tst.w    d0
     rts
 ;
-    movem.l    a2/d2-d7,-(sp)
-    subq.l    #8,sp
-    move.l    d3,(sp)
-    move.l    d2,d3            TY
-    move.l    d1,d2            TX
-    move.l    d0,d1            Numero
-    move.l    a0,a1
-    move.w    (a1),d0
-    lsl.w    #2,d0
-    lea    2(a1,d0.w),a1
-    move.w    (a1)+,d6        Nombre couleurs
-    ext.l    d6
-    move.w    (a1)+,d5        Mode
-    and.l    #$8004,d5
-    tst.w    d4            Force l''interlaced?
-    bmi.s    .Skm
-    bclr    #2,d5
-    tst.w    d4
-    beq.s    .Skm
-    bset    #2,d5
-.Skm    cmp.l    #4096,d6
-    bne.s    .ScOo0
-    moveq    #6,d4
-    or.w    #$0800,d5
-    moveq    #64,d6
-    bra.s    .ScOo2
-* Nombre de couleurs-> plans
-.ScOo0:
-    moveq    #1,d4            * Nb de plans
-    moveq    #2,d0
-.ScOo1:
-    cmp.l    d0,d6
-    beq.s    .ScOo2
-    lsl.w    #1,d0
-    addq.w    #1,d4
-    cmp.w    #7,d4
-    bcs.s    .ScOo1
-.ScOo2:
-    EcCall   Cree
-    bne.s    .Err
-    move.l   a0,4(sp)
-* Fait flasher la couleur
-    move.l    (sp),d1            Efface le curseur
-    bne.s    .Fl
-    lea    .Cu0(pc),a1
-    bra.s    .Prn
-.Fl
-    moveq    #1,d0            Met le curseur
-    cmp.w    EcNbCol(a0),d1
-    bcc.s    .Err
-    moveq    #46,d0
-    Rjsr    L_Sys_GetMessage
-    move.l    a0,a1
-    EcCall    Flash
-    bne.s    .Err
-    move.l    (sp),d1
-    lea    .Cu1(pc),a1
-    add.b    #"0",d1
-    move.b    d1,2(a1)
-.Prn:
-    WiCall    Print
-    moveq    #0,d0
-* Erreur
-.Err:
-    tst.l    (sp)+
-    move.l    (sp)+,a0
-    movem.l    (sp)+,a2/d2-d7
-    tst.w    d0
-    rts
-.Cu0    dc.b    27,"C0",0
-.Cu1    dc.b    27,"D0",0
-
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;     LISTE DES INSTRUCTIONS DIALOGUE

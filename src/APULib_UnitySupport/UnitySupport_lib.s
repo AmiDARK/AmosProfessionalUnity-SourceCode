@@ -297,6 +297,13 @@ C_Tk:
     dc.w    L_Nul,L_getRainbowFXColorValue
     dc.b    "get rainbow fx color lin","e"+$80,"00,0",-1        ; Rgb24ColorValue/-1= ( BankID,YLine)
 
+    dc.w    L_Nul,L_getC2PValue
+    dc.b    "c2","p"+$80,"0",-1
+    dc.w    L_Nul,L_getPIPValue
+    dc.b    "pi","p"+$80,"0",-1
+    dc.w    L_Nul,L_getScreenMode
+    dc.b    "get screen mod","e"+$80,"00,0,0",-1
+
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
@@ -2721,7 +2728,7 @@ BkCopperFX1:
     movem.l    a0/a1,-(sp)           ; Save A0 = Screen Pointer / a1 = Copper list pointer
 ; ******** 4. Now we get the bank defined in the screen to insert it in the copper list.
     cmp.w      #2,d0
-    ble.s      cleanScreen
+    ble.w      cleanScreen
     clr.l      d0
     move.w     sprFX_BankID+ScreenFXDatas(a0),d0 ; D0 = Amos Professional Bank used to get Simple Rainbow FX Datas.
     clr.l      d3
@@ -2902,11 +2909,101 @@ cleanScreen:
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
+  Lib_Par     getC2PValue
+    move.l    #1,d3
+    Ret_Int
 
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par     getPIPValue
+    move.l    #2,d3
+    Ret_Int
 
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par     getScreenMode         ; D3.l = Screen Depth
+    move.l    (a3)+,d1              ; D1.l = Screen Height
+    move.l    (a3)+,d0              ; D0.l = Screen Width
+    lea       SAGA_DEPTHS(pc),a0
+    move.w    (a0)+,d2
+.continueSagDepth:
+    cmp.w     d2,d3                 ; If D2 = D3
+    beq.s     ThisOneD              ; Then Jum "This One Depth"
+    add.w     #2,a0
+    move.w    (a0)+,d2
+    tst.w     d2
+    bne.s     .continueSagDepth
+NotFoundD:
+    Rbra      L_Err17               ; Requested depth is not available
+ThisOneD:
+    move.w    (a0),d3               ; d3.w = PixelFormat
+    and.l     #$FFFF,d3
+;
+    and.l     #$FFFF,d1             ; D1.w = Screen Height
+    swap      d0                    ; D0.l = Screen Width $WWWW0000
+    clr.w     d0                    ; Clear d0 bits 00-15
+    Or.l      d0,d1                 ; d1 = Width.w/Height.w
+    lea       SAGA_GFXMODES(pc),a0
+    move.l    (a0)+,d0              ; D0 = next SAGA_GFXMODE(S).
+.continueSagMode:
+    cmp.l     d0,d1                 ; if D0 = D1 
+    beq.s     ThisOne               ; Then Jump "This One"
+    add.w     #2,a0                 ; Otherwise, read next screen mode
+    move.l    (a0)+,d0
+    tst.l     d0                    ; D0 = 0 = List fully explored, error -> Screen resolution not recognized.
+    bne.s     .continueSagMode
+NotFound:
+    Rbra      L_Err16               ; Requested resolution is not available
+ThisOne:
+    move.w    (a0),d2
+    swap      d2
+    And.l     #$FFFF0000,d2
+    or.l      d2,d3
+    Ret_Int
 
+; Saga DEPTH modes for the Screen Display Mode
+SAGA_DEPTHS:
+    dc.w      8,1
+    dc.w      16,2
+    dc.w      15,3
+    dc.w      24,4
+    dc.w      32,5
+    dc.w      0,0
 
-;                                                                                                                      ************************
+; Saga GFXMODE register screen resolutions
+SAGA_GFXMODES:
+    dc.w      320,200,1
+    dc.w      320,240,2
+    dc.w      320,256,3
+    dc.w      640,400,4
+    dc.w      640,480,5
+    dc.w      640,512,6
+    dc.w      960,240,7
+    dc.w      480,270,8
+    dc.w      304,224,9
+    dc.w      1280,720,$A
+    dc.w      640,360,$B
+    dc.w      0,0,0
+
+                                                                                                                     ************************
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
 ; *********************************************************************************************************************************************
@@ -3393,6 +3490,15 @@ ErDisk:
     moveq   #15,d0
     Rbra    L_Errors
 
+  Lib_Def Err16           ; Requested resolution is not available
+    moveq   #16,d0
+    Rbra    L_Errors
+
+  Lib_Def Err17           ; Requested Depth is not available
+    moveq   #17,d0
+    Rbra    L_Errors
+
+
     Lib_Def Errors
     lea     ErrMess(pc),a0
     moveq   #0,d1        * Can be trapped
@@ -3422,7 +3528,8 @@ ErrMess:
     dc.b    "Rainbow FX can only update from hardware line 40 to 255",0                            * Error #14 USED
     dc.b    "No 'Current Screen' available.",0                                                     * Error #15 USED
 
-
+    dc.b    "Requested resolution is not available.",0                                             * Error #16 USED (Saga Screen Mode)
+    dc.b    "Requested depth is not available.",0                                                  * Error #17 USED (Saga Screen Mode)
 
 
 

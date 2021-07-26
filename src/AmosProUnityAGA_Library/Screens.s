@@ -1539,6 +1539,7 @@ EcL:
 *   Uses only A and D channels for blit, 
 *   therefore twice as fast as normal screen copy!
 * 
+;  (Src ->) D0 = XStart, D1 = YStart, D4 = XEnd, D5 = YEnd, (Dst ->) D2 = XDest, D3 = YDest, D6 = Mode
 WScCpy:
     cmp.b   #$CC,d6
     bne.s   NoWScCpy

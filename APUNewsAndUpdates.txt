@@ -49,13 +49,18 @@ Bnk_BitFIcons    Equ    6            ; = Bnk_BitReserved2
 Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3 -> Used for all Screen(s)FX banks. A word inside the bank define the ID of the FX.
 
 ; ************************************************************************
+; 2021.07.26 :
+- Added =Get Screen Mode(Width, Height, Depth) for SAGA C2P Screen Mode
+
+; ************************************************************************
 ; 2021.04.22 :
 - Fixed ECS Dual playfield bug
 - Git Push
 - Relabelled AmosProUnityAll_Library to AmosProUnityCommon_Library
 - Optimised AmosProUnityECS/AGA_library files pushing common unchanged files to AmosProUnityCommon_Library
-
-
+- Git Push
+- Preparing Public Alpha Release 2
+- Public Alpha Release 2 - Released!
 
 ; ************************************************************************
 ; 2021.04.20 :
@@ -66,6 +71,7 @@ Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3 -> Used for all Screen
 - Fixed crash when using Simple Rainbow FX in direct mode
 - Git Push
 - fixed AGA Unity Fading did not fade the last color (#255)
+
 
 ; ************************************************************************
 ; 2021.04.18 :
@@ -79,6 +85,7 @@ Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3 -> Used for all Screen
 - Update EcsUnity/CopperListSystem to handle Sprite/Rainbow FX system
 - Found and reintroducted to help in development true AmosPersonal.lib version 1.1c source code with SpecialFX lib files (latest)
 
+
 ; ************************************************************************
 ; 2021.04.15 :
 - Moved insertSpriteFX methods inside their target location "AmosPro_PersonalUnity.lib"
@@ -86,11 +93,13 @@ Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3 -> Used for all Screen
 - Added error message for incompatibles images width/depth + Screen depths combinations
 - Detailled list of compatibles sprites modes on the official Website
 
+
 ; ************************************************************************
 ; 2021.04.14 :
 - Updated method "Set Playfield Priorities" (removed the 's' to Playfield)
 - Updated Fading Methods to use Color Conversions macros/methods
 - Updated TriplePlayfield with Sprites Demonstration
+
 
 ; ************************************************************************
 ; 2021.04.13 :

@@ -218,6 +218,13 @@ EcCallA1:      MACRO
         ENDM
 ; **************** 2020.10.12 Added EcCallA1
 
+; **************** 2020.10.12 Added EcCallA6
+EcCallA6:      MACRO
+        move.l    T_EcVect(a5),a6
+        jsr    \1*4(a6)
+        ENDM
+; **************** 2020.10.12 Added EcCallA6
+
 EcCalA:        MACRO
         lea    \2,a1
         move.l    T_EcVect(a5),a0

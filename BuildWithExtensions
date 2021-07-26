@@ -5,6 +5,7 @@ echo " "
 echo "Build Step 1/4 : Compiles all components"
 execute AMOSProUnity_Lib.batch
 execute AMOSProUnity_library.batch
+execute AMOSProUnity_librarySAGA.batch
 execute AMOSProUnity_Exe.batch
 execute AMOSProUnity_ConfigsWithExt.batch
 execute AMOSProUnity_Editor.batch

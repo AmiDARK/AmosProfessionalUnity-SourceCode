@@ -993,6 +993,7 @@ MkDC0:
 ; bitplane fetch starts 2 bytes early if no finescroll remainder
     sub.l      #2,d1
 ; ************************************** 2019.11.08 End of AMOS Factory Dual Playfield fix
+MkDC0a:
     move.l    a1,d3
     moveq    #EcPhysic,d2
     move.w    EcNPlan(a0),d6

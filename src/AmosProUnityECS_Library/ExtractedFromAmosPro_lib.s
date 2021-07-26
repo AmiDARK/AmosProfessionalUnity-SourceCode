@@ -1490,7 +1490,7 @@ ScoX:
     rts
 
 unpackDepthLimit equ 6
-    include "src/AmosProUnityAll_Library/ExtractedFromAmosPro_lib_Unpack.s"
+    include "src/AmosProUnityCommon_Library/ExtractedFromAmosPro_lib_Unpack.s"
 
 AMP_Bnk.SaveA0:
 ; - - - - - - - - - - - - -

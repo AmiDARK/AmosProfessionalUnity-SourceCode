@@ -2494,7 +2494,7 @@ ErrMess:
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;     +++ TITLE OF THE EXTENSION!
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_Title    dc.b    "AMOSPro Personal Unity SupportLib version V "
+C_Title    dc.b    "APU SpecialFX Extension version V "
     VersionPUL
     dc.b    0,"$VER: "
     VersionPUL

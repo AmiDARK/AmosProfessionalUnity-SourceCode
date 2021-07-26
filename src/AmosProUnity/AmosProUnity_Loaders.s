@@ -1583,23 +1583,23 @@ CommandX:
 ; * Before loading any AmosProfessionalUnityXXX.library, we try to detect which chipset the program run.
 ; ***************************************************************************************************************** DETECT AGA CHIPSET HERE
 detectChipsetToLoad.library:
-    movem.l    a0/d1-d3,-(sp)              ; 2020.08.10 Save registers before doing AGA Checking : Fix the AMOS Switcher AMOS/WB
-    moveq     #30,d3             ; Loop amoun()
-    lea     $dff07c,a0         ; lea the register to check content
-    move.w     (a0),d1         ; D1 = read register
+    movem.l   a0/d1-d3,-(sp)  ; 2020.08.10 Save registers before doing AGA Checking : Fix the AMOS Switcher AMOS/WB
+    moveq     #30,d3          ; Loop amoun()
+    lea       $dff07c,a0      ; lea the register to check content
+    move.w    (a0),d1         ; D1 = read register
     and.w     #$FF,d1         ; D1 = filtered
 dcLoop:
-    move.w     (a0),d2         ; D2 = Read Register
+    move.w    (a0),d2         ; D2 = Read Register
     and.w     #$FF,d2         ; D2 = filtered
-    cmp.b     d1,d2             ; Compare D1 read & D2 Read
-    bne.s     cEcs             ; Not equal -> Bus Garbage -> ECS
-    dbra     d3,dcLoop         ; Loop until d3 = -1
-    or.b     #$F0,d1         ; D1 & $F0
+    cmp.b     d1,d2           ; Compare D1 read & D2 Read
+    bne.s     cEcs            ; Not equal -> Bus Garbage -> ECS
+    dbra      d3,dcLoop       ; Loop until d3 = -1
+    or.b      #$F0,d1         ; D1 & $F0
     cmp.b     #$F8,d1         ; if D1 =$F8 -> AGA
-    bne.s     cEcs             ; Else -> ECS
-;    move.w     #1,T_isAga(a5)
-    movem.l    (sp)+,a0/d1-d3
-    bra       openAmosProfessionalAGALib
+    bne.s     cEcs            ; Else -> ECS
+;    move.w    #1,T_isAga(a5)
+    movem.l   (sp)+,a0/d1-d3
+    bra       CheckForAgaOrSaga
 cEcs:
 ;    move.w     #0,T_isAga(a5)
     movem.l    (sp)+,a0/d1-d3              ; 2020.08.10 Restore registers after AGA Checking completed : Fix the AMOS Switcher AMOS/WB
@@ -1613,21 +1613,49 @@ openAmosProfessionalECSLib:
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
-    bne.s    LibraryLoaded.Ok
+    bne.w    LibraryLoaded.Ok
     lea    LibNameECS3(pc),a0        libs/AmosProfessionalUnityECS.library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
-    bne.s    LibraryLoaded.Ok
+    bne.w    LibraryLoaded.Ok
     lea    LibNameECS1(pc),a0        libs:AmosProfessionalUnityECS.library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.w    LibraryLoaded.Ok
+    move.l    #Panic_Lib,Panic    Message d'erreur
+    bra.w    Boot_Fatal
+
+; ********************************************* Open AGA Version of the Library
+CheckForAgaOrSaga:
+; ******** 2021.06.09 if AGA chipset is detected, we try to go further and detect if SAGA Vampire is available - START
+    bra.s    openAmosProfessionalAGALib
+
+
+    bra.s  openAmosProfessionalAGALib
+    move.l    SP_DosBase(sp),a6
+    lea    LibNameSAGA2(pc),a0        APSystem/AmosProfessionalUnitySAGA.library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameSAGA3(pc),a0        libs/AmosProfessionalUnitySAGA.library
+    move.l    a0,d1
+    jsr    _LVOLoadSeg(a6)
+    tst.l    d0
+    bne.s    LibraryLoaded.Ok
+    lea    LibNameSAGA1(pc),a0        libs:AmosProfessionalUnitySAGA.library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
     bne.s    LibraryLoaded.Ok
     move.l    #Panic_Lib,Panic    Message d'erreur
-    bra    Boot_Fatal
+    bra.w    Boot_Fatal
 
-; ********************************************* Open AGA Version of the Library
+
+
+; ******** 2021.06.09 if AGA chipset is detected, we try to go further and detect if SAGA Vampire is available - END
 openAmosProfessionalAGALib:
     move.l    SP_DosBase(sp),a6
     lea    LibNameAGA2(pc),a0        APSystem/AmosProfessionalUnityAGA.Library
