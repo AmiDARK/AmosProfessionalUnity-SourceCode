@@ -2,11 +2,11 @@
 UTILITY_HOOKS_I SET 1
 **
 **	$VER: hooks.i 39.1 (20.1.92)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	Callback hooks
 **
-**	(C) Copyright 1989-1999 Amiga, Inc.
+**	(C) Copyright 1989-1993 Commodore-Amiga Inc.
 **	All Rights Reserved
 **
 

@@ -2,11 +2,11 @@
 INTUITION_GADGETCLASS_I SET 1
 **
 ** $VER: gadgetclass.i 38.9 (8.1.93)
-** Includes Release 40.15
+** Includes Release 40.13
 **
 ** Custom and 'boopsi' gadget class interface
 **
-**  (C) Copyright 1989-1999 Amiga, Inc.
+**  (C) Copyright 1989-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

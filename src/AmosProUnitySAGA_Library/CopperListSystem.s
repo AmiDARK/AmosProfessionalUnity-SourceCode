@@ -1065,7 +1065,7 @@ noFetchChanges2:
     move.w     d5,(a1)+
 ; ******** 2021.04.13 Update to fix color palette issue in copper list - END
 ; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64
-    move.w     #FMode,(a1)+            ; 2019.11.04 And FMode Support too
+    move.w     #FMODE,(a1)+            ; 2019.11.04 And FMode Support too
     move.w     T_AgaSprWidth(a5),d4
     lsl.w      #2,d4
     or.w       EcFMode(a0),d4          ; 2021.03.30 Read FMode datas
@@ -1452,7 +1452,7 @@ EcCopBa:
     move.w     T_EcFond(a5),(a1)+
 ; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64
     move.l     d4,T_SaveReg(a5)
-    move.w     #FMode,(a1)+            ; 2019.11.04 And FMode Support too
+    move.w     #FMODE,(a1)+            ; 2019.11.04 And FMode Support too
     move.w     T_AgaSprWidth(a5),d4
     lsl.w      #2,d4
     or.w       EcFMode(a0),d4          ; 2021.03.30 Read FMode datas
@@ -1526,8 +1526,8 @@ HsCop:
     move.l     #$1003FFFE,(a0)         ; Copper 1 : Wait to line raster line 16 (out of screen as screen start near line 50)
     move.l     (a0)+,(a1)+             ; Copper 2 : Copy Wait line from copper 1
 ; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64 - START
-    move.w     #FMode,(a0)+            ; 2021.03.30 And FMode Support too
-    move.w     #FMode,(a1)+            ; 2021.03.30 And FMode Support too
+    move.w     #FMODE,(a0)+            ; 2021.03.30 And FMode Support too
+    move.w     #FMODE,(a1)+            ; 2021.03.30 And FMode Support too
     move.w     T_AgaSprWidth(a5),d4
     lsl.w      #2,d0
     or.w       EcFMode(a0),d0          ; 2021.03.30 Read FMode datas
@@ -1541,7 +1541,7 @@ HsCop:
     move.w     #$11,(a0)+              ; Set default color palette 15-31 like ECS
     move.w     #$11,(a1)+              ; Set default color palette 15-31 like ECS
 ; ******** 2021.04.07 Add BplCon4 to define Sprites Color Palette Selection - END
-    move.w     #$120,d0                ; D0 = 1st sprite register
+    move.w     #$0120,d0               ; D0 = 1st sprite register
 CpI1:
     move.w     d0,(a0)+                ; Write Sprite register in Copper2, Add +2, A0
     move.w     d0,(a1)+                ; Write Sprite register in Copper2, Add +2, A1
@@ -1555,6 +1555,7 @@ CpI1:
     beq.s      CpIx                    ; YES -> Jump CpIx
     cmpa.l     a0,a1                   ; If A1 = A0 Then Only 1 list to update, don''t modify the aga palette.
     beq.s      CpIx
+    bsr        insertChunkyScreenRegs  ; 2022.10.12 Add support for SAGA Chunky Screen
     bsr        insertAGAColorsInCopper ; 2019.11.13 Insert the AGA color palette at the end of the screen definition.
 CpIx:
     ; ******************************* 2021.03.27 Reinserted copper auto-adjustment - START
@@ -1565,11 +1566,32 @@ CpIx:
 ; ************************************************************* 2019.11.13 Insert the AGA color palette at the end of the screen definition - END
     moveq    #0,d0
     rts
+
+; ******** 2022.10.12 Add support for SAGA Chunky Screen - START
+insertChunkyScreenRegs:
+    Move.l     #$1203FFFE,(a0)         ; Wait in copper list 0
+    move.l     a0,T_ChunkyRegs1(a5)
+    move.l     a1,T_ChunkyRegs2(a5)
+    move.w     #BPLHPTH,(a0)+
+    move.w     #BPLHPTH,(a1)+
+    addq.l     #2,a0                   ; Add + 2, A0 (BplHPtH register value set to #$0000)
+    addq.l     #2,a1                   ; Add + 2, A1 (BplHPtH register value set to #$0000)
+    move.w     #BPLHPTL,(a0)+
+    move.w     #BPLHPTL,(a1)+
+    addq.l     #2,a0                   ; Add + 2, A0 (BplHPtL register value set to #$0000)
+    addq.l     #2,a1                   ; Add + 2, A1 (BplHPtL register value set to #$0000)
+    move.w     #GFXMODE,(a0)+
+    move.w     #GFXMODE,(a1)+
+    move.w     #0,(a0)+                ; (GFXMode register value set to #$0000)
+    move.w     #0,(a1)+                ; (GFXMode register value set to #$0000)
+    rts
+; ******** 2022.10.12 Add support for SAGA Chunky Screen - END
+
 ; ************************* 2020.08.14 Update to handle RGB24 bits colors 032-255 in the Copper List - Start
 ; ************************* 2019.11.16 Update : This method insert colors 32 to 255 in the CopperList [D4-D7]
 insertAGAColorsInCopper:
     ; ******************************** Insert HIGH Bits of the color table 032-0255
-    Move.l     #$1203FFFE,(a0)         ; Wait in copper list 0
+    Move.l     #$1303FFFE,(a0)         ; Wait in copper list 0
     Move.l     (a0)+,(a1)+             ; Wait in copper list 1
     Move.l     a0,T_AgaColor1(a5)
     Move.l     a1,T_AgaColor2(a5)

@@ -2,11 +2,11 @@
 DEVICES_PARALLEL_I SET 1
 **
 **	$VER: parallel.i 34.9 (25.5.89)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	external declarations for the parallel device
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
     IFND     EXEC_IO_I

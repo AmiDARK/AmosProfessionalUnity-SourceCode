@@ -3,11 +3,11 @@ GRAPHICS_MODEID_I	SET	1
 
 **
 **	$VER: modeid.i 39.8 (27.5.93)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	include define file for graphics display mode IDs.
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

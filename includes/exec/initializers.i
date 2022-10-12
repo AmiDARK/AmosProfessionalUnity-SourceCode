@@ -2,11 +2,11 @@
 EXEC_INITIALIZERS_I	SET	1
 **
 **	$VER: initializers.i 39.0 (15.10.91)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	Macros for creating InitStruct() tables
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

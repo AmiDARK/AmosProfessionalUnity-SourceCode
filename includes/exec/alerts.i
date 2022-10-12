@@ -2,11 +2,11 @@
 EXEC_ALERTS_I SET 1
 **
 **	$VER: alerts.i 39.4 (13.11.92)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	Alert numbers, as displayed by system crashes.
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

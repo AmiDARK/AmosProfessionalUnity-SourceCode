@@ -34,6 +34,8 @@ ROnly:		equ 	0
 		Include "lvo/icon_lib.i"
 		Include "lvo/console_lib.i"
 
+        Include "includesSAGA/sagaRegisters.h"
+
 		Include	"src/AmosProUnity_Debug.s" ; Just one flag
 		Include "src/AmosProUnity_Equ.s"
         Include "src/AmosProUnity_Equates/ExtractedFromAmosPro_Lib_Equ.s" // Equates for AmosPro.lib method extracted to AmosProUnityECS.library

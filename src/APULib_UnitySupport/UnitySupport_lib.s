@@ -34,6 +34,9 @@ ExtNb    equ    7-1         ; Extension number #7
     Include    "iffIlbm_Equ.s"
     Include    "UnitySupport_Equ.s" ; 2020.10.02 Added for Rainbow structure datas
 
+; *** 2021.12.21 Includes SAGA chipset 
+;    Include    "includesSAGA/sagaRegisters.h"
+
 ; *** 2020.10.05-11 Includes AmigaOS libraries
     IncDir  "includes/"
     Include "exec/types.i"
@@ -61,28 +64,29 @@ Dlea     MACRO
     add.w    #\1-UnityDatas,\2
     ENDM
 
+; DmoveaL    #VALUE,DataName,TempRegister
 DmoveaL  MACRO
-    move.l    ExtAdr+ExtNb*16(a5),\2
-    add.w    #\1-UnityDatas,\2
-    move.l   (\2),\2
+    move.l    ExtAdr+ExtNb*16(a5),\3
+    add.w    #\2-UnityDatas,\3
+    move.l   (\1),\3
     ENDM
 
 DmoveL   MACRO
-    move.l    ExtAdr+ExtNb*16(a5),\2
-    add.w    #\1-UnityDatas,\2
-    move.l   (\2),\3
+    move.l    ExtAdr+ExtNb*16(a5),\3
+    add.w    #\2-UnityDatas,\3
+    move.l   (\1),\3
     ENDM
 
 DmoveW   MACRO
-    move.l    ExtAdr+ExtNb*16(a5),\2
-    add.w    #\1-UnityDatas,\2
-    move.w   (\2),\3
+    move.l    ExtAdr+ExtNb*16(a5),\3
+    add.w    #\2-UnityDatas,\2
+    move.w   (\1),\3
     ENDM
 
 DmoveB   MACRO
     move.l    ExtAdr+ExtNb*16(a5),\2
-    add.w    #\1-UnityDatas,\2
-    move.b   (\2),\3
+    add.w    #\2-UnityDatas,\2
+    move.b   (\1),\3
     ENDM
 
 ; Another macro to load the base address of the datazone...
@@ -297,12 +301,12 @@ C_Tk:
     dc.w    L_Nul,L_getRainbowFXColorValue
     dc.b    "get rainbow fx color lin","e"+$80,"00,0",-1        ; Rgb24ColorValue/-1= ( BankID,YLine)
 
-    dc.w    L_Nul,L_getC2PValue
-    dc.b    "c2","p"+$80,"0",-1
-    dc.w    L_Nul,L_getPIPValue
-    dc.b    "pi","p"+$80,"0",-1
-    dc.w    L_Nul,L_getScreenMode
-    dc.b    "get screen mod","e"+$80,"00,0,0",-1
+    dc.w    L_Nul,L_GetSagaC2PScreenMode
+    dc.b    "!get saga c2p screen mod","e"+$80,"00,0,0",-1         ; GFXMODE = get saga c2p screen mode( Width, Height, Depth )
+    dc.w    L_Nul,L_GetSagaC2PScreenModeEx
+    dc.b    $80,"00,0,0,0",-1                                      ; GFXMODE = get saga c2p screen mode( Width, Height, Depth, ScanMode )
+    dc.w    L_CustomScreenOpen,L_Nul
+    dc.b    "open custom scree","n"+$80,"I0,0,0,0",-1              ; Open Saga c2p Screen ScreenID, Width, Height, GFXMODE
 
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
@@ -771,6 +775,72 @@ UnityVectors:
     ; **************** Amos Professional Unity System : Other FX ****************
 RainbowFXCall:
     Rbra       L_insertSimpleRainbowFX
+
+
+; ***** 2021.12.20 Here is the list of the available depths mode in Vampire V4SA - START
+SAGA_C2P_DEPTHS:
+;             User value -> GFXMODE/PixelFormat value
+    dc.w      8,SAGA_VIDEO_FORMAT_CLUT8
+    dc.w      16,SAGA_VIDEO_FORMAT_RGB16
+    dc.w      15,SAGA_VIDEO_FORMAT_RGB15
+    dc.w      24,SAGA_VIDEO_FORMAT_RGB24
+    dc.w      32,SAGA_VIDEO_FORMAT_RGB32
+    dc.w      422,SAGA_VIDEO_FORMAT_YUV422
+    dc.w      1,SAGA_VIDEO_FORMAT_PLANAR1BIT
+    dc.w      2,SAGA_VIDEO_FORMAT_PLANAR2BIT
+    dc.w      4,SAGA_VIDEO_FORMAT_PLANAR4BIT
+    dc.w      0,0
+; ***** 2021.12.20 Here is the list of the available depths mode in Vampire V4SA - END
+
+; **** 2021.12.21 Updated Saga GFXMODE register screen resolutions
+SAGA_C2P_GFXMODES:
+    dc.w       320,200,$01
+    dc.w       320,240,$02
+    dc.w       320,256,$03
+    dc.w       640,400,$04
+    dc.w       640,480,$05
+    dc.w       640,512,$06
+    dc.w       960,240,$07
+    dc.w       480,270,$08
+    dc.w       304,224,$09
+    dc.w      1280,720,$0A
+    dc.w       640,360,$0B
+    dc.w       800,600,$0C
+    dc.w      1024,768,$0D
+    dc.w       720,576,$0E
+    dc.w       848,480,$0F
+    dc.w       640,200,$10
+    dc.w         0,000,$00      ; Last slot is empty to ensure loop quit possible.
+
+; **** 2022.01.03 Added pixel size for custom screen buffer creation
+SAGA_PIXEL_SIZE:
+    dc.w       0,1,2,2,3,4,3,0  ; CLUT_OFF(0),CLUT8(1),RGB16(2),RGB15(3),RGB24(4),RGB32(5),YUV422(6),NOT_DEFINED(7)
+    dc.w       1,1,1            ; PLANAR1BIT(8),PLANAR2BIT(9),PLANAR4BIT(10=$A) (unknown mode format)
+
+; **** 2021.12.22 
+CUSTOM_SCREEN:
+    dc.l       0,0,0,0,0,0,0,0   ; Space to contains up to 8 screen structures pointers.
+
+        RsReset
+CusEcLogic:    rs.l 1            ; 1x .L = to contain pointer to the screen Logic plane
+CusEcPhysic    rs.l 1            ; 1x .L = to contain pointer to the screen Physic plane
+CusEcBuffer3   rs.l 1            ; 1x .L = to contain pointer to the screen (non physic nor logic) when using triple buffering.
+CusEcCurrent   rs.l 1            ; 1x .L = to contain pointer to the screen displayed plane (should be =CurEcPhysic)
+CusEcPixWidth  rs.w 1            ; 1x .L = Screen width in pixels
+CusEcPixHeight rs.w 1            ; 1x .L = Screen height in pixels
+CusEcOffsetX   rs.w 1            ; 1x .W = Screen offset on width (X)
+CusEcOffsetY   rs.w 1            ; 1x .W = Screen offset on height (Y)
+CusEcViewWidth rs.w 1            ; 1x .L = Screen width in pixels
+CusEcViewHeight rs.w 1           ; 1x .L = Screen height in pixels
+CusEcDepth     rs.w 1            ; 1x .W = contain the screen depth ( 8/15/16/24/32 bits color depth, or YUV).
+CusEcGFXMODE   rs.l 1            ; 1x .L = The GFXMODE used to open the screen 
+CusEcInkA      rs.l 1            ; 1x .L = Current screen ink color (max 32 bits)
+CusEcInkB      rs.l 1            ; 1x .L = Current screen 2nd ink color (max 32 bits)
+CusEcPaper     rs.l 1            ; 1x .L
+CusEcText      rs.w 1            ; 1x .W = Current text size
+CurExFont      rs.w 1            ; 1x .W = Current text font.  
+CurEcLong      equ __RS          ; Length of a screen
+
 
 ; Now follow all the music routines. Some are just routines called by others,
 ; some are instructions. 
@@ -2250,7 +2320,7 @@ fap1:
     Add.l      #48*4,d0
     move.l     d0,a2                   ; A0 = Copper pointer to Color #00
 .s1a:
-    cmp.w      #FMode,(a2)
+    cmp.w      #FMODE,(a2)
     beq.s      .s1
     add.l      #4,a2
     dbra       d3,.s1a
@@ -2898,112 +2968,187 @@ cleanScreen:
     rts
 
 
+
+;                                                                                                                                        ***
+;                                                                                                                                     ***
+; *********************************************************************************************************************************************
+;                                                                                          *                                                  *
+;                                                                                          * AREA NAME : Custom Screens Support methods       *
+;                                                                                          *                                                  *
+;                                                                                           ***************************************************
+;                                                                                                 ***
+;                                                                                              ***
+;                                                                                           ************************
+
+
+;
+; *****************************************************************************************************************************
+; ************************************************************* 2021.12.20-21
+; * Method Name :                                             *
+; *   Get saga C2P Screen Mode(width,height,depth(,scanmode)) *
+; *-----------------------------------------------------------*
+; * Description : This method will return a SAG GFXMODE regis-*
+; *               -ter compatible value for RESOLUTION and DE-*
+; *               -PTH for Saga C2P screen mode               *
+; *                                                           *
+; * Parameters : Visible Width in pixels, Visible Depth in pi-*
+; *              -els, Depth                                  *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par     GetSagaC2PScreenMode    ;
+    move.l      d3,-(a3)              ; Push Depth to -(a3)
+    clr.l       d3                    ; d3 = Scan Mode = 0
+    Rbra        L_GetSagaC2PScreenModeEx
+; *************************************************************
+  Lib_Par     GetSagaC2PScreenModeEx  ; d3 = ScanMode
+    move.l      (a3)+,d5              ; d5 = depth
+    move.l      (a3)+,d2              ; d2 = Height in pixels
+    move.l      (a3)+,d1              ; d1 = Width in pixels
+
+;; **** 1. We check the chosen ScanMode
+;    Dlea        SAGA_C2P_DBLSCAN,a0
+;.miniLoopDBL:
+;    move.w      (a0)+,d0
+;    cmp.w       d0,d5
+;    beq.s       .miniLoopQuitDBL
+;    add.l       #2,a0                 ; Jump to next value
+;    cmp.w       #0,(a0)               ; new value ?
+;    bne.s       .miniLoopDBL             ; Yes -> Continue Looping
+;    Rbra        L_Err18               ; "Unknown SAGA Double Scan mode requested."     * Error #18 USED (Saga Screen Mode)
+;.miniLoopQuitDBL:
+;    move.w      (a0),d3               ; d5 (07-00) = GFXMode Pixel Format
+
+; **** 2. We check if the entered depth is available.
+    Dlea        SAGA_C2P_DEPTHS,a0
+.miniLoop:
+    move.w      (a0)+,d0
+    cmp.w       d0,d5
+    beq.s       .miniLoopQuit
+    add.l       #2,a0                 ; Jump to next value
+    cmp.w       #0,(a0)               ; new value ?
+    bne.s       .miniLoop             ; Yes -> Continue Looping
+    Rbra        L_Err17               ; "Requested SAGA C2P Screen depth is not available."     * Error #17 USED (Saga Screen Mode)
+.miniLoopQuit:
+    move.w      (a0),d5               ; d5 (07-00) = GFXMode Pixel Format
+
+; **** 3. We check if the chosen graphic resolution is available.
+    Dlea        SAGA_C2P_GFXMODES,a0
+.miniLoopGFX:
+    move.w      (a0)+,d0              ; d0 = Existing Resolution Width in pixels
+    move.w      (a0)+,d4              ; d4 = Existing Resolution Height in pixels
+    cmp.w       d4,d2                 ; d2(Height) = Existing resolution Height ?
+    bne.s       .miniLoopCheck2       ; No, continue with next test
+    cmp.w       d0,d1                 ; d1(Width) = Existing resolution Width(d1) ?
+    beq.s       .miniLoopGFXQuit
+.miniLoopCheck2:
+    add.l       #2,a0
+    cmp.w       #0,(a0)
+    bne.s       .miniLoopGFX
+    Rbra        L_Err16               ; "Requested SAGA C2P Screen resolution is not available.",0  * Error #16 USED (Saga Screen Mode)
+.miniLoopGFXQuit:
+    or.w        (a0),d3               ; d3 = (07-00) GFXMode Resolution + ScanMode (15-14)
+    lsl.w       #8,d3                 ; d4 = (15-08) GFXMode Resolution
+    or.w        d5,d3                 ; d3 = GFXMODE Resolution(15-08) | Pixelformat(07-00)
+    and.l       #$FFFF,d3             ; ensure higher 16 bits are suppressed to fix GFXMode content.
+    Bset        #SagaC2PModeBit,d3    ; Use the SAGA Graphic C2P Screen Mode
+    Ret_Int
+
+
+
+
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
 ; * Method Name :                                             *
+; *   Open Custom Screen SCREENID,WIDTH,HEIGHT,GFXMODE        *
 ; *-----------------------------------------------------------*
 ; * Description :                                             *
 ; *                                                           *
-; * Parameters :                                              *
+; * Parameters : ScreenID,X,Y,GFXMODE                         *
 ; *                                                           *
 ; * Return Value :                                            *
 ; *************************************************************
-  Lib_Par     getC2PValue
-    move.l    #1,d3
-    Ret_Int
+  Lib_Par     CustomScreenOpen       ; D3 = Screen GFX MODE
+; ******* 1. Get all screen creation informations
+    move.l      (a3)+,d2             ; D2 = Screen Height in pixels (Visible + Not visible)
+    move.l      (a3)+,d1             ; D1 = Screen Width in pixels (Visible + Not visible)
+    move.l      (a3)+,d0             ; D0 = Screen ID
+; ******* 2. Check screenID limits
+    cmp.l       #8,d0
+    Rbge        L_Err18              ; "Custom Screen ID number is invalid. Valid range is 0-7 (included)" * Error #18 USED (Custom Screens)
+    cmp.l       #0,d0
+    Rbmi        L_Err18              ; "Custom Screen ID number is invalid. Valid range is 0-7 (included)" * Error #18 USED (Custom Screens)
+; ******* 3. Screen sizes will be checked by dedicaced Custom Screen Creation methods as they will depend on the GFXMODE resolution visible sizes.
+; ******* 3. Check screen mode and redirect to the dedicaced screen creation method.
+    Btst        #SagaC2PModeBit,d3
+    Rbne        L_OpenSagaC2PScreen
+; .... Add other screens type here
+    Rbra        L_Err21              ; "Unknown Custom Screen type."  * Error #21 USED (Custom Screens)
 
-;
+
+
 ; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name :                                             *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters :                                              *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par     getPIPValue
-    move.l    #2,d3
-    Ret_Int
-
-;
+; * OpenSagaC2PScreen D0(=ScreenID), D1(=Screen Pixels Width), D2(=Screen Pixels Height), D3(=GFXMODE)
 ; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name :                                             *
-; *-----------------------------------------------------------*
-; * Description :                                             *
-; *                                                           *
-; * Parameters :                                              *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-  Lib_Par     getScreenMode         ; D3.l = Screen Depth
-    move.l    (a3)+,d1              ; D1.l = Screen Height
-    move.l    (a3)+,d0              ; D0.l = Screen Width
-    lea       SAGA_DEPTHS(pc),a0
-    move.w    (a0)+,d2
-.continueSagDepth:
-    cmp.w     d2,d3                 ; If D2 = D3
-    beq.s     ThisOneD              ; Then Jum "This One Depth"
-    add.w     #2,a0
-    move.w    (a0)+,d2
-    tst.w     d2
-    bne.s     .continueSagDepth
-NotFoundD:
-    Rbra      L_Err17               ; Requested depth is not available
-ThisOneD:
-    move.w    (a0),d3               ; d3.w = PixelFormat
-    and.l     #$FFFF,d3
-;
-    and.l     #$FFFF,d1             ; D1.w = Screen Height
-    swap      d0                    ; D0.l = Screen Width $WWWW0000
-    clr.w     d0                    ; Clear d0 bits 00-15
-    Or.l      d0,d1                 ; d1 = Width.w/Height.w
-    lea       SAGA_GFXMODES(pc),a0
-    move.l    (a0)+,d0              ; D0 = next SAGA_GFXMODE(S).
-.continueSagMode:
-    cmp.l     d0,d1                 ; if D0 = D1 
-    beq.s     ThisOne               ; Then Jump "This One"
-    add.w     #2,a0                 ; Otherwise, read next screen mode
-    move.l    (a0)+,d0
-    tst.l     d0                    ; D0 = 0 = List fully explored, error -> Screen resolution not recognized.
-    bne.s     .continueSagMode
-NotFound:
-    Rbra      L_Err16               ; Requested resolution is not available
-ThisOne:
-    move.w    (a0),d2
-    swap      d2
-    And.l     #$FFFF0000,d2
-    or.l      d2,d3
-    Ret_Int
+  Lib_Def     OpenSagaC2PScreen      ; Internal method to open a SAGA C2P Screen
+    bclr        #SagaC2PModeBit,d3   ; Remove the C2P Screen mode bit.
+    move.l      d3,d5                ; D5 = GFXMODE content (high bits 15-8)
+    and.l       #$FF00,d5            ; Keep only the GFXMODE graphical resolution value
+    lsr.l       #8,d5                ; D5 = GFXMODE in low bits (7-0)
 
-; Saga DEPTH modes for the Screen Display Mode
-SAGA_DEPTHS:
-    dc.w      8,1
-    dc.w      16,2
-    dc.w      15,3
-    dc.w      24,4
-    dc.w      32,5
-    dc.w      0,0
+; *************************************************************** Check GFXMODE (Resolution informations)
+    Dlea        SAGA_C2P_GFXMODES,a0
+    add.l       #4,a0                ; Push A0 directly to the Graphic resolution ID code.
+    move.w      (a0),d7              ; d7 = Screen mode Resolution ID Code to check/compare
+.miniLoop:
+    cmp.w       d7,d5                ; if chosen resolution ID Code (d5) = current readen one (d7) ?
+    beq.s       .found               ; Yes -> Jump .found
+    add.l       #6,a0                ; No -> Check next graphic resolution ID Code
+    move.w      (a0),d7              ; d7 = Next Screen mode resolution ID Code to check/compare
+    cmp.w       #0,d7                ; d7 = NULL (=0) = Screen resolution ID Code list finished ?
+    bne.s       .miniLoop            ; NO -> Check next resolution ID Code with chosen one.
+    Rbra        L_Err16              ; "Requested SAGA C2P Screen resolution is not available.",0  * Error #16 USED (Saga Screen Mode)
+.found    
+    move.w      -4(a0),d6            ; d6 = Graphic Resolution visible pixel Widht
+    move.w      -2(a0),d7            ; d7 = Graphic Resolution visible pixel Height
 
-; Saga GFXMODE register screen resolutions
-SAGA_GFXMODES:
-    dc.w      320,200,1
-    dc.w      320,240,2
-    dc.w      320,256,3
-    dc.w      640,400,4
-    dc.w      640,480,5
-    dc.w      640,512,6
-    dc.w      960,240,7
-    dc.w      480,270,8
-    dc.w      304,224,9
-    dc.w      1280,720,$A
-    dc.w      640,360,$B
-    dc.w      0,0,0
+; *************************************************************** Check screen sizes limits
+; 1. Check Screen Width must be >= Display Width
+    cmp.w       d6,d1                ; if D1 (Requested Pixels Width) < D6 (Visible Pixels Width)
+    Rblt        L_Err22              ; Screen Pixels Width is smaller than requested resolution pixels width.      * Error #22 USED (Custom Screens)
+; 2. Check Screen Height must be >= Display Height
+    cmp.w       d7,d2                ; if D2 (Requested Pixels Height) < D7 (Visible Pixels Height)
+    Rblt        L_Err23              ; Screen Pixels Height is smaller than requested resolution pixels height.    * Error #23 USED (Custom Screens)
+; 3. Check Screen Width maximal size (3x Display Width)
+    mulu        #3,d6
+    cmp.w       d1,d6
+    Rblt        L_Err24              ; Screen Pixels Width is higher than 3x requested resolution pixels width.    * Error #24 USED (Custom Screens)
+; 4. Check Screen Height maximal size (3x Display Height)
+    mulu        #3,d7
+    cmp.w       d2,d7
+    Rblt        L_Err25              ; Screen Pixels Height is higher than 3x requested resolution pixels height.  * Error #25 USED (Custom Screens)
 
-                                                                                                                     ************************
+; *************************************************************** 2021.01.03 If screenID already exists, close the current one before opening the new one.
+    move.l      d3,d7                ; D7 = GFXMODE
+    and.l       #$0F,d7              ; D7 = Pixel Format
+    cmp.b       #0,d7
+    Rbeq        L_Err26              ; Invalid Custom Screen Pixel format                                          * Error #26 USED (Custom Screens)
+    Dlea        SAGA_PIXEL_SIZE,a0
+    lsr.w       #1,d7                ; To Read a .w from the list mulu d7 by 2 (d7 range is 1-10 so it gives 2-20)
+    move.w      (a0,d7),d4           ; d4 = Pixel Size ( 1, 2, 3 or 4 bytes depending on PixelFormat used)
+
+; ***************************************************************
+; * Current OpenSagaC2PScreen datas D0(=ScreenID), D1(=Screen Pixels Width),
+;           D2(=Screen Pixels Height), D3(=GFXMODE), D4=Pixel Size (in bytes)
+; Now we allocate memory for the screen
+
+
+    Dlea        CUSTOM_SCREEN,a2     ; a2 = Custom screens structures pointers
+
+    rts
+
+
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
 ; *********************************************************************************************************************************************
@@ -3430,6 +3575,11 @@ ErDisk:
     moveq   #23,d0
     Rbra    L_GoError
 
+; 2021.12.21 Idead for optimisations :
+; Check For/Next loop to optimize error https://stackoverflow.com/questions/4217900/basic-for-loop-in-68k-assembly
+; Or use a MACRO Style : CastError ID that will be replaced with "moveq #\1,d0, Rbra L_Errors"
+; use pass1 macro style with variable defined using SET and a REPT in which the variable is incremented each time and used to create label + moveq
+
   Lib_Def Err1             ; Error 01 : Aga color palette creation valid range is 0-7.
     moveq   #1,d0
     Rbra    L_Errors
@@ -3498,11 +3648,47 @@ ErDisk:
     moveq   #17,d0
     Rbra    L_Errors
 
+  Lib_Def Err18           ; Unknown SAGA Double Scan mode requested.
+    moveq   #18,d0
+    Rbra    L_Errors
+
+
+  Lib_Def Err19           ; Custom Screen ID number is invalid. Valid range is 0-7 (included).
+    moveq   #19,d0
+    Rbra    L_Errors
+
+  Lib_Def Err20           ; Unknown Custom Screen GFXMODE.
+    moveq   #20,d0
+    Rbra    L_Errors
+
+  Lib_Def Err21           ; Unknown Custom Screen type
+    moveq   #21,d0
+    Rbra    L_Errors
+
+  Lib_Def Err22           ; Screen Pixels Width is smaller than requested resolution pixels width.
+    moveq   #22,d0
+    Rbra    L_Errors
+
+  Lib_Def Err23           ; Screen Pixels Height is smaller than requested resolution pixels height.
+    moveq   #23,d0
+    Rbra    L_Errors
+
+  Lib_Def Err24           ; Screen Pixels Width is higher than 3x requested resolution pixels width.
+    moveq   #24,d0
+    Rbra    L_Errors
+
+  Lib_Def Err25           ; Screen Pixels Jeogjt is higher than 3x requested resolution pixels height.
+    moveq   #25,d0
+    Rbra    L_Errors
+
+  Lib_Def Err26           ; Invalid Custom Screen Pixel format.
+    moveq   #26,d0
+    Rbra    L_Errors
 
     Lib_Def Errors
     lea     ErrMess(pc),a0
     moveq   #0,d1        * Can be trapped
-    moveq   #ExtNb,d2    * Number of extension
+    moveq   #ExtNb,d2    * ID Number of the current extension
     moveq   #0,d3        * IMPORTANT!!!
     Rjmp    L_ErrorExt    * Jump to routine...
 
@@ -3528,10 +3714,24 @@ ErrMess:
     dc.b    "Rainbow FX can only update from hardware line 40 to 255",0                            * Error #14 USED
     dc.b    "No 'Current Screen' available.",0                                                     * Error #15 USED
 
-    dc.b    "Requested resolution is not available.",0                                             * Error #16 USED (Saga Screen Mode)
-    dc.b    "Requested depth is not available.",0                                                  * Error #17 USED (Saga Screen Mode)
+; ******* SAGA Screen GFX Mode methods error messages
 
+    dc.b    "Requested SAGA C2P Screen resolution is not available.",0                             * Error #16 USED (Saga Screen Mode)
+    dc.b    "Requested SAGA C2P Screen depth is not available.",0                                  * Error #17 USED (Saga Screen Mode)
+    dc.b    "Unknown SAGA Double Scan mode requested.",0                                           * Error #18 USED (Saga Screen Mode)
 
+; ******* SAGA Screen Creation methods error messages
+
+    dc.b    "Custom Screen ID number is invalid. Valid range is 0-7 (included).",0                 * Error #19 USED (Custom Screens)
+    dc.b    "Unknown Custom Screen GFXMODE.",0                                                     * Error #20 USED (Custom Screens)
+    dc.b    "Unknown Custom Screen type.",0                                                        * Error #21 USED (Custom Screens)
+    dc.b    "Screen Pixels Width is smaller than requested resolution pixels width.",0             * Error #22 USED (Custom Screens)
+    dc.b    "Screen Pixels Height is smaller than requested resolution pixels height.",0           * Error #23 USED (Custom Screens)
+    dc.b    "Screen Pixels Width is higher than 3x requested resolution pixels width.",0           * Error #24 USED (Custom Screens)
+    dc.b    "Screen Pixels Height is higher than 3x requested resolution pixels height.",0         * Error #25 USED (Custom Screens)
+    dc.b    "Invalid Custom Screen Pixel format.",0                                                * Error #26 USED (Custom Screens)
+
+; *******
 
     dc.b    "Starting color palette position is invalid (Valid range 0-255).", 0                   * Error #5 UNUSED
     dc.b    "Color palette range cannot exceed value 255.", 0                                      * Error #6 UNUSED

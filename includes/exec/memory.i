@@ -2,11 +2,11 @@
 EXEC_MEMORY_I	SET	1
 **
 **	$VER: memory.i 39.3 (20.5.92)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	Definitions and structures used by the memory allocation system
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

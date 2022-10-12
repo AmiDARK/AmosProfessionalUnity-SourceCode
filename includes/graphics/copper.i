@@ -2,11 +2,11 @@
 GRAPHICS_COPPER_I SET	1
 **
 **	$VER: copper.i 39.14 (11.8.93)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	graphics copper list intruction definitions
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 
@@ -68,8 +68,8 @@ HALF_LINE	EQU	2
 
    STRUCTURE   UCopList,0
       APTR     ucl_Next
-      APTR     ucl_FirstCopList * head node of this copper list
-      APTR     ucl_CopList      * node in use
+      APTR     ucl_FirstCopList * head node of this copper list  
+      APTR     ucl_CopList      * node in use  
    LABEL ucl_SIZEOF
 
 *  private graphics data structure

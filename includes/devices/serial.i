@@ -2,11 +2,11 @@
 DEVICES_SERIAL_I SET 1
 **
 **	$VER: serial.i 33.6 (6.11.90)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	external declarations for the serial device
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
     IFND     EXEC_IO_I

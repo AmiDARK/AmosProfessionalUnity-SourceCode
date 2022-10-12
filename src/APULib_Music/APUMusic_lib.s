@@ -130,7 +130,7 @@ Dload        MACRO
 ; code!
 
 Translate    equ -30
-
+ExecBase     equ $4
 *************** Enveloppes definitions
         RsReset
 EnvNb:        rs.w    1

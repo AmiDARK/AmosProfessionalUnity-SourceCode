@@ -3,11 +3,11 @@
 GRAPHICS_VIEW_I SET 1
 **
 **	$VER: view.i 39.32 (12.3.93)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	graphics view/viewport definitions
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

@@ -2,11 +2,11 @@
 GRAPHICS_DISPLAYINFO_I	SET	1
 **
 **	$VER: displayinfo.i 39.15 (31.5.93)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	include define file for display control registers
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

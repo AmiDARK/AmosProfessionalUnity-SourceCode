@@ -2,11 +2,11 @@
 INTUITION_IMAGECLASS_I SET 1
 **
 **  $VER: imageclass.i 38.5 (26.3.92)
-**  Includes Release 40.15
+**  Includes Release 40.13
 **
 **  Definitions for the image classes
 **
-**  (C) Copyright 1989-1999 Amiga, Inc.
+**  (C) Copyright 1989-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

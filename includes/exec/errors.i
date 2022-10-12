@@ -2,11 +2,11 @@
 EXEC_ERRORS_I	SET	1
 **
 **	$VER: errors.i 39.0 (15.10.91)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	Standard Device IO Errors (returned in io_Error)
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

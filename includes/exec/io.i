@@ -2,11 +2,11 @@
 EXEC_IO_I	SET	1
 **
 **	$VER: io.i 39.0 (15.10.91)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	Message structures used for device communication
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

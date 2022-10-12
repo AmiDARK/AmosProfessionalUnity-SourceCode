@@ -33,7 +33,6 @@ EZFlag        equ     0
         Include "src/AmosProUnity_Debug.s"
         Include "src/AMOS_Includes.s"
 
-
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Version    MACRO
     dc.b    0,"$VER: 0.1",0

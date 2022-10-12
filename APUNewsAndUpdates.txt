@@ -27,6 +27,12 @@ PersonalUnity.lib :
     * Update Lines Effects (update the copper list with all effects)
     * Remove Line Effects (clear all change sprite color palette, change colour line, screen offsets)
 
+Amos Professional Unity improvements :
+- Add 25 new external registers for AMAL like ZA-ZZ (Instead of classics RA-RZ ones) : https://github.com/AmiDARK/AmosProfessionalUnity-Official-Releases/issues/11
+
+AMCAF Port :
+- Add Protracker replay routines from the original AMCAF extension to Amos Professional Unity AMCAFLight.lib
+
 BUG :
 - (Always existing ?) Save Iff on 32 colors, IFF file cannot be loaded by PPaint. (compression format not recognized)
 
@@ -48,9 +54,67 @@ Bnk_BitPalette   Equ    5            ; = Bnk.BitReserved1
 Bnk_BitFIcons    Equ    6            ; = Bnk_BitReserved2
 Bnk_BitCopperFX  Equ    7            ; = Bnk_BitReserved3 -> Used for all Screen(s)FX banks. A word inside the bank define the ID of the FX.
 
+To Do :
+
+Special Variables :
++----------------+-------+------------+
+| Key Name       | Val   | Priority*  | Priority* = The treatment order for the values
++----------------+-------+------------+ in Get Screen Mode(W,H,D,F) concerning optional
+| CheckECSModes  | $0100 | Priority 1 | Format. If a "???Only" is enabled and found, 
+| CheckAGAModes  | $0200 | Priority 2 | it stop checking order and uses the found mode.
+| CheckSAGAModes | $0400 | Priority 3 |
++----------------+ $0800 +            +
+| ECSOnly        | $0010 | Priority 4 |
+| AGAOnly        | $0020 | Priority 5 |
+| SAGAOnly       | $0040 | Priority 6 |
++----------------+ $0080 +------------+
+| BestMode       | $0000 | Priority 7 |
++----------------+-------+------------+
+Priority* = The treatment order for the values in Get Screen Mode(W,H,D,F) concerning optional Format.
+If a "???Only" is enabled and found, it stop checking order and uses the found mode.
+
+APUGFXMODE = Get Screen Mode(Width,Height,Depth(,format))
+                 Width = Width in pixels of the full screen
+                 Height = Height in pixels of the full screen
+                 Depth = Depth in bitplanes count (ECS/AGA) or color format (SAGA)
+                 format = define checking limits (BEST->SAGA,then AGA,Then ECS; SAGAOnly, AGAOnly, ECSOnly, CheckSAGA, CheckAGA, CheckECS)
+                 if 'format' is not set (optional), then BEST is selectionned.
+  This method will return a formatted value :
+APUGFXMODE      : 
+Bit#15          : GFX FORMAT BIT#2
+Bit#14          : GFX FORMAT BIT#1
+                : 1,1=SAGA; 0,1=AGA; 0,0=ECS; (In the future 1,0=Other Graphics Systems Intuition RTG,etc.)
+Bit#13          : Ham Mode Enabled/Disabled (HAM6 if 6 Bitplanes & HAM8 if 8 bitplaned)
+Bits#08-12      : Graphic Resolution Mode    | SAGA | ECS  | AGA
+                    $01 = 320x200            |  Y      Y      Y     = Lowres NTSC
+                    $02 = 320x240            |  Y      Y      Y     = Lowres (PAL)
+                    $03 = 320x256            |  Y      Y      Y     = Lowres PAL
+                    $04 = 640x400            |  Y      Y      Y     = Hires + Laced NTSC
+                    $05 = 640x480            |  Y      Y      Y     = Hires + Laced (PAL)
+                    $06 = 640x512            |  Y      Y      Y     = Hires + Laced PAL
+                    $07 = 960x240            |  Y      X      X
+                    $08 = 480x270            |  Y      X      X
+                    $09 = 304x224            |  Y      X      X
+                    $0A = 1280x720           |  Y      X      X
+                    $0B = 640x360            |  Y      X      X
+                    ... = ...                |  Future Saga Graphics Resolutions
+
 ; ************************************************************************
-; 2021.07.26 :
-- Added =Get Screen Mode(Width, Height, Depth) for SAGA C2P Screen Mode
+; 2022.10.12 :
+- Added SAGA CPU/GFX Detection at startup to open SAGA library version when available.
+- Added SAGA Chunky screen support in copper list.
+
+; ************************************************************************
+; 2021.12.21 :
+- Added new command : GFXMODE = get saga c2p screen mode( Width, Height, Depth, Scanmode )  [AmosProUnity.lib/L_L_GetSagaC2PScreenModeEx]
+- Added new command : GFXMODE = get saga c2p screen mode( Width, Height, Depth )            [AmosProUnity.lib/L_GetSagaC2PScreenMode]
+- Started new command : open custom screen ScreenID, Width, Height, GFXMODE
+
+
+; ************************************************************************
+; 2021.10.25 :
+- Removed non kept extra commands for Custom Screens modes. Rebuild all the Custom Screens system.
+- Added space in file 'configuration/APUnity_Editor_Config.s' for eXtensions registration system
 
 ; ************************************************************************
 ; 2021.04.22 :

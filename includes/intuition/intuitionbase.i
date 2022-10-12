@@ -2,11 +2,11 @@
 INTUITION_INTUITIONBASE_I SET  1
 **
 ** $VER: intuitionbase.i 38.0 (12.6.91)
-** Includes Release 40.15
+** Includes Release 40.13
 **
 ** The public part of  IntuitionBase structure and supporting structures
 **
-**  (C) Copyright 1985-1999 Amiga, Inc.
+**  (C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

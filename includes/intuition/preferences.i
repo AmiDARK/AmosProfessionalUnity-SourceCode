@@ -2,11 +2,11 @@
 INTUITION_PREFERENCES_I	SET  1
 **
 **	$VER: preferences.i 38.4 (16.9.92)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	Structure definition for old-style preferences
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

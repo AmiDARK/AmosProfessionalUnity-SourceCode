@@ -2,11 +2,11 @@
 GRAPHICS_GFXNODES_I	EQU	1
 **
 **	$VER: gfxnodes.i 39.0 (21.8.91)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	graphics extended node definitions
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

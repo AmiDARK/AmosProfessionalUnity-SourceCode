@@ -1065,7 +1065,7 @@ noFetchChanges2:
     move.w     d5,(a1)+
 ; ******** 2021.04.13 Update to fix color palette issue in copper list - END
 ; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64
-    move.w     #FMode,(a1)+            ; 2019.11.04 And FMode Support too
+    move.w     #FMODE,(a1)+            ; 2019.11.04 And FMode Support too
     move.w     T_AgaSprWidth(a5),d4
     lsl.w      #2,d4
     or.w       EcFMode(a0),d4          ; 2021.03.30 Read FMode datas
@@ -1452,7 +1452,7 @@ EcCopBa:
     move.w     T_EcFond(a5),(a1)+
 ; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64
     move.l     d4,T_SaveReg(a5)
-    move.w     #FMode,(a1)+            ; 2019.11.04 And FMode Support too
+    move.w     #FMODE,(a1)+            ; 2019.11.04 And FMode Support too
     move.w     T_AgaSprWidth(a5),d4
     lsl.w      #2,d4
     or.w       EcFMode(a0),d4          ; 2021.03.30 Read FMode datas
@@ -1526,8 +1526,8 @@ HsCop:
     move.l     #$1003FFFE,(a0)         ; Copper 1 : Wait to line raster line 16 (out of screen as screen start near line 50)
     move.l     (a0)+,(a1)+             ; Copper 2 : Copy Wait line from copper 1
 ; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64 - START
-    move.w     #FMode,(a0)+            ; 2021.03.30 And FMode Support too
-    move.w     #FMode,(a1)+            ; 2021.03.30 And FMode Support too
+    move.w     #FMODE,(a0)+            ; 2021.03.30 And FMode Support too
+    move.w     #FMODE,(a1)+            ; 2021.03.30 And FMode Support too
     move.w     T_AgaSprWidth(a5),d4
     lsl.w      #2,d0
     or.w       EcFMode(a0),d0          ; 2021.03.30 Read FMode datas

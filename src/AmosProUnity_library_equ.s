@@ -426,6 +426,8 @@ agaPalCnt      equ 8                   ; Define the maximum of Aga color palette
         Rw     globAgaPalL,224         ; 2020.08.13 Adding low registers of AGA Palette. Storing 24 bit
         Rw     Separator2,1
         Rb     agaPalLoad,1024         ; 2020.09.17 Load Aga Palette Here
+        Rl     ChunkyRegs1,1           ; 2022.10.12 Added to support SAGA Chunky screens
+        Rl     ChunkyRegs2,1           ; 2022.10.12 Added to support SAGA Chunky screens
 *************** Longueur de la structure W.S
         Rb     L_Trp,4
 L_Trappe    equ    -Count

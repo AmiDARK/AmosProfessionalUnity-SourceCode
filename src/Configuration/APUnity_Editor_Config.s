@@ -1165,5 +1165,20 @@ DMenu1	Incbin	"src/bin/Editor_Menus.bin"
 	Even
 DMenu2	
 
+; **********************************************************************************************************************
+; 2021.10.25 - Added support for Registered extensions principle - START
+Ed_eXtRegistered:
+            dc.l $01010100 ; Slots 0-2 Forced Registered (Music, Compact & Request extensions), 3 Not Registered
+            dc.l $01010100 ; Slots 4-6 Forced Registered (Compiler, IOPorts & UnitySUpport extensions), 7 Not Registered
+            dc.l $00000000 ; Slots 8-11
+            dc.l $00000000 ; Slots 12-15
+            dc.l $00000000 ; Slots 16-19
+            dc.l $00000000 ; Slots 20-23
+            dc.l $00000000 ; Slots 24-27
+            dc.l $00000000 ; Slots 38-31 (Not Availablen)
+; 2021.10.25 - Added support for Registered extensions principle - END
+; **********************************************************************************************************************
+
+
 Fin
 		END	

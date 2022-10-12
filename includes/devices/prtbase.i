@@ -2,11 +2,11 @@
 DEVICES_PRTBASE_I EQU	1
 **
 **	$VER: prtbase.i 1.9 (26.7.90)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	printer.device base structure definitions
 **
-**	(C) Copyright 1987-1999 Amiga, Inc.
+**	(C) Copyright 1987-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

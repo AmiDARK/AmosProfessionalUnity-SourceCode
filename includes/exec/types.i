@@ -2,11 +2,11 @@
 EXEC_TYPES_I	SET	1
 **
 **	$VER: types.i 39.1 (24.2.93)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	Data storage macros.  Must be included before any other Amiga include.
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 
@@ -163,6 +163,6 @@ BITDEF0     MACRO   ; prefix,&name,&type,&value
 ** the specific minimum library version you require.
 **		LIBRARY_VERSION EQU	36
 **
-LIBRARY_MINIMUM	EQU 33	;Lowest version supported
+LIBRARY_MINIMUM	EQU 33	;Lowest version supported by Commodore-Amiga
 
 	ENDC	; EXEC_TYPES_I

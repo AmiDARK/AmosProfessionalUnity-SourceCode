@@ -12,7 +12,7 @@
 ; .....00222202........2220022000000002200002000002........2000002000020000000..
 ; ....2222200000.......220002200000002.2000000000000222222000000..2000000002....
 ; ....220000200002......20000..200002..220000200000000000000002.......22........
-; ...2220002.220000 2....220002...22.....200002..0000000000002...................
+; ...2220002.2200002....220002...22.....200002..0000000000002...................
 ; ...220000..222000002...20000..........200000......2222........................
 ; ...000000000000000000..200000..........00002..................................
 ; ..220000000022020000002.200002.........22.......______________________________
@@ -24,6 +24,7 @@
 ;
         Include "src/AMOS_Includes.s"
         Include "src/AmosProUnity_Version.s"
+        Include "includes/exec/execbase.i"
 ; ______________________________________________________________________________
 
 
@@ -1630,30 +1631,37 @@ openAmosProfessionalECSLib:
 ; ********************************************* Open AGA Version of the Library
 CheckForAgaOrSaga:
 ; ******** 2021.06.09 if AGA chipset is detected, we try to go further and detect if SAGA Vampire is available - START
-    bra.s    openAmosProfessionalAGALib
-
-
-    bra.s  openAmosProfessionalAGALib
+; ******** 2022.10.12 Detect Vampire CPU 68080 first
+    move.w     AttnFlags(a6),d7
+    btst       #CPU_68080,d7          ; Is VAMPIRE CPU 68080 detected ?
+    bne.w      openAmosProfessionalAGALib ; No -> Open AGA Only
+; ******** 2022.10.12 Detect graphic chipset secondly.
+CheckVampVersion    Equ  ChipsetBase+VAMPIREVERSION    
+    movea.l   #CheckVampVersion,a0
+    move.w    (a0),d7
+    lsr.w     #8,d7                   ; Bits 8-15 -> 0-7
+    and.w     #%10111000,d7           ; Bits Kraken(7), V4SA(5), V4_1200(4), V4_500(3)
+    beq.w     openAmosProfessionalAGALib ; No extra graphic chipset available-> Open AGA Only
+; ******** 2022.10.12 Open Saga version of the library
+    bra.s     openAmosProfessionalAGALib
     move.l    SP_DosBase(sp),a6
-    lea    LibNameSAGA2(pc),a0        APSystem/AmosProfessionalUnitySAGA.library
+    lea       LibNameSAGA2(pc),a0        APSystem/AmosProfessionalUnitySAGA.library
     move.l    a0,d1
-    jsr    _LVOLoadSeg(a6)
-    tst.l    d0
-    bne.s    LibraryLoaded.Ok
-    lea    LibNameSAGA3(pc),a0        libs/AmosProfessionalUnitySAGA.library
+    jsr       _LVOLoadSeg(a6)
+    tst.l     d0
+    bne.s     LibraryLoaded.Ok
+    lea       LibNameSAGA3(pc),a0        libs/AmosProfessionalUnitySAGA.library
     move.l    a0,d1
-    jsr    _LVOLoadSeg(a6)
-    tst.l    d0
-    bne.s    LibraryLoaded.Ok
-    lea    LibNameSAGA1(pc),a0        libs:AmosProfessionalUnitySAGA.library
+    jsr       _LVOLoadSeg(a6)
+    tst.l     d0
+    bne.s     LibraryLoaded.Ok
+    lea       LibNameSAGA1(pc),a0        libs:AmosProfessionalUnitySAGA.library
     move.l    a0,d1
-    jsr    _LVOLoadSeg(a6)
-    tst.l    d0
-    bne.s    LibraryLoaded.Ok
+    jsr       _LVOLoadSeg(a6)
+    tst.l     d0
+    bne.s     LibraryLoaded.Ok
     move.l    #Panic_Lib,Panic    Message d'erreur
-    bra.w    Boot_Fatal
-
-
+    bra.w     Boot_Fatal
 
 ; ******** 2021.06.09 if AGA chipset is detected, we try to go further and detect if SAGA Vampire is available - END
 openAmosProfessionalAGALib:

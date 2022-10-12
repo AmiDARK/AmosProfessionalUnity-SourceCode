@@ -13,118 +13,122 @@
 ; Detect Vampire : Exec->AttnFlags & Bit10 means 080 means must be a vampire
 ; Detect SAGA : DFF3FC register.
 ;
-    ; Chipset Base to add to chipset registers for direct writes
-    ChipsetBase    equ     $dff000     ; This value must be added to chipset registers values for direct registers write
+CPU_68080      Equ    10           ; Vampire only
+; Chipset Base to add to chipset registers for direct writes
+ChipsetBase    equ     $dff000     ; This value must be added to chipset registers values for direct registers write
 
-    ; This value must be added to the register values when long writes must be done inside a copperlist
-    longWrite      equ     $000800     ; Used to long copper list instructions (instead of default word ones)
+SagaC2PModeBit equ     31          ; GFXMODE Bit #31 mean "SAGA C2P Screen Mode"
+SagaPIPModeBit equ     30          ; GFXMODE Bit #30 mean "SAGA PIP Screen Mode"
 
-    ;
-    BPLHMOD        equ     $0001e6     ; Chunky plane modulo
-    SPRHPTH        equ     $0001e8     ; (Not documented) UHRes Sprite pointer (high 5 bits)
-    SPRHPTL        equ     $0001ea     ; (Not documented) UHRes Sprite pointer (low 16 bits)
-    BPLHPTH        equ     $0001ec     ; Chunky Bitplane Pointer (hi 15 bits)
-    BPLHPTL        equ     $0001ee     ; Chunky Bitplane Pointer (low 16 bits)
-    GFXMODE        equ     $0001f4     ; Set Resolution and Pixel format
-    FMODE          equ     $0001fc     ; Fetch mode register
-    ;
-    DMACON2Read    equ     $000202
-    INTENA2Read    equ     $00021c
-    INTREQ2Read    equ     $00021e
-    joy0buttons    equ     $000220     ; Joystick 0 connection/buttons (Undated)
-    joy1buttons    equ     $000222     ; Joystick 1 connection/buttons (Undated)
-    joy2buttons    equ     $000222     ; Joystick 2 connection/buttons (Undated)
-    joy3buttons    equ     $000222     ; Joystick 3 connection/buttons (Undated)
-    ;
-    clxdat0        equ     $000230     ; Sprite 0 Detailled collision
-    clxdat1        equ     $000232     ; Sprite 1 Detailled collision
-    clxdat2        equ     $000234     ; Sprite 2 Detailled collision
-    clxdat3        equ     $000236     ; Sprite 3 Detailled collision
-    clxdat4        equ     $000238     ; Sprite 4 Detailled collision
-    clxdat5        equ     $00023a     ; Sprite 5 Detailled collision
-    clxdat6        equ     $00023c     ; Sprite 6 Detailled collision
-    clxdat7        equ     $00023e     ; Sprite 7 Detailled collision
-    ;
-    DMACON2        equ     $000296
-    INTENA2        equ     $00029a
-    INTREQ2        equ     $00029c
-    ;
-    PlanarCOLH     equ     $000380     ; 32bit Planar COLOR Port register
-    PlanarCOLL     equ     $000382     ;       256 Color Register, Format [ID,RR,GG,BB]
-    SpriteCOLH     equ     $000384     ; 32bit Sprite COLOR Port register
-    SpriteCOLL     equ     $000386     ;       256 Color Register, Format [ID,RR,GG,BB]
-    ChunkyCOLH     equ     $000388     ; 32bit Chunky COLOR Port register
-    ChunkyCOLL     equ     $00038a     ;       256 Color Register, Format [ID,RR,GG,BB]
-    PIPCOLH        equ     $00038c     ; 32bit PIP COLOR Port register
-    PIPCOLL        equ     $00038e     ;       256 Color Register, Format [ID,RR,GG,BB]
-    ;
-    PinXStrt       equ     $0003d0    ; (Not documented)
-    PinYStrt       equ     $0003d2    ; (Not documented)
-    PinXStop       equ     $0003d4    ; (Not documented)
-    PinYStop       equ     $0003d6    ; (Not documented)
-    PipPtr         equ     $0003d8    ; (Not documented) 32 bit Pointer
-    PipFormat      equ     $0003dc    ; (Not documented) Color Format (8bit/16bit/15bit/YUV)
-    PipModulo      equ     $0003de    ; (Not documented) PipModulo
-    PipColorKey    equ     $0003e0    ; (Not documented) ColorKey 1000,RRRR,GGGG,BBBB
-    PipDMARowLen   equ     $0003e2    ; (Not documented) PipDMARowLen
-    VAMPIREVERSION equ     $0003fc    ; 8bit Card Version / 8bit clock Multiplier
-    ;
-    Aud0PtrH       equ     $000400
-    Aud0PtrL       equ     $000402
-    Aud0LenH       equ     $000404
-    Aud0LenL       equ     $000406
-    Aud0Vol        equ     $000408
-    Aud0Crtl       equ     $00040a
-    Aud0Per        equ     $00040c
-    Aud1PTrH       equ     $000410
-    Aud1PtrL       equ     $000412
-    Aud1LenH       equ     $000414
-    Aud1LenL       equ     $000416
-    Aud1Vol        equ     $000418
-    Aud1Crtl       equ     $00041a
-    Aud1Per        equ     $00041c
-    Aud2PtrH       equ     $000400
-    Aud2PtrL       equ     $000402
-    Aud2LenH       equ     $000404
-    Aud2LenL       equ     $000406
-    Aud2Vol        equ     $000408
-    Aud2Crtl       equ     $00040a
-    Aud2Per        equ     $00040c
-    Aud3PTrH       equ     $000410
-    Aud3PtrL       equ     $000412
-    Aud3LenH       equ     $000414
-    Aud3LenL       equ     $000416
-    Aud3Vol        equ     $000418
-    Aud3Crtl       equ     $00041a
-    Aud3Per        equ     $00041c
-    Aud4PtrH       equ     $000400
-    Aud4PtrL       equ     $000402
-    Aud4LenH       equ     $000404
-    Aud4LenL       equ     $000406
-    Aud4Vol        equ     $000408
-    Aud4Crtl       equ     $00040a
-    Aud4Per        equ     $00040c
-    Aud5PTrH       equ     $000410
-    Aud5PtrL       equ     $000412
-    Aud5LenH       equ     $000414
-    Aud5LenL       equ     $000416
-    Aud5Vol        equ     $000418
-    Aud5Crtl       equ     $00041a
-    Aud5Per        equ     $00041c
-    Aud6PtrH       equ     $000400
-    Aud6PtrL       equ     $000402
-    Aud6LenH       equ     $000404
-    Aud6LenL       equ     $000406
-    Aud6Vol        equ     $000408
-    Aud6Crtl       equ     $00040a
-    Aud6Per        equ     $00040c
-    Aud7PTrH       equ     $000410
-    Aud7PtrL       equ     $000412
-    Aud7LenH       equ     $000414
-    Aud7LenL       equ     $000416
-    Aud7Vol        equ     $000418
-    Aud7Crtl       equ     $00041a
-    Aud7Per        equ     $00041c
+; This value must be added to the register values when long writes must be done inside a copperlist
+longWrite      equ     $000800     ; Used to long copper list instructions (instead of default word ones)
+
+;
+BPLHMOD        equ     $0001e6     ; Chunky plane modulo
+SPRHPTH        equ     $0001e8     ; (Not documented) UHRes Sprite pointer (high 5 bits)
+SPRHPTL        equ     $0001ea     ; (Not documented) UHRes Sprite pointer (low 16 bits)
+BPLHPTH        equ     $0001ec     ; Chunky Bitplane Pointer (hi 15 bits)
+BPLHPTL        equ     $0001ee     ; Chunky Bitplane Pointer (low 16 bits)
+GFXMODE        equ     $0001f4     ; Set Resolution and Pixel format
+FMODE          equ     $0001fc     ; Fetch mode register
+;
+DMACON2Read    equ     $000202
+INTENA2Read    equ     $00021c
+INTREQ2Read    equ     $00021e
+joy0buttons    equ     $000220     ; Joystick 0 connection/buttons (Undated)
+joy1buttons    equ     $000222     ; Joystick 1 connection/buttons (Undated)
+joy2buttons    equ     $000222     ; Joystick 2 connection/buttons (Undated)
+joy3buttons    equ     $000222     ; Joystick 3 connection/buttons (Undated)
+;
+clxdat0        equ     $000230     ; Sprite 0 Detailled collision
+clxdat1        equ     $000232     ; Sprite 1 Detailled collision
+clxdat2        equ     $000234     ; Sprite 2 Detailled collision
+clxdat3        equ     $000236     ; Sprite 3 Detailled collision
+clxdat4        equ     $000238     ; Sprite 4 Detailled collision
+clxdat5        equ     $00023a     ; Sprite 5 Detailled collision
+clxdat6        equ     $00023c     ; Sprite 6 Detailled collision
+clxdat7        equ     $00023e     ; Sprite 7 Detailled collision
+;
+DMACON2        equ     $000296
+INTENA2        equ     $00029a
+INTREQ2        equ     $00029c
+;
+PlanarCOLH     equ     $000380     ; 32bit Planar COLOR Port register
+PlanarCOLL     equ     $000382     ;       256 Color Register, Format [ID,RR,GG,BB]
+SpriteCOLH     equ     $000384     ; 32bit Sprite COLOR Port register
+SpriteCOLL     equ     $000386     ;       256 Color Register, Format [ID,RR,GG,BB]
+ChunkyCOLH     equ     $000388     ; 32bit Chunky COLOR Port register
+ChunkyCOLL     equ     $00038a     ;       256 Color Register, Format [ID,RR,GG,BB]
+PIPCOLH        equ     $00038c     ; 32bit PIP COLOR Port register
+PIPCOLL        equ     $00038e     ;       256 Color Register, Format [ID,RR,GG,BB]
+;
+PipXStrt       equ     $0003d0    ; (Not documented)
+PipYStrt       equ     $0003d2    ; (Not documented)
+PipXStop       equ     $0003d4    ; (Not documented)
+PipYStop       equ     $0003d6    ; (Not documented)
+PipPtr         equ     $0003d8    ; (Not documented) 32 bit Pointer
+PipFormat      equ     $0003dc    ; (Not documented) Color Format (8bit/16bit/15bit/YUV)
+PipModulo      equ     $0003de    ; (Not documented) PipModulo
+PipColorKey    equ     $0003e0    ; (Not documented) ColorKey 1000,RRRR,GGGG,BBBB
+PipDMARowLen   equ     $0003e2    ; (Not documented) PipDMARowLen
+VAMPIREVERSION equ     $0003fc    ; 8bit Card Version / 8bit clock Multiplier
+;
+Aud0PtrH       equ     $000400
+Aud0PtrL       equ     $000402
+Aud0LenH       equ     $000404
+Aud0LenL       equ     $000406
+Aud0Vol        equ     $000408
+Aud0Crtl       equ     $00040a
+Aud0Per        equ     $00040c
+Aud1PTrH       equ     $000410
+Aud1PtrL       equ     $000412
+Aud1LenH       equ     $000414
+Aud1LenL       equ     $000416
+Aud1Vol        equ     $000418
+Aud1Crtl       equ     $00041a
+Aud1Per        equ     $00041c
+Aud2PtrH       equ     $000400
+Aud2PtrL       equ     $000402
+Aud2LenH       equ     $000404
+Aud2LenL       equ     $000406
+Aud2Vol        equ     $000408
+Aud2Crtl       equ     $00040a
+Aud2Per        equ     $00040c
+Aud3PTrH       equ     $000410
+Aud3PtrL       equ     $000412
+Aud3LenH       equ     $000414
+Aud3LenL       equ     $000416
+Aud3Vol        equ     $000418
+Aud3Crtl       equ     $00041a
+Aud3Per        equ     $00041c
+Aud4PtrH       equ     $000400
+Aud4PtrL       equ     $000402
+Aud4LenH       equ     $000404
+Aud4LenL       equ     $000406
+Aud4Vol        equ     $000408
+Aud4Crtl       equ     $00040a
+Aud4Per        equ     $00040c
+Aud5PTrH       equ     $000410
+Aud5PtrL       equ     $000412
+Aud5LenH       equ     $000414
+Aud5LenL       equ     $000416
+Aud5Vol        equ     $000418
+Aud5Crtl       equ     $00041a
+Aud5Per        equ     $00041c
+Aud6PtrH       equ     $000400
+Aud6PtrL       equ     $000402
+Aud6LenH       equ     $000404
+Aud6LenL       equ     $000406
+Aud6Vol        equ     $000408
+Aud6Crtl       equ     $00040a
+Aud6Per        equ     $00040c
+Aud7PTrH       equ     $000410
+Aud7PtrL       equ     $000412
+Aud7LenH       equ     $000414
+Aud7LenL       equ     $000416
+Aud7Vol        equ     $000418
+Aud7Crtl       equ     $00041a
+Aud7Per        equ     $00041c
 
 ; **************************************************************************************************
 ; Videos modes from : http://wiki.apollo-accelerators.com/doku.php/saga:registers:saga_video_mode
@@ -138,24 +142,27 @@
 ;-----------------------------------------------------------------------------
 ;   Name                       Value    ; Bytes per Pixel ; Description
 ;-----------------------------------------------------------------------------
-    SAGA_VIDEO_FORMAT_OFF      equ 0    ;        -        ;  Chunky DMA Off
-    SAGA_VIDEO_FORMAT_CLUT8    equ 1    ;        1        ;  CLUT8
-    SAGA_VIDEO_FORMAT_RGB16    equ 2    ;        2        ;  R5|G6|B5
-    SAGA_VIDEO_FORMAT_RGB15    equ 3    ;        2        ;  -|R5|G5|B5
-    SAGA_VIDEO_FORMAT_RGB24    equ 4    ;        3        ;  R8|G8|B8
-    SAGA_VIDEO_FORMAT_RGB32    equ 5    ;        4        ;  -|R8|G8|B8
-    SAGA_VIDEO_FORMAT_YUV422   equ 6    ;        2        ;  Y4|U2|V2
+SAGA_VIDEO_FORMAT_OFF      equ 0    ;        -        ;  Chunky DMA Off
+SAGA_VIDEO_FORMAT_CLUT8    equ 1    ;        1        ;     CLUT8
+SAGA_VIDEO_FORMAT_RGB16    equ 2    ;        2        ;    R5|G6|B5
+SAGA_VIDEO_FORMAT_RGB15    equ 3    ;        2        ;  -|R5|G5|B5
+SAGA_VIDEO_FORMAT_RGB24    equ 4    ;        3        ;    R8|G8|B8
+SAGA_VIDEO_FORMAT_RGB32    equ 5    ;        4        ;  -|R8|G8|B8
+SAGA_VIDEO_FORMAT_YUV422   equ 6    ;        2        ;    Y4|U2|V2
 ;-----------------------------------------------------------------------------
+SAGA_VIDEO_FORMAT_PLANAR1BIT equ $8
+SAGA_VIDEO_FORMAT_PLANAR2BIT equ $9
+SAGA_VIDEO_FORMAT_PLANAR4BIT equ $A
 
 ; High byte: SAGA_VIDEO_DBLSCAN
 ; This enumeration is used to describe the DoubleScan flag of the Video.
 ;-----------------------------------------------------------------------------
 ;   Name                       Value    ; Description
 ;-----------------------------------------------------------------------------
-    SAGA_VIDEO_DBLSCAN_OFF     equ 0    ; Normal Display
-    SAGA_VIDEO_DBLSCAN_X       equ 1    ; Double output each X-Pixel (X-DoubleScan)
-    SAGA_VIDEO_DBLSCAN_Y       equ 2    ; Double output each Row (Y-DoubleScan)
-    SAGA_VIDEO_DBLSCAN_XY      equ 3    ; DOuble output (XY-DoubleScan)
+SAGA_VIDEO_DBLSCAN_OFF     equ 0    ; Normal Display
+SAGA_VIDEO_DBLSCAN_X       equ 1    ; Double output each X-Pixel (X-DoubleScan)
+SAGA_VIDEO_DBLSCAN_Y       equ 2    ; Double output each Row (Y-DoubleScan)
+SAGA_VIDEO_DBLSCAN_XY      equ 3    ; Double output (XY-DoubleScan)
 ;-----------------------------------------------------------------------------
 
 ; *********************************************************************************************
@@ -193,6 +200,11 @@
 ;          |       |               $09 = 304x224                        |
 ;          |       |               $0A = 1280x720                       |
 ;          |       |               $0B = 640x360                        |
+;          |       |               $0C = 800x600                        |
+;          |       |               $0D = 1024x768                       |
+;          |       |               $0E = 720x576                        |
+;          |       |               $0F = 848x480                        |
+;          |       |               $10 = 640x200                        |
 ;          +-------+----------+-----------------------------------------+ 
 ;          | 07.00 | Pixelformat | $00                                  |
 ;          |       |               $01 = 8bit0                          |
@@ -201,11 +213,10 @@
 ;          |       |               $04 = 24bit R8G8B8                   |
 ;          |       |               $05 = 32bit A8R8G8B8                 |
 ;          |       |               $06 = YUV                            |
-;          |       |               $07 =                                |
+;          |       |               $07 = ...                            |
 ;          |       |               $08 = PLANAR 1BIT                    |
 ;          |       |               $09 = PLANAR 2BIT                    |
 ;          |       |               $0A = PLANAR 4BIT                    |
-;          |       |               $0B =                                |
 ;          +-------+----------+-----------------------------------------+ 
 ; 
 ; *********************************************************************************************

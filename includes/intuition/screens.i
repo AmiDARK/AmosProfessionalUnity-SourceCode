@@ -2,11 +2,11 @@
 INTUITION_SCREENS_I	SET  1
 **
 **	$VER: screens.i 38.25 (15.2.93)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	The Screen and NewScreen structures and attributes
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 	IFND EXEC_TYPES_I

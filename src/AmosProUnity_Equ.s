@@ -81,7 +81,6 @@ DiwStrt:    equ $08e
 DiwStop:    equ $090
 DdfStrt:    equ $092
 DdfStop:    equ $094
-FMode:      equ $1FC
 
 ; Blitter
 BltSize:    equ $058
@@ -123,9 +122,9 @@ WFlag_WBClosed    equ    3
 WFlag_LoadView    equ    4
 
 ;-------------> Systeme
-        IFND    ExecBase
-ExecBase:    equ 4
-        ENDC
+;        IFND    ExecBase
+;ExecBase    equ 4
+;        ENDC
 StartList:    equ 38
 Forbid:        equ -132
 Permit:        equ -138

@@ -2,11 +2,11 @@
 DEVICES_PRINTER_I EQU	1
 **
 **	$VER: printer.i 1.7 (26.7.90)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	printer.device structure definitions
 **
-**	(C) Copyright 1987-1999 Amiga, Inc.
+**	(C) Copyright 1987-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 

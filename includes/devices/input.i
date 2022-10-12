@@ -2,11 +2,11 @@
 DEVICES_INPUT_I SET	1
 **
 **	$VER: input.i 36.0 (1.5.90)
-**	Includes Release 40.15
+**	Includes Release 40.13
 **
 **	input device command definitions
 **
-**	(C) Copyright 1985-1999 Amiga, Inc.
+**	(C) Copyright 1985-1993 Commodore-Amiga, Inc.
 **	    All Rights Reserved
 **
 
