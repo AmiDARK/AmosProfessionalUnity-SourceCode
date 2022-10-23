@@ -68,25 +68,25 @@ Dlea     MACRO
 DmoveaL  MACRO
     move.l    ExtAdr+ExtNb*16(a5),\3
     add.w    #\2-UnityDatas,\3
-    move.l   (\1),\3
+    move.l   \1,\3
     ENDM
 
 DmoveL   MACRO
     move.l    ExtAdr+ExtNb*16(a5),\3
     add.w    #\2-UnityDatas,\3
-    move.l   (\1),\3
+    move.l   \1,\3
     ENDM
 
 DmoveW   MACRO
     move.l    ExtAdr+ExtNb*16(a5),\3
     add.w    #\2-UnityDatas,\2
-    move.w   (\1),\3
+    move.w   \1,\3
     ENDM
 
 DmoveB   MACRO
     move.l    ExtAdr+ExtNb*16(a5),\2
     add.w    #\2-UnityDatas,\2
-    move.b   (\1),\3
+    move.b   \1,\3
     ENDM
 
 ; Another macro to load the base address of the datazone...
@@ -820,6 +820,9 @@ SAGA_PIXEL_SIZE:
 ; **** 2021.12.22 
 CUSTOM_SCREEN:
     dc.l       0,0,0,0,0,0,0,0   ; Space to contains up to 8 screen structures pointers.
+
+TEMP_BUFFER:
+    dc.l       0,0,0,0,0,0,0,0   ; Save temporar datas
 
         RsReset
 CusEcLogic:    rs.l 1            ; 1x .L = to contain pointer to the screen Logic plane
@@ -3113,6 +3116,15 @@ cleanScreen:
     move.w      -4(a0),d6            ; d6 = Graphic Resolution visible pixel Widht
     move.w      -2(a0),d7            ; d7 = Graphic Resolution visible pixel Height
 
+                                     ; D0=ScreenID, D1=Width, D2=Height, D3=GFXMode, D6=VisibleWidth, D7=VisibleHeight
+    Dlea        TEMP_BUFFER,a1 
+    move.w      d0,2(a1)             ; Save ScreenID
+    move.w      d1,6(a1)             ; Save Width
+    move.w      d2,10(a1)            ; Save Height
+    move.w      d3,14(a1)            ; Save Depth
+    move.w      d6,18(a1)            ; Save Width display resolution
+    move.w      d7,22(a1)            ; Save height display resolution.
+
 ; *************************************************************** Check screen sizes limits
 ; 1. Check Screen Width must be >= Display Width
     cmp.w       d6,d1                ; if D1 (Requested Pixels Width) < D6 (Visible Pixels Width)
@@ -3137,18 +3149,56 @@ cleanScreen:
     Dlea        SAGA_PIXEL_SIZE,a0
     lsr.w       #1,d7                ; To Read a .w from the list mulu d7 by 2 (d7 range is 1-10 so it gives 2-20)
     move.w      (a0,d7),d4           ; d4 = Pixel Size ( 1, 2, 3 or 4 bytes depending on PixelFormat used)
+    move.w      d4,26(a1)            ; Save Pixel Depth
 
 ; ***************************************************************
 ; * Current OpenSagaC2PScreen datas D0(=ScreenID), D1(=Screen Pixels Width),
-;           D2(=Screen Pixels Height), D3(=GFXMODE), D4=Pixel Size (in bytes)
+;           D2(=Screen Pixels Height), D3(=GFXMODE), D4=Pixel Size (in bytes), D6=Display Width(in pixels), D7=Display Height(in pixels)
 ; Now we allocate memory for the screen
-
-
     Dlea        CUSTOM_SCREEN,a2     ; a2 = Custom screens structures pointers
-
+    move.l      d0,d5                ; D5 = Screen ID
+    lsl.l       #2,d0                ; D0 = D0 * 4
+    add.l       d0,a2                ; a2 = Current Custom Screen Structure Pointer
+    cmp.l       #0,(a2)              ; Screen already exists ?
+    Rbne        L_Err27              ; Screen already exists error                                                  * Error #27 USED (Custom Screens)
+; Allocate memory for screen structure
+    move.l      #CurEcLong,d0
+    mulu        d2,d1                ; d1 = Width * Height
+    mulu        d4,d1                ; d1 = Width * Height * Depth ( Bytes in size of a whole screen )
+    move.l      d1,d0                ; d0 = Bytes size
+    Rjsr        L_RamFast
+    move.l      d0,(a2)              ; a2 = Screen Structure save
+    move.l      d0,a0
+    DLea        TEMP_BUFFER,a1
+    movem.l     (a1)+,d0-d6
+    move.l      d1,CusEcPixWidth(a0)
+    move.l      d2,CusEcPixHeight(a0)
+    move.l      d3,CusEcGFXMODE(a0)
+    move.l      d4,CusEcViewWidth(a0)
+    move.l      d5,CusEcViewHeight(a0)
+    move.l      d6,CusEcDepth(a0)
     rts
 
 
+
+;CusEcLogic:    rs.l 1            ; 1x .L = to contain pointer to the screen Logic plane
+;CusEcPhysic    rs.l 1            ; 1x .L = to contain pointer to the screen Physic plane
+;CusEcBuffer3   rs.l 1            ; 1x .L = to contain pointer to the screen (non physic nor logic) when using triple buffering.
+;CusEcCurrent   rs.l 1            ; 1x .L = to contain pointer to the screen displayed plane (should be =CurEcPhysic)
+;CusEcPixWidth  rs.w 1            ; 1x .L = Screen width in pixels
+;CusEcPixHeight rs.w 1            ; 1x .L = Screen height in pixels
+;CusEcOffsetX   rs.w 1            ; 1x .W = Screen offset on width (X)
+;CusEcOffsetY   rs.w 1            ; 1x .W = Screen offset on height (Y)
+;CusEcViewWidth rs.w 1            ; 1x .L = Screen width in pixels
+;CusEcViewHeight rs.w 1           ; 1x .L = Screen height in pixels
+;CusEcDepth     rs.w 1            ; 1x .W = contain the screen depth ( 8/15/16/24/32 bits color depth, or YUV).
+;CusEcGFXMODE   rs.l 1            ; 1x .L = The GFXMODE used to open the screen 
+;CusEcInkA      rs.l 1            ; 1x .L = Current screen ink color (max 32 bits)
+;CusEcInkB      rs.l 1            ; 1x .L = Current screen 2nd ink color (max 32 bits)
+;CusEcPaper     rs.l 1            ; 1x .L
+;CusEcText      rs.w 1            ; 1x .W = Current text size
+;CurExFont      rs.w 1            ; 1x .W = Current text font.  
+;CurEcLong      equ __RS          ; Length of a screen
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
 ; *********************************************************************************************************************************************
@@ -3730,6 +3780,7 @@ ErrMess:
     dc.b    "Screen Pixels Width is higher than 3x requested resolution pixels width.",0           * Error #24 USED (Custom Screens)
     dc.b    "Screen Pixels Height is higher than 3x requested resolution pixels height.",0         * Error #25 USED (Custom Screens)
     dc.b    "Invalid Custom Screen Pixel format.",0                                                * Error #26 USED (Custom Screens)
+    dc.b    "Screen already exists",0                                                              * Error #27 USED (Custom Screens)
 
 ; *******
 
