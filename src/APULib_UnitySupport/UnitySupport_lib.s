@@ -306,8 +306,9 @@ C_Tk:
     dc.w    L_Nul,L_GetSagaC2PScreenModeEx
     dc.b    $80,"00,0,0,0",-1                                      ; GFXMODE = get saga c2p screen mode( Width, Height, Depth, ScanMode )
     dc.w    L_CustomScreenOpen,L_Nul
-    dc.b    "open custom scree","n"+$80,"I0,0,0,0",-1              ; Open Saga c2p Screen ScreenID, Width, Height, GFXMODE
-
+    dc.b    "cs open scree","n"+$80,"I0,0,0,0",-1              ; Open Saga c2p Screen ScreenID, Width, Height, GFXMODE
+    dc.w    L_CustomScreenClose,L_Nul
+    dc.b    "cs close scree","n"+$80,"I0",-1                   ; Close Saga c2p Screen ScreenID
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
@@ -814,7 +815,7 @@ SAGA_C2P_GFXMODES:
 
 ; **** 2022.01.03 Added pixel size for custom screen buffer creation
 SAGA_PIXEL_SIZE:
-    dc.w       0,1,2,2,3,4,3,0  ; CLUT_OFF(0),CLUT8(1),RGB16(2),RGB15(3),RGB24(4),RGB32(5),YUV422(6),NOT_DEFINED(7)
+    dc.w       0,1,2,2,3,4,2,0  ; CLUT_OFF(0),CLUT8(1),RGB16(2),RGB15(3),RGB24(4),RGB32(5),YUV422(6),NOT_DEFINED(7)
     dc.w       1,1,1            ; PLANAR1BIT(8),PLANAR2BIT(9),PLANAR4BIT(10=$A) (unknown mode format)
 
 ; **** 2021.12.22 
@@ -829,20 +830,24 @@ CusEcLogic:    rs.l 1            ; 1x .L = to contain pointer to the screen Logi
 CusEcPhysic    rs.l 1            ; 1x .L = to contain pointer to the screen Physic plane
 CusEcBuffer3   rs.l 1            ; 1x .L = to contain pointer to the screen (non physic nor logic) when using triple buffering.
 CusEcCurrent   rs.l 1            ; 1x .L = to contain pointer to the screen displayed plane (should be =CurEcPhysic)
-CusEcPixWidth  rs.w 1            ; 1x .L = Screen width in pixels
-CusEcPixHeight rs.w 1            ; 1x .L = Screen height in pixels
+CusEcPixWidth  rs.l 1            ; 1x .L = Screen width in pixels
+CusEcPixHeight rs.l 1            ; 1x .L = Screen height in pixels
+CusEcPixDepth  rs.l 1            ; 1x .L = Pixel depth in bytes
+CusEcDepth     rs.w 1            ; 1x .W = contain the screen depth ( 8/15/16/24/32 bits color depth, or YUV).
 CusEcOffsetX   rs.w 1            ; 1x .W = Screen offset on width (X)
 CusEcOffsetY   rs.w 1            ; 1x .W = Screen offset on height (Y)
 CusEcViewWidth rs.w 1            ; 1x .L = Screen width in pixels
 CusEcViewHeight rs.w 1           ; 1x .L = Screen height in pixels
-CusEcDepth     rs.w 1            ; 1x .W = contain the screen depth ( 8/15/16/24/32 bits color depth, or YUV).
+CusEcMod       rs.w 1            ; 1x .W = Screen module ( CusEcViewWidth-CusEcPixWidth)
 CusEcGFXMODE   rs.l 1            ; 1x .L = The GFXMODE used to open the screen 
 CusEcInkA      rs.l 1            ; 1x .L = Current screen ink color (max 32 bits)
 CusEcInkB      rs.l 1            ; 1x .L = Current screen 2nd ink color (max 32 bits)
 CusEcPaper     rs.l 1            ; 1x .L
 CusEcText      rs.w 1            ; 1x .W = Current text size
 CurExFont      rs.w 1            ; 1x .W = Current text font.  
-CurEcLong      equ __RS          ; Length of a screen
+CurPalette     rs.l 256          ; 256x .L = 32 bits 256 Color palette when under 8 bits mode
+CusBufferLen   rs.l 1            ; Taille du buffer mémoire réservé pour l'écran
+CusEcLong      equ __RS          ; Length of a screen
 
 
 ; Now follow all the music routines. Some are just routines called by others,
@@ -2970,8 +2975,6 @@ cleanScreen:
     Ret_Int
     rts
 
-
-
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
 ; *********************************************************************************************************************************************
@@ -3162,43 +3165,68 @@ cleanScreen:
     cmp.l       #0,(a2)              ; Screen already exists ?
     Rbne        L_Err27              ; Screen already exists error                                                  * Error #27 USED (Custom Screens)
 ; Allocate memory for screen structure
-    move.l      #CurEcLong,d0
-    mulu        d2,d1                ; d1 = Width * Height
-    mulu        d4,d1                ; d1 = Width * Height * Depth ( Bytes in size of a whole screen )
-    move.l      d1,d0                ; d0 = Bytes size
-    Rjsr        L_RamFast
+    move.l      #CusEcLong,d0
+    Rjsr        L_RamFast            ; Allocate screen structure
     move.l      d0,(a2)              ; a2 = Screen Structure save
-    move.l      d0,a0
-    DLea        TEMP_BUFFER,a1
+    move.l      d0,a2
+    Dlea        TEMP_BUFFER,a1
     movem.l     (a1)+,d0-d6
-    move.l      d1,CusEcPixWidth(a0)
-    move.l      d2,CusEcPixHeight(a0)
-    move.l      d3,CusEcGFXMODE(a0)
-    move.l      d4,CusEcViewWidth(a0)
-    move.l      d5,CusEcViewHeight(a0)
-    move.l      d6,CusEcDepth(a0)
+    move.l      d1,CusEcPixWidth(a2)
+    move.l      d2,CusEcPixHeight(a2)
+    move.l      d3,CusEcGFXMODE(a2)
+    move.l      d4,CusEcViewWidth(a2)
+    move.l      d5,CusEcViewHeight(a2)
+    move.l      d6,CusEcDepth(a2)
+    sub.l       d1,d4                ; D4 = CusEcViewWidth - CusEcPixWidth = CusEcMod
+    move.l      d4,CusEcMod(a2)
+    mulu        d2,d1                ; d1 = Width * Height
+    mulu        d6,d1                ; d1 = Width * Height * Depth ( Bytes in size of a whole screen )
+    move.l      d1,CusBufferLen      ; Save screen buffer length
+    move.l      d1,d0                ; d0 = Bytes size
+    Rjsr        L_RamFast            ; Allocate screen plane datas
+    move.l      d0,CusEcLogic(a2)    ; \
+    move.l      d0,CusEcPhysic(a2)   ;  > Save Screen pointer
+    move.l      d0,CusEcCurrent(a2)  ; /
+    move.l      #1,CusEcInkA
+    move.l      #2,CusEcInkB
+    move.l      #0,CusEcPaper
+    move.l      #1,CusEcText
     rts
 
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *   Close Custom Screen SCREENID                            *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters : ScreenID                                     *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+  Lib_Par     CustomScreenClose      ; D3 = Screen GFX MODE
+; ******* 1. Check screenID limits
+    cmp.l       #8,d3
+    Rbge        L_Err18              ; "Custom Screen ID number is invalid. Valid range is 0-7 (included)" * Error #18 USED (Custom Screens)
+    cmp.l       #0,d3
+    Rbmi        L_Err18              ; "Custom Screen ID number is invalid. Valid range is 0-7 (included)" * Error #18 USED (Custom Screens)
+    Dlea        CUSTOM_SCREEN,a2     ; a2 = Custom screens structures pointers
+    lsl.l       #2,d3
+    Add.l       d3,a2                ; a2 = Pointer to chosen screen
+    move.l      (a2),d7              ; d7 = Screen Pointer
+    tst.l       d7
+    Rbeq        L_Err28              ; "Custom screen does not exists"                                        * Error #28 USED (Custom Screens)
+    clr.l       (a2)                 ; Libère l'écran
+    move.l      d7,a2
+    move.l      CusBufferLen(a2),d0
+    move.l      CusEcPhysic(a2),a1
+    Rjsr        L_RamFree            ; Libération du bloc mémoire de l'écran lui même
+    move.l      a2,a1
+    move.l      #CusEcLong,d0
+    Rjsr        L_RamFree            ; Libération du bloc mémoire de la structure de l'écran
+    rts
 
-
-;CusEcLogic:    rs.l 1            ; 1x .L = to contain pointer to the screen Logic plane
-;CusEcPhysic    rs.l 1            ; 1x .L = to contain pointer to the screen Physic plane
-;CusEcBuffer3   rs.l 1            ; 1x .L = to contain pointer to the screen (non physic nor logic) when using triple buffering.
-;CusEcCurrent   rs.l 1            ; 1x .L = to contain pointer to the screen displayed plane (should be =CurEcPhysic)
-;CusEcPixWidth  rs.w 1            ; 1x .L = Screen width in pixels
-;CusEcPixHeight rs.w 1            ; 1x .L = Screen height in pixels
-;CusEcOffsetX   rs.w 1            ; 1x .W = Screen offset on width (X)
-;CusEcOffsetY   rs.w 1            ; 1x .W = Screen offset on height (Y)
-;CusEcViewWidth rs.w 1            ; 1x .L = Screen width in pixels
-;CusEcViewHeight rs.w 1           ; 1x .L = Screen height in pixels
-;CusEcDepth     rs.w 1            ; 1x .W = contain the screen depth ( 8/15/16/24/32 bits color depth, or YUV).
-;CusEcGFXMODE   rs.l 1            ; 1x .L = The GFXMODE used to open the screen 
-;CusEcInkA      rs.l 1            ; 1x .L = Current screen ink color (max 32 bits)
-;CusEcInkB      rs.l 1            ; 1x .L = Current screen 2nd ink color (max 32 bits)
-;CusEcPaper     rs.l 1            ; 1x .L
-;CusEcText      rs.w 1            ; 1x .W = Current text size
-;CurExFont      rs.w 1            ; 1x .W = Current text font.  
-;CurEcLong      equ __RS          ; Length of a screen
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
 ; *********************************************************************************************************************************************
@@ -3735,6 +3763,14 @@ ErDisk:
     moveq   #26,d0
     Rbra    L_Errors
 
+  Lib_Def Err27           ; Invalid Custom Screen Pixel format.
+    moveq   #27,d0
+    Rbra    L_Errors
+
+  Lib_Def Err28           ; Invalid Custom Screen Pixel format.
+    moveq   #28,d0
+    Rbra    L_Errors
+
     Lib_Def Errors
     lea     ErrMess(pc),a0
     moveq   #0,d1        * Can be trapped
@@ -3775,12 +3811,13 @@ ErrMess:
     dc.b    "Custom Screen ID number is invalid. Valid range is 0-7 (included).",0                 * Error #19 USED (Custom Screens)
     dc.b    "Unknown Custom Screen GFXMODE.",0                                                     * Error #20 USED (Custom Screens)
     dc.b    "Unknown Custom Screen type.",0                                                        * Error #21 USED (Custom Screens)
-    dc.b    "Screen Pixels Width is smaller than requested resolution pixels width.",0             * Error #22 USED (Custom Screens)
-    dc.b    "Screen Pixels Height is smaller than requested resolution pixels height.",0           * Error #23 USED (Custom Screens)
-    dc.b    "Screen Pixels Width is higher than 3x requested resolution pixels width.",0           * Error #24 USED (Custom Screens)
-    dc.b    "Screen Pixels Height is higher than 3x requested resolution pixels height.",0         * Error #25 USED (Custom Screens)
+    dc.b    "Custom screen Pixels Width is smaller than requested resolution pixels width.",0      * Error #22 USED (Custom Screens)
+    dc.b    "Custom screen Pixels Height is smaller than requested resolution pixels height.",0    * Error #23 USED (Custom Screens)
+    dc.b    "Custom screen Pixels Width is higher than 3x requested resolution pixels width.",0    * Error #24 USED (Custom Screens)
+    dc.b    "Custom screen Pixels Height is higher than 3x requested resolution pixels height.",0  * Error #25 USED (Custom Screens)
     dc.b    "Invalid Custom Screen Pixel format.",0                                                * Error #26 USED (Custom Screens)
-    dc.b    "Screen already exists",0                                                              * Error #27 USED (Custom Screens)
+    dc.b    "Custom screen already exists",0                                                       * Error #27 USED (Custom Screens)
+    dc.b    "Custom screen does not exists",0                                                      * Error #28 USED (Custom Screens)
 
 ; *******
 
