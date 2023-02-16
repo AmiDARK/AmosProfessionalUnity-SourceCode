@@ -792,7 +792,7 @@ HsAd2:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - START
     cmp.w    #0,d4
     bpl.s    .noFix
-    move.w   #0,d4                ; Original moveq.w  #0,d4 not accepted by vAsm
+    moveq.w  #0,d4
     tst.w    d4
 .noFix:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
@@ -862,7 +862,7 @@ HsAd4:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - START
     cmp.w    #0,d4
     bpl.s    .noFix
-    move.w   #0,d4                ; Original moveq.w  #0,d4 not accepted by vAsm
+    moveq.w  #0,d4
     tst.w    d4
 .noFix:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
@@ -1020,7 +1020,7 @@ HsA6:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - START
     cmp.w    #0,d5
     bpl.s    .noFix
-    move.w   #0,d5                ; Original moveq.w  #0,d5 not accepted by vAsm
+    moveq.w  #0,d5
     tst.w    d5
 .noFix:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
@@ -1118,7 +1118,7 @@ HsMA1:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - START
     cmp.w    #0,d5
     bpl.s    .noFix
-    move.w   #0,d5                ; Original moveq.w  #0,d5 not accepted by vAsm
+    moveq.w  #0,d5
     tst.w    d5
 .noFix:
 ; ******** 2021.04.04 Updated to fix when last copy was smaller than sprite width - END
@@ -1219,7 +1219,6 @@ HsBlitD5:
     cmp.w    T_AgaSprWordsWidth(a5),d5
     bge.s    fullBlitting
 .partialBlittingD5:
-    bsr      clearSpriteBuffer
 ; ******** Calculate Blitter C Modulo
     sub.w    d5,d0                     ; d0 = d0 - Remaining Width to copy
     lsl.w    #1,d0                     ; d0 = d0 * 2 
@@ -1377,7 +1376,7 @@ insertControlWordsD3A0:
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : clearSpriteEndingA2                         *
+; * Method Name : clearSpriteEnding                           *
 ; *-----------------------------------------------------------*
 ; * Description : This method will insert the required empties*
 ; *               lines at the end of a sprite, depending on  *
@@ -1387,18 +1386,25 @@ insertControlWordsD3A0:
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
-; ******** 2021.04.20 optimisation - START
 clearSpriteEndingA2:
-    exg.l    a0,a2
-    bsr clearSpriteEnding ; Call ClearSpriteEnding -> A0
-    exg.l    a0,a2
+; ******** 2021.03.31 Add sprite clear lines at bottom - START
+    cmp.w    #aga32pixSprites,T_AgaSprWidth(a5)
+    beq.s    .emptyFor32
+    blt.s    .emptyFor16
+.emptyFor64:
+    clr.l    12(a2)            ; Clear 32 bytes = 32 and clear emptyFor32 for 64 bits clearing
+    clr.l    8(a2)             ; Clear 32 bytes = 32 and clear emptyFor32 for 64 bits clearing
+.emptyFor32:
+    clr.l    4(a2)             ; Clear 16 bytes
+.emptyFor16:
+    clr.l    (a2)
+; ******** 2021.03.31 Add sprite clear lines at bottom - END
     rts
-; ******** 2021.04.20 optimisation - END
 
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
-; * Method Name : insertControlWordsD3A2                      *
+; * Method Name : insertControlWordsD3A0                      *
 ; *-----------------------------------------------------------*
 ; * Description : This method will insert control words at the*
 ; *               beginning of a sprite, depending on the cur-*
@@ -1409,53 +1415,30 @@ clearSpriteEndingA2:
 ; *                                                           *
 ; * Return Value : -                                          *
 ; *************************************************************
-; ******** 2021.04.20 optimisation - START
 insertControlWordsD3A2:
-    exg.l    a0,a2
-    bsr insertControlWordsD3A0 ; Call insertControlWordsD3A0
-    exg.l    a0,a2
+    cmp.w    #aga32pixSprites,T_AgaSprWidth(a5)
+    beq.s    .control32
+    bgt.s    .control64
+.control16:
+    move.l   d3,(a2)                ; (a0) = d3 = 1st control word + 2nd control word
     rts
-; ******** 2021.04.20 optimisation - END
-
-
-;
-; *****************************************************************************************************************************
-; *************************************************************
-; * Method Name : clearSpriteBuffer                           *
-; *-----------------------------------------------------------*
-; * Description : This method is used when an image displayed *
-; *               inside a sprite is smaller than the sprite  *
-; *               width defined. It ensures that the unused   *
-; *               part of the sprite will not contains some   *
-; *               artifacts from the previous wider sprite it *
-; *               potentially contained before update.        *
-; *                                                           *
-; * Parameters : (HsBlit ones)                                *
-; *              A0 = Memory pointer for destination (writing)*
-; *              A1 = Source Image pointer (reading)          *
-; *              D1 = Tx (Words) = Image Width in words count *
-; *              D2 = Ty (Lines) = Height of the image counted*
-; *                   in lines amount                         *
-; *            * D4/D5 = Remaining columns (words count) to   *
-; *                   copy from the image inside the sprites  *
-; *                   buffer                                  *
-; *                                                           *
-; * Return Value :                                            *
-; *************************************************************
-
-; ******** 2021.04.20 This method can be used only for sprites Width 32 & 64 (as 16 pixels width can not be partial sprite.) - START
-clearSpriteBuffer:
-    movem.l  a0,-(sp)
-    move.w   T_AgaSprBytesWidth(a5),d0    ; D0 = Sprite width in term of bytes.
-    ext.l    d0
-    mulu     d2,d0                        ; D0 = Amount of bytes to clear for 1 sprite bitplane
-;    lsl.l    #1,d0                        ; D0 = Amount of bytes to clear for 2 sprite bitplanes (1 full sprite)
-;    lsr.l    #2,d0                        ; D0 = D0 / 4 = Amount of long/int (32 bits) to clear for 1 full sprite)
-    lsr.l    #1,d0                        ; D0 * 2 / 4 = D0 / 2 faster calculation
-    subq     #1,d0                        ; -1 to makes dbar correct
-.loop:
-    clr.l    (a0)+
-    dbra     d0,.loop
-    movem.l  (sp)+,a0
+.control32:
+    swap     d3
+    move.w   d3,(a2)
+    clr.w    2(a2)
+    swap     d3
+    move.w   d3,4(a2)
+    clr.w    6(a2)
     rts
-; ******** 2021.04.20 This method can be used only for sprites Width 32 & 64 (as 16 pixels width can not be partial sprite.) - END
+.control64:
+    swap     d3
+    move.w   d3,(a2)
+    clr.w    2(a2)
+    clr.l    4(a2)
+    swap     d3
+    move.w   d3,8(a2)
+    clr.w    10(a2)
+    clr.l    12(a2)
+    rts
+.controlB:
+    rts

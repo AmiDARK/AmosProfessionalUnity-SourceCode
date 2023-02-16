@@ -685,7 +685,7 @@ BadVer:
 ; * Return Value : -                                          *
 ; *************************************************************
 UnitySupportDef:
-    Dload    a3
+    Dload      a3
     rts
 
 ;
@@ -703,7 +703,7 @@ UnitySupportDef:
 ; * Return Value : -                                          *
 ; *************************************************************
 UnitySupportEnd:
-    Dload    a3
+    Dload      a3
     ; ******************************** Delete the Iff/Ilbm CMAP file is not deleted from memory.
     Dlea       AgaCMAPColorFile,a1
     move.l     (a1),d0
@@ -823,6 +823,8 @@ SAGA_PIXEL_SIZE:
 ; **** 2021.12.22 
 CUSTOM_SCREEN:
     dc.l       0,0,0,0,0,0,0,0   ; Space to contains up to 8 screen structures pointers.
+CURRENT_SCREEN:
+    dc.l       0                 ; Store current screen structure adress pointer
 
 TEMP_BUFFER:
     dc.l       0,0,0,0,0,0,0,0   ; Save temporar datas
@@ -848,7 +850,8 @@ CusEcPaper     rs.l 1            ; 52 1x .L
 CusEcText      rs.w 1            ; 56 1x .W = Current text size
 CurExFont      rs.w 1            ; 58 1x .W = Current text font.  
 CusBufferLen   rs.l 1            ; 60 Taille du buffer mémoire réservé pour l'écran
-CurPalette     rs.l 256          ; 64 256x .L = 32 bits 256 Color palette when under 8 bits mode
+CusEcSize      rs.l 1            ; 64 Screen buffer size in bytes
+CurPalette     rs.l 256          ; 68 256x .L = 32 bits 256 Color palette when under 8 bits mode
 CusEcLong      equ __RS          ; Length of a screen
 
 
@@ -1014,10 +1017,10 @@ inputFormats:
 ; *                                                           *
 ; *************************************************************
 ; ************************************ Read R4G4B4 and push it into 2 R4G4B4 registers for High/Low bits
-  Lib_Def       InputIsRGB12
-    move.l      T_rgbInput(a5),d0       ; Load the RGB input data
-    move.w      d0,T_rgb12High(a5)      ; On RGB12 input, Low and High bits are the same
-    move.w      d0,T_rgb12Low(a5)       ; On RGB12 input, Low and High bits are the same
+  Lib_Def      InputIsRGB12
+    move.l     T_rgbInput(a5),d0       ; Load the RGB input data
+    move.w     d0,T_rgb12High(a5)      ; On RGB12 input, Low and High bits are the same
+    move.w     d0,T_rgb12Low(a5)       ; On RGB12 input, Low and High bits are the same
     rts
 
 ;
@@ -1042,7 +1045,7 @@ inputFormats:
 ; ************************************ Read R5G5B5 and push it into 2 R4G4B4 registers for High/Low bits
     Rbsr       L_convertRGB15toRGB24
     ; ******** Update the input with the new R8G8B8 version of the color to use RGB24 components separation methods
-    move.l      T_rgbOutput(a5),T_rgbInput(a5) ; Update input with new version in R8G8B8.
+    move.l     T_rgbOutput(a5),T_rgbInput(a5) ; Update input with new version in R8G8B8.
     ; ******** Continue with RGB24 -> RGB12H + RGB12L conversion
     Rbra       L_InputIsRGB24
 
@@ -1293,10 +1296,10 @@ F24_inputFormats:
 ; * Return Value : T_rgbOutput(a5) = RGB24 color value        *
 ; *                                                           *
 ; *************************************************************
-  Lib_Def       F24_InputIsRGB12
+  Lib_Def    F24_InputIsRGB12
 ; ***********************************
-    Rbsr        L_InputIsRGB12           ; Push RGB12 to be 2x RGB12 (Low & High Bits) 
-    Rbsr        L_OutputIsRGB24          ; Merge RGB12 Low & RGB12 High to create full RGB24
+    Rbsr       L_InputIsRGB12           ; Push RGB12 to be 2x RGB12 (Low & High Bits) 
+    Rbsr       L_OutputIsRGB24          ; Merge RGB12 Low & RGB12 High to create full RGB24
     rts
 
 ;
@@ -1313,9 +1316,9 @@ F24_inputFormats:
 ; * Return Value : T_rgbOutput(a5) = RGB24 color value        *
 ; *                                                           *
 ; *************************************************************
-  Lib_Def       F24_InputIsR5G5B5
+  Lib_Def    F24_InputIsR5G5B5
 ; ***********************************
-    Rbsr        L_convertRGB15toRGB24    ; Simply convert RGB15 (R5G5B5) to RGB24
+    Rbsr       L_convertRGB15toRGB24    ; Simply convert RGB15 (R5G5B5) to RGB24
     rts
 
 ;
@@ -1332,9 +1335,9 @@ F24_inputFormats:
 ; * Return Value : T_rgbOutput(a5) = RGB24 color value        *
 ; *                                                           *
 ; *************************************************************
-  Lib_Def       F24_InputIsRGB24
+  Lib_Def    F24_InputIsRGB24
 ; ***********************************
-    move.l      T_rgbInput(a5),T_rgbOutput(a5) ; Input and Output are under the same format
+    move.l     T_rgbInput(a5),T_rgbOutput(a5) ; Input and Output are under the same format
     rts
 
 ;
@@ -3161,24 +3164,29 @@ cleanScreen:
 ;           D2(=Screen Pixels Height), D3(=GFXMODE), D4=Pixel Size (in bytes), D6=Display Width(in pixels), D7=Display Height(in pixels)
 ; Now we allocate memory for the screen
     Dlea        CUSTOM_SCREEN,a2     ; a2 = Custom screens structures pointers
-    move.l      d0,d5                ; D5 = Screen ID
     lsl.l       #2,d0                ; D0 = D0 * 4
-    add.l       d0,a2                ; a2 = Current Custom Screen Structure Pointer
+    move.l      d0,d5                ; D5 = Screen ID * 4 (For Screen Structure List)
+    adda.l      d0,a2                ; a2 = Current Custom Screen Structure Pointer
     cmp.l       #0,(a2)              ; Screen already exists ?
     Rbne        L_Err27              ; Screen already exists error                                                  * Error #27 USED (Custom Screens)
 ; Allocate memory for screen structure
     move.l      #CusEcLong,d0
     Rjsr        L_RamFast            ; Allocate screen structure
+    Dlea        CUSTOM_SCREEN,a2     ; a2 = Custom screens structures pointers
+    adda.l      d5,a2                ; a2 = Current Custom Screen Structure Pointer
     move.l      d0,(a2)              ; a2 = Screen Structure save
-    move.l      d0,a2
+    movea.l     d0,a2                ; a2 = Screen Structure Pointer
+    Dlea        CURRENT_SCREEN,a1
+    move.l      a2,(a1)
     Dlea        TEMP_BUFFER,a1
-    move.l      (a1)+,d0             ; D0 = Screen ID
-    move.l      (a1)+,d1             ; D1 = Screen Width in pixels
-    move.l      (a1)+,d2             ; D2 = Screen Height in pixels
-    move.l      (a1)+,d3             ; D3 = GFXMode
-    move.l      (a1)+,d4             ; D4 = Display Width
-    move.l      (a1)+,d5             ; D5 = Displey Height
-    move.l      (a1),d6             ; D6 = Pixel depth in bytes
+;    move.l      (a1)+,d0             ; D0 = Screen ID
+;    move.l      (a1)+,d1             ; D1 = Screen Width in pixels
+;    move.l      (a1)+,d2             ; D2 = Screen Height in pixels
+;    move.l      (a1)+,d3             ; D3 = GFXMode
+;    move.l      (a1)+,d4             ; D4 = Display Width
+;    move.l      (a1)+,d5             ; D5 = Displey Height
+;    move.l      (a1),d6             ; D6 = Pixel depth in bytes
+    movem.l     (a1)+,d0-d6
     move.l      d1,CusEcPixWidth(a2)
     move.l      d2,CusEcPixHeight(a2)
     move.l      d3,CusEcGFXMODE(a2)
@@ -3186,12 +3194,15 @@ cleanScreen:
     move.l      d5,CusEcViewHeight(a2)
     move.l      d6,CusEcPixDepth(a2)
     sub.l       d1,d4                ; D4 = CusEcViewWidth - CusEcPixWidth = CusEcMod
-    move.l      d4,CusEcMod(a2)
+    move.l      d4,CusEcMod(a2)      ; Save Screen Modulo
     mulu        d6,d1                ; d1 = Width * Depth ( Bytes in size of a whole screen )
     mulu        d2,d1                ; d1 = Width * Depth * Height
     move.l      d1,CusBufferLen(a2)  ; Save screen buffer length
+    move.l      #CusEcLong,CusEcSize(a2)
     move.l      d1,d0                ; d0 = Bytes size
     Rjsr        L_RamFast            ; Allocate screen plane datas
+    Dlea        CURRENT_SCREEN,a2
+    movea.l     (a2),a2
     move.l      d0,CusEcLogic(a2)    ; \
     move.l      d0,CusEcPhysic(a2)   ;  > Save Screen pointer
     move.l      d0,CusEcCurrent(a2)  ; /
@@ -3199,6 +3210,9 @@ cleanScreen:
     move.l      #2,CusEcInkB
     move.l      #0,CusEcPaper
     move.l      #1,CusEcText
+; *******    Jump to copper refresh routine
+    addq.w      #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset        #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
     rts
 
 ;
@@ -3221,18 +3235,34 @@ cleanScreen:
     Rbmi        L_Err18              ; "Custom Screen ID number is invalid. Valid range is 0-7 (included)" * Error #18 USED (Custom Screens)
     Dlea        CUSTOM_SCREEN,a2     ; a2 = Custom screens structures pointers
     lsl.l       #2,d3
-    Add.l       d3,a2                ; a2 = Pointer to chosen screen
-    move.l      (a2),d7              ; d7 = Screen Pointer
+    Adda.l      d3,a2                ; a2 = Pointer to chosen screen
+    move.l      (a2),d7              ; d7 = Screen structure Pointer
     tst.l       d7
     Rbeq        L_Err28              ; "Custom screen does not exists"                                        * Error #28 USED (Custom Screens)
     clr.l       (a2)                 ; Libère l'écran
-    move.l      d7,a2
+    movea.l     d7,a2                ; a2 = Screen Structure pointer
+; ******* 2. Release screen data (bitmap) block
     move.l      CusBufferLen(a2),d0
     move.l      CusEcPhysic(a2),a1
     Rjsr        L_RamFree            ; Libération du bloc mémoire de l'écran lui même
-    move.l      a2,a1
+; ******* 3. Check for 'Double Buffer' to release secondary screen data (bitmap) block if available
+    move.l      d7,a2
+    move.l      CusEcPhysic(a2),d5
+    move.l      CusEcLogic(a2),d4
+    cmp.l       d4,d5
+    beq.s       _nodbf
+_dbfrel:
+    movea.l     d4,a1
+    move.l      CusBufferLen(a2),d0
+    Rjsr        L_RamFree            ; Libération du bloc mémoire de l'écran lui même
+_nodbf:
+; ******* 4. Release screen structure block
     move.l      #CusEcLong,d0
+    movea.l     d7,a1
     Rjsr        L_RamFree            ; Libération du bloc mémoire de la structure de l'écran
+; ******* 5. Jump to copper refresh routine
+    addq.w      #1,T_EcYAct(a5)            ; Forces Screen recalculation (in copper list)
+    bset        #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
     rts
 
 ;
@@ -3258,6 +3288,21 @@ cleanScreen:
     Add.l       d3,a2                ; a2 = Pointer to chosen screen
     move.l      (a2),d3              ; d3 = Screen Pointer
     Ret_Int
+
+;
+; *****************************************************************************************************************************
+; *************************************************************
+; * Method Name :                                             *
+; *                                                           *
+; *-----------------------------------------------------------*
+; * Description :                                             *
+; *                                                           *
+; * Parameters :                                              *
+; *                                                           *
+; * Return Value :                                            *
+; *************************************************************
+;
+
 
 ;                                                                                                                                        ***
 ;                                                                                                                                     ***
