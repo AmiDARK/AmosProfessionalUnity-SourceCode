@@ -100,6 +100,14 @@ Bits#08-12      : Graphic Resolution Mode    | SAGA | ECS  | AGA
                     ... = ...                |  Future Saga Graphics Resolutions
 
 ; ************************************************************************
+; 2023.08.02
+- Reverted Compiler_Shell.AMOS to Original fixed a compiler crash
+- Fix AMOSProUnity_Support.Lib functions set fixed a compiler crash
+- Fix AMOSProUnity_SpecialFX.Lib functions set fixed a compiler crash
+- Now Amos Professional Unity examples can be compiled without crash/
+
+
+; ************************************************************************
 ; 2023.02.16
 - Reverted Aga/sprites.s file to previous version due to a bug in Aga Sprites.
 

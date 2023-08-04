@@ -167,7 +167,7 @@ C_Tk:
     dc.w    L_PasteFIcon1,L_Nul
     dc.b    "!paste f ico","n"+$80,"I0,0,0",-2           ; Paste F Icon ICONID,XPOS,YPOS
     dc.w    L_PasteFIcon2,L_Nul
-    dc.b    $80,"I0,0,0,0",-2
+    dc.b    $80,"I0,0,0,0",-1
 ; ********************************************************************
     dc.w    L_Nul,L_GetFileSize
     dc.b    "get file siz","e"+$80,"02",-1
@@ -184,76 +184,6 @@ C_Tk:
 
 ;    +++ You must also leave this keyword untouched, just before the zeros.
 ;    TOKEN_END
-
-; Tokens to insert :
-;        Dc.w    L_MOSAICx2,-1
-;        Dc.b    "mosaic x","2"+$80,"I0",-1
-;        Dc.w    L_MOSAICx4,-1
-;        Dc.b    "mosaic x","4"+$80,"I0",-1
-;        Dc.w    L_Mosaicx8,-1
-;        Dc.b    "mosaic x","8"+$80,"I0",-1
-;        Dc.w    L_Mosaicx16,-1
-;        Dc.b    "mosaic x1","6"+$80,"I0",-1
-;        Dc.w    L_MOSAICx32,-1
-;        Dc.b    "mosaic x3","2"+$80,"I0",-1
-
-;        Dc.w    L_DoubleMASK,-1
-;        Dc.b    "double mas","k"+$80,"I0t0,0",-1
-;        Dc.w    L_DoubleMASK2,-1
-;        Dc.b    "l double mas","k"+$80,"I0,0,0t0,0",-1
-;        Dc.w    L_DOUBLEMASKB,-1            ; Src1,Msk,Src2,Cible.
-;        Dc.b    "blit mas","k"+$80,"I0,0,0t0",-1
-;        Dc.w    L_DOUBLEMASKB2,-1   ; Src1,Msk,Src2 To Cible,Ys,Ye.
-;        Dc.b    "l blit mas","k"+$80,"I0,0,0t0,0,0",-1
-;        Dc.w    L_VBLWAIT,-1
-;        Dc.b    "vb line wai","t"+$80,"I0",-1
-
-;        Dc.w    L_MFILL,-1
-;        Dc.b    "octets fil","l"+$80,"I0,0t0",-1
-;        Dc.w    L_BLITCOPY,-1
-;        Dc.b    "blitter cop","y"+$80,"I0t0",-1
-;        Dc.w    L_CONFORM32,-1
-;        Dc.b    "s32 block to scree","n"+$80,"I0",-1
-;        Dc.w    L_CONFORM32B,-1
-;        Dc.b    "s32 vertice to scree","n"+$80,"I0",-1
-
-;        Dc.w    L_RESICON,-1
-;        Dc.b    "aga reserve ico","n"+$80,"I0",-1
-;        Dc.w    L_ERAICON,-1
-;        Dc.b    "aga erase ico","n"+$80,"I",-1
-;        Dc.w    L_GETICON,-1
-;        Dc.b    "aga get ico","n"+$80,"I0,0,0",-1
-;        Dc.w    L_PASICON,-1
-;        Dc.b    "aga paste ico","n"+$80,"I0,0,0",-1
-
-;        Dc.w    L_MPRESERVE,-1
-;        Dc.b    "mplot reserv","e"+$80,"I0",-1
-;        Dc.w    L_MPDEFINE,-1
-;        Dc.b    "mplot defin","e"+$80,"I0,0,0,0",-1
-;        Dc.w    L_MPDRAW,-1
-;        Dc.b    "mplot dra","w"+$80,"I0t0",-1
-;        Dc.w    -1,L_MPX
-;        Dc.b    "x mplo","t"+$80,"00",-1
-;        Dc.w    -1,L_MPY
-;        Dc.b    "y mplo","t"+$80,"00",-1
-;        Dc.w    -1,L_MPC
-;        Dc.b    "c mplo","t"+$80,"00",-1
-;        Dc.w    L_MPMODIFY,-1
-;        Dc.b    "mplot modif","y"+$80,"I0t0,0,0",-1
-;        Dc.w    L_MPMODIFY2,-1
-;        Dc.b    "mplot x defin","e"+$80,"I0,0",-1
-;        Dc.w    L_MPMODIFY3,-1
-;        Dc.b    "mplot y defin","e"+$80,"I0,0",-1
-;        Dc.w    L_MPMODIFY4,-1
-;        Dc.b    "mplot c defin","e"+$80,"I0,0",-1
-;        Dc.w    L_MPORIGIN,-1
-;        Dc.b    "mplot origi","n"+$80,"I0,0",-1
-;        Dc.w    L_MPPLANES,-1
-;        Dc.b    "mplot plane","s"+$80,"I0",-1
-;        Dc.w    L_MPDRAWDPF1,-1
-;        Dc.b    "mplot dpf1 dra","w"+$80,"I0t0",-1
-;        Dc.w    L_MPDRAWDPF2,-1
-;        Dc.b    "mplot dpf2 dra","w"+$80,"I0t0",-1
 
 ;    +++ The token table must end by this
     dc.w    0
@@ -427,11 +357,12 @@ BkCheck:
 ; *************************************************************
 ;
 PersonalUnityDatas:
-CurrentFIconBank:    dc.l 0
 
 SpritesPlayfieldFXCall:
     Rbra    L_insertSpriteFX
     dc.l    0
+
+CurrentFIconBank:    dc.l 0
 
 
 ; Now follow all the music routines. Some are just routines called by others,

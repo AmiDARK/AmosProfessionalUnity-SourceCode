@@ -1585,7 +1585,7 @@ CommandX:
 ; ***************************************************************************************************************** DETECT AGA CHIPSET HERE
 detectChipsetToLoad.library:
     movem.l   a0/d1-d3,-(sp)  ; 2020.08.10 Save registers before doing AGA Checking : Fix the AMOS Switcher AMOS/WB
-    moveq     #30,d3          ; Loop amoun()
+    moveq     #30,d3          ; Loop amount()
     lea       $dff07c,a0      ; lea the register to check content
     move.w    (a0),d1         ; D1 = read register
     and.w     #$FF,d1         ; D1 = filtered

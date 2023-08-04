@@ -199,7 +199,7 @@ pp_Name		dc.b	"powerpacker.library",0
 	moveq	#0,d0
 	move.w	(a0)+,d0
 	move.l	Cmp_Jump-CD(a2),a1
-	jsr	4(a1)
+	jsr		4(a1)
 	Rbra	L_FinComp
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -225,15 +225,18 @@ pp_Name		dc.b	"powerpacker.library",0
 	Rbra	L_FCall
 ; Stocke le nombre de pas
 ; ~~~~~~~~~~~~~~~~~~~~~~~
-.Step	move.l	d3,Cmp_NSteps-CD(a2)
+.Step:
+	move.l	d3,Cmp_NSteps-CD(a2)
 	rts
 ; Stocke l''adresse de la config
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.Conf	move.l	d3,Cmp_Config-CD(a2)
+.Conf:
+	move.l	d3,Cmp_Config-CD(a2)
 	rts
 ; Premier appel du compilateur
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.Start	cmp.l	#Cmp_Magic,d3			Veut un magic!
+.Start:
+	cmp.l	#Cmp_Magic,d3			Veut un magic!
 	Rbne	L_FCall
 	move.l	Cmp_NSteps-CD(a2),d1
 	move.l	Cmp_Config-CD(a2),d2
@@ -244,20 +247,23 @@ pp_Name		dc.b	"powerpacker.library",0
 	bra.s	.Fin
 ; Arret du compilateur
 ; ~~~~~~~~~~~~~~~~~~~~
-.Stop	cmp.l	#Cmp_Magic,d3
+.Stop:
+	cmp.l	#Cmp_Magic,d3
 	Rbne	L_FCall
 	move.l	Cmp_Jump-CD(a2),a1
 	jsr	16(a1)
 	bra.s	.Fin
 ; Appels suivants
 ; ~~~~~~~~~~~~~~~
-.Cont	cmp.l	#Cmp_Magic,d3
+.Cont:
+	cmp.l	#Cmp_Magic,d3
 	Rbne	L_FCall
 	move.l	Cmp_Jump-CD(a2),a1
 	jsr	12(a1)
 ; Retour de APCmp
 ; ~~~~~~~~~~~~~~~
-.Fin	clr.l	ParamE(a5)		Zero si termine!
+.Fin:
+	clr.l	ParamE(a5)		Zero si termine!
 	tst.l	d0			D0>0 : message normal
 	Rbpl	L_FinComp
 	cmp.w	#-1,d0
@@ -493,7 +499,8 @@ Cmp3	rts
 	btst	#Bnk_BitChip,d2
 	beq.s	.Skip
 	move.l	#Public|Chip,d1
-.Skip	SyCall	MemReserve		Reserve le tempbuffer
+.Skip:
+	SyCall	MemReserve		Reserve le tempbuffer
 	Rbeq	L_OOMem
 	subq.l	#4,d0
 	move.l	d0,(a0)+
@@ -527,7 +534,8 @@ Cmp3	rts
 	bra	.Out
 ; Une banque de sprites / icons	
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.BbIc	move.l	4(a2),d0		Longueur tempbuffer
+.BbIc:
+	move.l	4(a2),d0		Longueur tempbuffer
 	addq.l	#8,d0			+ Securite pp
 	Rjsr	L_ResTempBuffer
 	Rbeq	L_OOMem

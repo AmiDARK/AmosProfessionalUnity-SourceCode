@@ -50,7 +50,7 @@ C_Off
 C_Lib
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-; 	Reservatioin du STACK si <>4k	***
+; 	Reservation du STACK si <>4k	***
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	Lib_Cmp	Stack_Reserve
 ; - - - - - - - - - - - - -
@@ -5865,11 +5865,11 @@ TVar:	moveq	#0,d1
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Tst_Operateurs
 	bra	Tst_Chiffre
-	dc.b 	" xor"," "+$80,"O00",-1
+	dc.b 	"	xor"," "+$80,"O00",-1
 	bra	Tst_Chiffre		
-	dc.b 	" or"," "+$80,"O00",-1
+	dc.b 	"	or"," "+$80,"O00",-1
 	bra	Tst_Chiffre		
-	dc.b 	" and"," "+$80,"O00",-1
+	dc.b 	"	and"," "+$80,"O00",-1
 	bra	Tst_Comp			
 	dc.b 	"<",">"+$80,"O20",-1
 	bra	Tst_Comp				
@@ -5893,7 +5893,7 @@ Tst_Operateurs
 	bra	Tst_Mixte
 	dc.b 	"-"+$80,"O22",-1
 	bra	Tst_Chiffre		
-	dc.b 	" mod"," "+$80,"O00",-1
+	dc.b 	"	mod"," "+$80,"O00",-1
 	bra	Tst_Chiffre
 	dc.b 	"*"+$80,"O00",-1
 	bra	Tst_Chiffre		
@@ -6327,7 +6327,7 @@ AMOSQuit
 ; Retourne au header
 .End	rts
 .Buffer	ds.b	128
-.Atline	dc.b	" at line ",0
+.Atline	dc.b	"	at line ",0
 	even
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

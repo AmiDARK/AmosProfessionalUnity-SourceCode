@@ -243,7 +243,7 @@ C_Tk:
     dc.w    L_CreatePalette1,L_Nul
     dc.b    "!create palett","e"+$80,"I0",-2
     dc.w    L_CreatePalette2,L_Nul
-    dc.b    $80,"I0,0",-2
+    dc.b    $80,"I0,0",-1
     dc.w    L_Nul,L_GetPaletteColorsAmount
     dc.b    "get palette colors amoun","t"+$80,"00",-1
     dc.w    L_LoadIFFPalette,L_Nul
@@ -260,7 +260,7 @@ C_Tk:
     dc.w    L_fadeUnitytoPalette2,L_Nul
     dc.b    "!unity fade to palett", "e"+$80,"I0,0",-2
     dc.w    L_fadeUnitytoPalette,L_Nul
-    dc.b    $80,"I0,0,0",-2
+    dc.b    $80,"I0,0,0",-1
 
     dc.w    L_Nul,L_true64Colors
     dc.b    "true6","4"+$80,"0",-1
@@ -302,7 +302,7 @@ C_Tk:
     dc.b    "get rainbow fx color lin","e"+$80,"00,0",-1        ; Rgb24ColorValue/-1= ( BankID,YLine)
 
     dc.w    L_Nul,L_GetSagaC2PScreenMode
-    dc.b    "!get saga c2p screen mod","e"+$80,"00,0,0",-1         ; GFXMODE = get saga c2p screen mode( Width, Height, Depth )
+    dc.b    "!get saga c2p screen mod","e"+$80,"00,0,0",-2         ; GFXMODE = get saga c2p screen mode( Width, Height, Depth )
     dc.w    L_Nul,L_GetSagaC2PScreenModeEx
     dc.b    $80,"00,0,0,0",-1                                      ; GFXMODE = get saga c2p screen mode( Width, Height, Depth, ScanMode )
     dc.w    L_CustomScreenOpen,L_Nul
@@ -621,19 +621,16 @@ C_Lib
 ; You are not obliged to store something in the above areas, you can leave
 ; them to zero if no routine is to be called...
 
-    movem.l    a0,-(sp)
-
 ; ******** push RGB12/15/24 colors format support methods - START
-    lea        colorSupport_Functions(pc),a0
-    move.l     a0,T_ColorSupport(a5)
+    lea        colorSupport_Functions(pc),a1
+    move.l     a1,T_ColorSupport(a5)
 ; ******** push RGB12/15/24 colors format support methods - END
 
 ; ******** push Specific Unity Support FX Methods - START
-    lea        UnityVectors(pc),a0
-    move.l     a0,T_UnityVct(a5)
+    lea        UnityVectors(pc),a1
+    move.l     a1,T_UnityVct(a5)
 ; ******** push Specific Unity Support FX Methods - END
 
-    movem.l    (sp)+,a0
 ; ******** 2021.03.30 Default AGA Sprites datas setup for native 16 pixels width sprites - START
     moveq.l    #0,d3
     move.l     #0,T_AgaSprWidth(a5)     ; 16 pixels wide sprites
@@ -749,11 +746,6 @@ BkCheck:
 ; *************************************************************
 ;
 UnityDatas:
-AgaCMAPColorFile:
-    dc.l    0               ; Used to store the pointer to the temporary IFF/CMAP loaded file.
-AgaCurrentColorPalette:
-    dc.l    0               ; Saved by Create Palette to be used directly by methods that may call it
-
 ;
 ; *****************************************************************************************************************************
 ; *************************************************************
@@ -771,14 +763,22 @@ colorSupport_Functions:
     Rbra       L_MergeRGBComponents
     Rbra       L_ForceToRGB24
     dc.l       0
-    ; **************** Amos Professional Unity System : New Color palette support, fading, etc. ****************
-UnityVectors:
-    dc.l       0
 
     ; **************** Amos Professional Unity System : Other FX ****************
 RainbowFXCall:
     Rbra       L_insertSimpleRainbowFX
+    dc.l       0
 
+  Rdata
+
+AgaCMAPColorFile:
+    dc.l    0               ; Used to store the pointer to the temporary IFF/CMAP loaded file.
+AgaCurrentColorPalette:
+    dc.l    0               ; Saved by Create Palette to be used directly by methods that may call it
+
+    ; **************** Amos Professional Unity System : New Color palette support, fading, etc. ****************
+UnityVectors:
+    dc.l       0
 
 ; ***** 2021.12.20 Here is the list of the available depths mode in Vampire V4SA - START
 SAGA_C2P_DEPTHS:
@@ -1431,7 +1431,6 @@ ScNOp1:
   Lib_Par      true64Colors
     Move.l     #-64,d3
     Ret_Int
-
 
 
 ;                                                                                                                      ************************

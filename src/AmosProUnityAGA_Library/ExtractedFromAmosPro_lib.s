@@ -2076,7 +2076,7 @@ AMP_Bnk.Ric2:
     bne.s      .EcsMode
 .AgaMode:
     move.l     #256-1,d0               ; Amount of colors to Copy -1 (for negative checking loop) 2020.05.14 Updated from 32-1 to 256-1 for direct 256 colors copy
-    move.l     #"AGAP",(a1)+           ; 2020.05.14 If this header is available, we know that we are on an AGA palette. Of not available, we are not on AGA but default ECS 32 colors
+    move.l     #"AGAP",(a1)+           ; 2020.05.14 If this header is available, we know that we are on an AGA palette. If not available, we are not on AGA but default ECS 32 colors
     move.w     #256,(a1)+              ; Push 256 colors to update.
     bra.s      .CPal
 .EcsMode:

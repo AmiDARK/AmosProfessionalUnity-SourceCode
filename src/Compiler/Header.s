@@ -958,7 +958,7 @@ Get_Bank
 	move.w	(a1)+,d2		Nombre de sprites
 	move.w	d2,d0
 	lsl.w	#3,d0			* 8
-	add.w	#24+2+259*2,d0		+ header + Palette ; * 2021.03.13 Updated from 32 colors to 256 + AGAP & Count (256*2)+6 = 259*2)
+	add.w	#24+2+32*2,d0		+ header + Palette ; * 2021.03.13 Updated from 32 colors to 256 + AGAP & Count (256*2)+6 = 259*2)
 	ext.l	d0
 	SyCall	MemFastClear
 	beq.s	.Error

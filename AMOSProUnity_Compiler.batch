@@ -16,28 +16,135 @@ Copy AmosProfessionalUnity/Unity_Extras/Configurations/AMOSProUnity_Compiler_Con
 
 
 ; ***************************************************** STEP 2 : Compile the AMOSPro_Sustem:APUSystem/APUCmp file
-echo "***Assembling APUCmp Command Line Compiler"
-c/Genam FROM src/compiler/APComp.s TO AmosProfessionalUnity/APUSystem/APUCmp
-List AmosProfessionalUnity/APUSystem/APUCmp
+Echo " "
+SET sourceName src/compiler/APComp.s
+SET compName AmosProfessionalUnity/APUSystem/APUCmp
+SET labelName APUCmp
+SET logsName logs/APUCmp.logs
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compiles '$labelName'
+FAILAT 31
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  List AmosProfessionalUnity/APUSystem/APUCmp
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF
 
 ; ***************************************************** STEP 3 : Compile the AMOSPro_Sustem:APUSystem/Compiler.lib file
-echo "***Assembling Compiler.Lib"
-c/Library_Digest src/compiler/CLib.s
+Echo " "
+SET sourceName src/compiler/CLib.s
+SET compName AmosProfessionalUnity/APUSystem/Compiler.Lib
+SET labelName Compiler.Lib
+SET logsName logs/Compiler.lib.logs
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compiles '$labelName'
+FAILAT 31
+c/Library_Digest $sourceName
 c/Check_CLib_UnityECS
-c/Genam FROM src/compiler/CLib.s TO AmosProfessionalUnity/APUSystem/Compiler.Lib
-delete >NIL: src/compiler/CLib_Labels.s
-delete >NIL: src/compiler/CLib_Size.s
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  delete >NIL: src/compiler/CLib_Labels.s
+  delete >NIL: src/compiler/CLib_Size.s
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF
+
 
 ; ***************************************************** STEP 4 : Compile the AMOSPro_Sustem:APUSystem/AMOSProUnity_Compiler.lib file
-echo "***Assembling AMOSPro_Compiler.Lib"
-c/Library_Digest src/compiler/Compext.s
-c/Genam FROM src/compiler/Compext.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Compiler.Lib
-delete >NIL: src/compiler/Compext_Labels.s
-delete >NIL: src/compiler/Compext_Size.s
+Echo " "
+SET sourceName src/compiler/Compext.s
+SET compName AmosProfessionalUnity/APUSystem/AMOSProUnity_Compiler.Lib
+SET labelName AMOSProUnity_Compiler.Lib
+SET logsName logs/AMOSProUnity_Compiler.lib.logs
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compiles '$labelName'
+FAILAT 31
+c/Library_Digest $sourceName
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  delete >NIL: src/compiler/Compext_Labels.s
+  delete >NIL: src/compiler/Compext_Size.s
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF
+
+
 
 ; ***************************************************** STEP 5 : Compile the AMOSPro_Sustem:APUSystem/Header_CLI/Backstart.Lib files
-c/Genam FROM src/compiler/Header.s TO AmosProfessionalUnity/APUSystem/Header_CLI.Lib
-c/Genam FROM src/compiler/Header_Backstart.s TO AmosProfessionalUnity/APUSystem/Header_Backstart.Lib
+Echo " "
+SET sourceName src/compiler/Header.s
+SET compName AmosProfessionalUnity/APUSystem/Header_CLI.Lib
+SET labelName Header_CLI.Lib
+SET logsName logs/Header_CLI.lib.logs
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compiles '$labelName'
+FAILAT 31
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF
+
+Echo " "
+SET sourceName src/compiler/Header_Backstart.s
+SET compName AmosProfessionalUnity/APUSystem/Header_Backstart.Lib
+SET labelName Header_Backstart.Lib
+SET logsName logs/Header_Backstart.lib.logs
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compiles '$labelName'
+FAILAT 31
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF
+
 
 echo " "
 echo "> Compiler update completed successfully"

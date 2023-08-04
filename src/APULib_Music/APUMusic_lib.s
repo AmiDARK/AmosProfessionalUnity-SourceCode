@@ -541,9 +541,9 @@ C_Tk:    dc.w     1,0
 ;    the routine.
 ;
 ; Differences between Lib_ Def and Lib_ Par
-;    - Lib_ Def must be used for internal routines (ie, not instructions or
+;    - Lib_Def must be used for internal routines (ie, not instructions or
 ;    functions)
-;    - Lib_ Par must be used for instructions or functions: it reserved a space
+;    - Lib_Par must be used for instructions or functions: it reserved a space
 ;    before the routine if used by the interpreter, to call the parameter
 ;    calculation routines. Well this is internal, you don't have to care 
 ;    about it, just use "Lib_ Par" for routines referenced in the token 
