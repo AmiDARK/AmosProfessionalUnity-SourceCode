@@ -7,10 +7,11 @@ execute AMOSProUnity_Lib.batch
 execute AMOSProUnity_library.batch
 execute AMOSProUnity_librarySAGA.batch
 execute AMOSProUnity_Exe.batch
-execute AMOSProUnity_Configs.batch
+execute AMOSProUnity_ConfigsWithExt.batch
 execute AMOSProUnity_Editor.batch
 execute AMOSProUnity_Monitor.batch
 execute AMOSProUnity_Libs.batch
+execute AMOSProUnity_Extensions.batch
 execute AMOSProUnity_Compiler.batch
 echo "Build Step 2/4 : Update all default tools/compilers"
 execute AMOSProUnity_Tools.batch
@@ -23,4 +24,5 @@ delete tmpCompil/Internal_Jumps.s
 echo "Build Step 4/4 : Informatins : "
 echo "Build Success : RELEASE build available in 'AmosProfessionalUnity' directory"
 echo "New version is ready to be deployed."
+
 

@@ -1554,6 +1554,7 @@ cbC:
     move.w     d4,d0                   ; D0 = Colour Amount
     sub.w      #1,d0                   ; D0 = Colour Amount -1
 prAGAloop:
+    move.w     514(a0),514(a1)         ; Copy 2nd colors components
     move.w     (a0)+,(a1)+             ; Push (A0)+ color in Buffer (a1)+
     Dbra       d0,prAGAloop            ; D0-1 >0 -> Jump prAGAloop
     bra.s      prContPal               ; Continue after copy
