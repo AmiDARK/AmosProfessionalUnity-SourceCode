@@ -958,7 +958,8 @@ Get_Bank
 	move.w	(a1)+,d2		Nombre de sprites
 	move.w	d2,d0
 	lsl.w	#3,d0			* 8
-	add.w	#24+2+32*2,d0		+ header + Palette ; * 2021.03.13 Updated from 32 colors to 256 + AGAP & Count (256*2)+6 = 259*2)
+;	add.w	#24+2+32*2,d0	;	+ header + Palette ; * 2021.03.13 Updated from 32 colors to 256 + AGAP & Count (256*2)+6 = 259*2)
+    add.w   #24+2+522+512,d0
 	ext.l	d0
 	SyCall	MemFastClear
 	beq.s	.Error
@@ -993,9 +994,14 @@ Get_Bank
 .SNext	lea	10(a1),a1
 	addq.l	#8,a2
 .SIn	dbra	d2,.SLoop
-	moveq	#32-1,d0
-.Pal	move.w	(a1)+,(a2)+
-	dbra	d0,.Pal
+
+; ******** 2023.08.07 Palette support for AGA bank ( AGAP Mode ) - Start
+;	moveq	#32-1,d0
+;.Pal	move.w	(a1)+,(a2)+
+;	dbra	d0,.Pal
+    bsr    .copyPalette
+; ******** 2023.08.07 Palette support for AGA bank ( AGAP Mode ) - End
+
 	bsr	EffLastLoad		Debranche des hunks
 ; Retourne l''adresse de la banque
 .Ok	move.l	Cur_Banks(a5),a0	Retourne Start(b)
@@ -1008,6 +1014,30 @@ Get_Bank
 ; Sortie
 .Out	movem.l	(sp)+,a2/d2-d4
 	rts
+
+; ******** 2023.08.07 Palette support for AGA bank ( AGAP Mode ) - Start
+.copyPalette:
+	move.l   (a1),d0
+	cmp.l    #"AGAP",d0
+	bne.s    .Copy32
+.Copy256
+	move.l   (a1)+,(a2)+         ; Copy "AGAP"
+	move.w   (a1)+,(a2)+         ; Copy Color Amount (=256)
+	move.l   #256-1,d0
+.Pal256:
+	move.w   514(a1),514(a2)
+	move.w   (a1)+,(a2)+
+	dbra     d0,.Pal256
+    bra      .EndCopyPal
+.Copy32:
+    moveq    #32-1,d0
+.Pal:
+    move.w   (a1)+,(a2)+
+    dbra     d0,.Pal
+.EndCopyPal:
+    rts
+; ******** 2023.08.07 Palette support for AGA bank ( AGAP Mode ) - End
+
 
 ;	Enleve le dernier hunk de la liste
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

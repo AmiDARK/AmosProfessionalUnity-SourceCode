@@ -1292,8 +1292,7 @@ CopyBanks
     bra .BNext
 ; Une banque de sprites / Icones
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.SprIco:
-    move.l  d0,d3           Garde le code
+.SprIco move.l  d0,d3           Garde le code
     move.l  d6,d1           Debut du hunk
     move.l  #Hunk_Public,d2
     bsr DebHunk
@@ -1326,11 +1325,11 @@ CopyBanks
     cmp.l    #"AGAP",d0         ; Check for AGA AGAP Palette color
     beq.s    .CopyAgapPalette   ; if found, jump to copy AGAP Palette
 .CopyEcsPalette:                ; Not found copy ECS palette
-    bsr OutLong		            ; Write D0 to target
-	moveq    #30*2,d3           ; as no AGAP is found, it remain 30 colors to copy
-	bra.s    .ctCpyPal
+    bsr OutLong                 ; Write D0 to target
+    moveq    #30*2,d3           ; as no AGAP is found, it remain 30 colors to copy
+    bra.s    .ctCpyPal
 .CopyAgapPalette:
-    bsr OutLong		            ; Write D0 to target
+    bsr OutLong                 ; Write D0 to target
     move.l   #2+512+2+512,d3    ; AGAP Detected copy the whole 24 bits 256 colors palette
 .ctCpyPal:;
 ; ******** 2023.08.05 Support pour la palette AGAP AGA 256 24 Bits - END
@@ -8618,8 +8617,7 @@ Token_Remove
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
 ;-----> Prend un MOT du programme (A6)
-GetWord:
-    tst.b   Flag_Source(a5)
+GetWord:tst.b   Flag_Source(a5)
         bne.s   .Disk
     add.l   B_Source(a5),a6
         move.w  (a6)+,d0
@@ -8640,8 +8638,7 @@ GetWord:
         rts
 
 ;-----> Prend un MOTLONG du programme (A6)
-GetLong:
-    tst.b   Flag_Source(a5)
+GetLong:tst.b   Flag_Source(a5)
         bne.s   .Disk
     add.l   B_Source(a5),a6
     move.l  (a6)+,d0
@@ -9078,17 +9075,15 @@ Copy_Out
     rts
     
 ;-----> Copie D3 octets source->objet
-Copy_Source:
+Copy_Source
     tst.l   d3
     beq.s   CpyS
-CpyS1
-    bsr GetWord
+CpyS1   bsr GetWord
     bsr OutWord
     subq.l  #2,d3
     bcs.s   CpyS
     bne.s   CpyS1
-CpyS
-    rts
+CpyS    rts
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -9214,8 +9209,7 @@ OutwD   move.l  a0,-(sp)
 PamW:   rts
 
 ;-----> Poke un MOT LONG dans l'objet
-OutLong
-    tst.b   Flag_Objet(a5)
+OutLong:tst.b   Flag_Objet(a5)
     bne.s   OutlD
 * En mémoire
     movem.l a0/a4,-(sp)

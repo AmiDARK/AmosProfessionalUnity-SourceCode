@@ -100,6 +100,12 @@ Bits#08-12      : Graphic Resolution Mode    | SAGA | ECS  | AGA
                     ... = ...                |  Future Saga Graphics Resolutions
 
 ; ************************************************************************
+; 2023.08.07
+- Update Header.s bank load to handle AGAP color mode ( 256 colors AGA ) from Bank that are inside executable (Bob/Sprite/Icon)
+- Previous update also fix Get Bob/Sprite/Icon Palette commands when program is compiled.
+- Update CompExt.s compiler extension for squashed programe to handle AGAP color mode (Bob/Sprite/Icon)
+
+; ************************************************************************
 ; 2023.08.06
 - Upgrade compiler to compile with AGAP Sprites/Bobs/Icons banks
 - Fixed issue with Get Bob/Sprite/Icon palette to now handle fully RGB24 bits colors

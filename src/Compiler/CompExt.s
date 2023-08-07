@@ -612,9 +612,31 @@ Cmp3	rts
 	move.l	a0,a3
 .Rien	dbra	d6,.LSLoop
 ; Recopie la palette
-.Pal	moveq	#31,d0
-.PCopy	move.w	(a3)+,(a2)+
-	dbra	d0,.PCopy
+; 2023.08.07 - Added Support for AGAP Color palette on compressed banks - Start
+;.Pal	moveq	#31,d0
+;.PCopy	move.w	(a3)+,(a2)+
+;	dbra	d0,.PCopy
+.Pal:
+	move.l   (a3),d0
+	cmp.l    #"AGAP",d0
+	bne.s    .Copy32
+.Copy256:
+	move.l   (a3)+,(a2)+         ; Copy "AGAP"
+	move.w   (a3)+,(a2)+         ; Copy Color Amount (=256)
+	move.l   #256-1,d0
+.Pal256:
+	move.w   514(a3),514(a2)
+	move.w   (a3)+,(a2)+
+	dbra     d0,.Pal256
+    bra      .EndCopyPal
+.Copy32:
+    moveq    #32-1,d0
+.PalE:
+    move.w   (a1)+,(a2)+
+    dbra     d0,.PalE
+.EndCopyPal:
+; 2023.08.07 - Added Support for AGAP Color palette on compressed banks - End
+
 ; Efface le tempbuffer
 	moveq	#0,d0
 	Rjsr	L_ResTempBuffer
@@ -818,9 +840,31 @@ B_Copie2Buffer
 .BBNext	addq.l	#8,a0
 	dbra	d3,.BBLoop
 ; La palette
-	moveq	#31,d0
-.BBPal	move.w	(a0)+,(a1)+
-	dbra	d0,.BBPal
+; 2023.08.07 - Added Support for AGAP Color palette on compressed banks - Start
+;	moveq	#31,d0
+;.BBPal	move.w	(a0)+,(a1)+
+;	dbra	d0,.BBPal
+.Pal:
+	move.l   (a0),d0
+	cmp.l    #"AGAP",d0
+	bne.s    .Copy32
+.Copy256:
+	move.l   (a0)+,(a1)+         ; Copy "AGAP"
+	move.w   (a0)+,(a1)+         ; Copy Color Amount (=256)
+	move.l   #256-1,d0
+.Pal256:
+	move.w   514(a0),514(a1)
+	move.w   (a0)+,(a1)+
+	dbra     d0,.Pal256
+    bra      .EndCopyPal
+.Copy32:
+    moveq    #32-1,d0
+.PalE:
+    move.w   (a1)+,(a2)+
+    dbra     d0,.PalE
+.EndCopyPal:
+; 2023.08.07 - Added Support for AGAP Color palette on compressed banks - End
+
 ; Fini
 .Out	movem.l	(sp)+,a0-a2/d0-d3
 	rts
