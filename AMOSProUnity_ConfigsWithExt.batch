@@ -1,22 +1,64 @@
-echo " "
-echo "******** Run Script to Assemble: Amos Professional DATAS (editor, interpreter, etc.)"
 
-echo "*** DATAS : Assembling the Editor Configuration"
-c/genim2 src/configuration/APUnity_Editor_Config.s -oRAM:AmosProUnity_Editor_Config.o
-c/Get_Chunk RAM:AmosProUnity_Editor_Config.o AmosProfessionalUnity/Unity_Extras/Configurations/AmosProUnity_Editor_Config.Backup
-Delete RAM:AmosProUnity_Editor_Config.o
+; **************************************************************************
+SET sourceName src/configuration/APUnity_Editor_Config.s
+SET compName tmpCompil/AmosProUnity_Editor_Config.o
+SET targetName AmosProfessionalUnity/Unity_Extras/Configurations/AmosProUnity_Editor_Config.Backup
+SET backupName AmosProUnity_Editor_Config
+SET labelName AmosProUnity_Editor_Config
+SET logsName logs/AmosProUnity_Editor_Config.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/genim2 FROM $sourceName -o$compName >$logsName
+c/Get_Chunk $compName $targetName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  Delete $compName
+  Copy $targetName AmosProfessionalUnity/APUSystem/$backupName
+  Echo "File copied to 'AmosProfessionalUnity/APUSystem/'"
+  Copy $targetName s:$backupName
+  Echo "File copied to 's:'"
+ELSE
+  Echo File '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF
 
-echo "*** DATAS : Assembling the default Interpreter Configuration"
-c/genim2 src/configuration/APUnity_Interpreter_Config_withExt.s -oRAM:AMOSProUnity_Interpreter_Config.o
-c/Get_Chunk RAM:AMOSProUnity_Interpreter_Config.o AmosProfessionalUnity/Unity_Extras/Configurations/AMOSProUnity_Interpreter_Config.Backup
-Delete RAM:AMOSProUnity_Interpreter_Config.o
-
-echo "* DATAS : Installing default configuration"
-;Copy AmosProfessionalUnity/Unity_Extras/Configurations/AmosProUnity_Editor_Config.Backup AmosProfessionalUnity/s/AmosProUnity_Editor_Config
-Copy AmosProfessionalUnity/Unity_Extras/Configurations/AmosProUnity_Editor_Config.Backup AmosProfessionalUnity/APUSystem/AmosProUnity_Editor_Config
-Copy AmosProfessionalUnity/Unity_Extras/Configurations/AMOSProUnity_Interpreter_Config.Backup AmosProfessionalUnity/s/AMOSProUnity_Interpreter_Config
-
-echo "* DATAS : Installing default configuration to s:"
-Copy AmosProfessionalUnity/Unity_Extras/Configurations/AmosProUnity_Editor_Config.Backup s:AmosProUnity_Editor_Config
-Copy AmosProfessionalUnity/Unity_Extras/Configurations/AMOSProUnity_Interpreter_Config.Backup s:AMOSProUnity_Interpreter_Config
-
+; **************************************************************************
+SET sourceName src/configuration/APUnity_Interpreter_Config_withExt.s
+SET compName tmpCompil/AMOSProUnity_Interpreter_Config.o
+SET targetName AmosProfessionalUnity/Unity_Extras/Configurations/AMOSProUnity_Interpreter_Config.Backup
+SET backupName AMOSProUnity_Interpreter_Config
+SET labelName AMOSProUnity_Interpreter_Config
+SET logsName logs/AMOSProUnity_Interpreter_Config.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/genim2 FROM $sourceName -o$compName >$logsName
+c/Get_Chunk $compName $targetName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  Delete $compName
+  Copy $targetName AmosProfessionalUnity/APUSystem/$backupName
+  Echo "File copied to 'AmosProfessionalUnity/APUSystem/'"
+  Copy $targetName s:$backupName
+  Echo "File copied to 's:'"
+ELSE
+  Echo File '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF

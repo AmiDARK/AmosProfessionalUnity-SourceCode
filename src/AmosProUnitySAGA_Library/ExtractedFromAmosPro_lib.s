@@ -1389,16 +1389,9 @@ SBc11:
 AMP_InScreenOpen:
     bsr        SaveRegs
     move.l     d3,d5                   ; D5 = D3 = Display Mode (Lowres, Hires, Lace)
-; ******** 2021.06.16 Update to add C2P & PIP bits in the Screen display mode value in Open Screen method - START
-;    and.l      #$8004,d5               ; D5 = Display Mode (Hires, Laced, etc. ) && Bits : Hires || Laced
-    and.l      #%1111000000000100,d5   ; 2021.06.16 : D5 = Display Mode (Hires(bit#15),c2p(bit#14),pip(bit#13),InterleavedBPL(Bit#12),Laced(bit#2))
-; ******** 2021.06.16 Update to add C2P & PIP bits in the Screen display mode value in Open Screen method - END
+    and.l      #$8004,d5               ; D5 = Display Mode (Hires, Laced, etc. ) && Bits : Hires || Laced
 ;     ************************ Check for HAM mode and its limitations
     move.l     (a3)+,d6
-; ******** 2021.06.18 Added to avoid useless checking for C2P & PIP screen modes - START
-    and.l      #%0110000000000000,d3
-    bne.w      ScOo2
-; ******** 2021.06.18 Added to avoid useless checking for C2P & PIP screen modes - END
     cmp.l      #4096,d6                ; If HAM Mode is requested ?
     bne.s      ScOo0                   ; If not -> Jump to ScOo0
 ; **************** 2020.07.31 Remove Lowres limitation and allow Ham in HIRES - START
@@ -1561,6 +1554,7 @@ cbC:
     move.w     d4,d0                   ; D0 = Colour Amount
     sub.w      #1,d0                   ; D0 = Colour Amount -1
 prAGAloop:
+    move.w     514(a0),514(a1)         ; Copy 2nd colors components
     move.w     (a0)+,(a1)+             ; Push (A0)+ color in Buffer (a1)+
     Dbra       d0,prAGAloop            ; D0-1 >0 -> Jump prAGAloop
     bra.s      prContPal               ; Continue after copy
@@ -2083,7 +2077,7 @@ AMP_Bnk.Ric2:
     bne.s      .EcsMode
 .AgaMode:
     move.l     #256-1,d0               ; Amount of colors to Copy -1 (for negative checking loop) 2020.05.14 Updated from 32-1 to 256-1 for direct 256 colors copy
-    move.l     #"AGAP",(a1)+           ; 2020.05.14 If this header is available, we know that we are on an AGA palette. Of not available, we are not on AGA but default ECS 32 colors
+    move.l     #"AGAP",(a1)+           ; 2020.05.14 If this header is available, we know that we are on an AGA palette. If not available, we are not on AGA but default ECS 32 colors
     move.w     #256,(a1)+              ; Push 256 colors to update.
     bra.s      .CPal
 .EcsMode:
@@ -2248,28 +2242,6 @@ AMP_ListDel:
 .NFound:
     movem.l    (sp)+,a0/d0-d2
     rts
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;    Unpile parameters
@@ -2765,13 +2737,6 @@ AMP_FnRain:
     move.w    (a0),d3
 ;    ForceToRGB24 d3,d3
     rts
-
-
-
-
-
-
-
 
 
 ; *************************************************************************************

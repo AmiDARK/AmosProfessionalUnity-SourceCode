@@ -1610,17 +1610,17 @@ openAmosProfessionalECSLib:
 ; Charge amos.library: differents essais si pas installe!
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     move.l    SP_DosBase(sp),a6
-    lea    LibNameECS2(pc),a0        APSystem/AmosProfessionalUnityECS.library
+    lea    LibNameECS2(pc),a0         ; APUSystem/AmosProfessionalUnityECS.library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
     bne.w    LibraryLoaded.Ok
-    lea    LibNameECS3(pc),a0        libs/AmosProfessionalUnityECS.library
+    lea    LibNameECS3(pc),a0         ; libs/AmosProfessionalUnityECS.library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
     bne.w    LibraryLoaded.Ok
-    lea    LibNameECS1(pc),a0        libs:AmosProfessionalUnityECS.library
+    lea    LibNameECS1(pc),a0         ; libs:AmosProfessionalUnityECS.library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
@@ -1632,30 +1632,32 @@ openAmosProfessionalECSLib:
 CheckForAgaOrSaga:
 ; ******** 2021.06.09 if AGA chipset is detected, we try to go further and detect if SAGA Vampire is available - START
 ; ******** 2022.10.12 Detect Vampire CPU 68080 first
-    move.w     AttnFlags(a6),d7
-    btst       #CPU_68080,d7          ; Is VAMPIRE CPU 68080 detected ?
+; ******** 2023.08.09 uses D0 instead of D6/D7 for detection - Start
+    move.w     AttnFlags(a6),d0
+    btst       #CPU_68080,d0          ; Is VAMPIRE CPU 68080 detected ?
     bne.w      openAmosProfessionalAGALib ; No -> Open AGA Only
 ; ******** 2022.10.12 Detect graphic chipset secondly.
 CheckVampVersion    Equ  ChipsetBase+VAMPIREVERSION    
     movea.l   #CheckVampVersion,a0
-    move.w    (a0),d7
-    lsr.w     #8,d7                   ; Bits 8-15 -> 0-7
-    and.w     #%10111000,d7           ; Bits Kraken(7), V4SA(5), V4_1200(4), V4_500(3)
+    move.w    (a0),d0
+    lsr.w     #8,d0                   ; Bits 8-15 -> 0-7
+    and.w     #%10111000,d0           ; Bits Kraken(7), V4SA(5), V4_1200(4), V4_500(3)
     beq.w     openAmosProfessionalAGALib ; No extra graphic chipset available-> Open AGA Only
+; ******** 2023.08.09 uses D0 instead of D6/D7 for detection - End
 ; ******** 2022.10.12 Open Saga version of the library
-    bra.s     openAmosProfessionalAGALib
+;    bra.s     openAmosProfessionalAGALib
     move.l    SP_DosBase(sp),a6
-    lea       LibNameSAGA2(pc),a0        APSystem/AmosProfessionalUnitySAGA.library
+    lea       LibNameSAGA2(pc),a0     ; APUSystem/AmosProfessionalUnitySAGA.library
     move.l    a0,d1
     jsr       _LVOLoadSeg(a6)
     tst.l     d0
     bne.s     LibraryLoaded.Ok
-    lea       LibNameSAGA3(pc),a0        libs/AmosProfessionalUnitySAGA.library
+    lea       LibNameSAGA3(pc),a0     ; libs/AmosProfessionalUnitySAGA.library
     move.l    a0,d1
     jsr       _LVOLoadSeg(a6)
     tst.l     d0
     bne.s     LibraryLoaded.Ok
-    lea       LibNameSAGA1(pc),a0        libs:AmosProfessionalUnitySAGA.library
+    lea       LibNameSAGA1(pc),a0     ; libs:AmosProfessionalUnitySAGA.library
     move.l    a0,d1
     jsr       _LVOLoadSeg(a6)
     tst.l     d0
@@ -1666,17 +1668,17 @@ CheckVampVersion    Equ  ChipsetBase+VAMPIREVERSION
 ; ******** 2021.06.09 if AGA chipset is detected, we try to go further and detect if SAGA Vampire is available - END
 openAmosProfessionalAGALib:
     move.l    SP_DosBase(sp),a6
-    lea    LibNameAGA2(pc),a0        APSystem/AmosProfessionalUnityAGA.Library
+    lea    LibNameAGA2(pc),a0         ; APUSystem/AmosProfessionalUnityAGA.Library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
     bne.s    LibraryLoaded.Ok
-    lea    LibNameAGA3(pc),a0        libs/AmosProfessionalUnityAGA.Library
+    lea    LibNameAGA3(pc),a0         ; libs/AmosProfessionalUnityAGA.Library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0
     bne.s    LibraryLoaded.Ok
-    lea    LibNameAGA1(pc),a0        libs:AmosProfessionalUnityAGA.Library
+    lea    LibNameAGA1(pc),a0         ; libs:AmosProfessionalUnityAGA.Library
     move.l    a0,d1
     jsr    _LVOLoadSeg(a6)
     tst.l    d0

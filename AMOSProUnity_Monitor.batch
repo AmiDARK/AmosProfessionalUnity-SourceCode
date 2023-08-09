@@ -1,3 +1,23 @@
-echo " "
-echo "******** Run Script to compile: Amos Professional Monitor"
-c/genam FROM src/AMOSProUnity_Monitor/AmosProUnity_Monitor.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Monitor
+; **************************************************************************
+SET sourceName src/AMOSProUnity_Monitor/AmosProUnity_Monitor.s
+SET compName AmosProfessionalUnity/APUSystem/AMOSProUnity_Monitor
+SET labelName AMOSProUnity_Monitor
+SET logsName logs/AMOSProUnity_Monitor.Lib.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF

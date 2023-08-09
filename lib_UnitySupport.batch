@@ -1,5 +1,26 @@
-echo "***Assembling AMOSPro_UnitySupport.Lib"
-c/Library_Digest src/APULib_UnitySupport/UnitySupport_lib.s
-c/Genam FROM src/APULib_UnitySupport/UnitySupport_lib.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Support.Lib
-delete >NIL: src/APULib_UnitySupport/UnitySupport_lib_Labels.s
-delete >NIL: src/APULib_UnitySupport/UnitySupport_lib_Size.s
+; **************************************************************************
+SET sourceName src/APULib_UnitySupport/UnitySupport_lib.s
+SET compName AmosProfessionalUnity/APUSystem/AMOSProUnity_Support.Lib
+SET labelName APUSystem/AMOSProUnity_Support.lib
+SET logsName logs/AMOSProUnity_Support.Lib.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/Library_Digest $sourceName
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  Delete >NIL: src/APULib_UnitySupport/UnitySupport_lib_Labels.s
+  Delete >NIL: src/APULib_UnitySupport/UnitySupport_lib_Size.s
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF

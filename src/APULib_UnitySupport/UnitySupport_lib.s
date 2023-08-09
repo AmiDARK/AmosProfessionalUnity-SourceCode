@@ -3058,7 +3058,7 @@ cleanScreen:
     Rbra        L_Err16               ; "Requested SAGA C2P Screen resolution is not available.",0  * Error #16 USED (Saga Screen Mode)
 .miniLoopGFXQuit:
     or.w        (a0),d3               ; d3 = (07-00) GFXMode Resolution + ScanMode (15-14)
-    lsl.w       #8,d3                 ; d4 = (15-08) GFXMode Resolution
+    lsl.w       #8,d3                 ; d3 = (15-08) GFXMode Resolution
     or.w        d5,d3                 ; d3 = GFXMODE Resolution(15-08) | Pixelformat(07-00)
     and.l       #$FFFF,d3             ; ensure higher 16 bits are suppressed to fix GFXMode content.
     Bset        #SagaC2PModeBit,d3    ; Use the SAGA Graphic C2P Screen Mode

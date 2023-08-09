@@ -1,13 +1,30 @@
-echo " "
-echo "******** Run Script to compile: Amos Professional Executable (AmosProUnity)"
 
-echo "> Check if internal_jumps.s file was previously generated"
+; **************************************************************************
 IF NOT EXISTS tmpCompil/internal_jumps.s
-execute AMOSProUnity_Lib.batch
+  execute AMOSProUnity_Lib.batch
 ENDIF
 
-echo "> Build AmosProUnity executable"
-c/Genam FROM src/AmosProUnity/AmosProUnity_Loaders.s TO AmosProfessionalUnity/AmosProfessionalUnity
-;delete >NIL: tmpCompil/internal_jumps.s
-List AmosProfessionalUnity/AmosProfessionalUnity
-
+; **************************************************************************
+SET sourceName src/AmosProUnity/AmosProUnity_Loaders.s
+SET compName AmosProfessionalUnity/AmosProfessionalUnity
+SET labelName AmosProfessionalUnity
+SET logsName logs/AmosProfessionalUnity.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  delete >NIL: tmpCompil/internal_jumps.s
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF

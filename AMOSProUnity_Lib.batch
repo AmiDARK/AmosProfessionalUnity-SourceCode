@@ -1,13 +1,29 @@
-echo "**************************************************"
-echo " "
-echo "Run Script to compile : APUSystem/AmosProUnity.Lib.lib"
-echo " "
-echo "Step 1/4 : Making Token Table Toktab_Verif.Bin"
-c/Make_Toktable
-echo "Step 2/4 : Making Label Files"
-c/Make_Labels
-echo "Step 3/4 : Assembling AmosProUnity.Lib"
-c/genam FROM src/AMOSProUnity_Lib/AmosProUnity_Lib.s TO AmosProfessionalUnity/APUSystem/AmosProUnity.Lib
-echo "Step 4/4 : Delete temporar files"
-echo "> APUSystem/AmosProUnity.Lib compiled successfully"
-echo " "
+; **************************************************************************
+SET sourceName src/AMOSProUnity_Lib/AmosProUnity_Lib.s
+SET compName AmosProfessionalUnity/APUSystem/AmosProUnity.Lib
+SET labelName AmosProUnity.Lib
+SET logsName logs/AmosProUnity.Lib.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/Make_Toktable >$logsName
+c/Make_Labels >$logsName
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  Delete tmpCompil/AmosProUnity_ILib_Functions.s
+  Delete tmpCompil/AmosProUnity_ILib_Size.s
+  Delete tmpCompil/AmosProUnity_Lib_Size.s
+  Delete tmpCompil/Toktab_Verif.Bin
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF

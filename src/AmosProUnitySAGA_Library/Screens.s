@@ -417,7 +417,7 @@ EcDup2:    move.w    d1,EcCon2(a0)
 *    D2= TX
 *    D3= TY
 *    D4= NB PLANS
-*    D5= MODES      Bit#20=True64ColorsAGA, Bit#19=HAM8 , Bit#15=HiRes, Bit#14=C2P, Bit#13=PIP, Bit#12=InterleavecBPL, Bit#
+*    D5= MODE
 *    d6= NB COULEURS 
 *    a1= PALETTE STANDARD or AGAP
 *******************************************

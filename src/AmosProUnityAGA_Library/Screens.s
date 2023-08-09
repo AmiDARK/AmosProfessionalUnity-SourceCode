@@ -444,7 +444,6 @@ EcCree:
 
 ;     Check for AGA specific screens :
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~
-
 ; *********************** 2019.11.30 Full AGA/ECS support here
     cmp.w      #1,T_isAga(a5)          ; 2019.11.30 Check for AGA computer.
     beq.s      ecAga1                  ; If aga no 4 bitplanes limitation -> Jump to ecAga1

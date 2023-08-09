@@ -1,3 +1,23 @@
-echo " "
-echo "******** Run Script to compile: Amos Professional Editor"
-c/Genam FROM src/AmosProUnity_Editor/AmosProUnity_Editor.s TO AmosProfessionalUnity/APUSystem/AMOSProUnity_Editor
+; **************************************************************************
+SET sourceName src/AmosProUnity_Editor/AmosProUnity_Editor.s
+SET compName AmosProfessionalUnity/APUSystem/AMOSProUnity_Editor
+SET labelName AMOSProUnity_Editor
+SET logsName logs/AMOSProUnity_Editor.Lib.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/genam FROM $sourceName TO $compName >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF

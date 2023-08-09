@@ -1,27 +1,87 @@
-echo " "
-echo "****************************************************** "
-echo "* Compile LIBS:AMOSProUnityECS.library :"
-c/genim2 src/AMOSProUnity_libraryECS.s -oAmosProfessionalUnity/APUSystem/AMOSProUnityECS.library -C
+; **************************************************************************
+SET sourceName src/AMOSProUnity_libraryECS.s
+SET compName AmosProfessionalUnity/APUSystem/AMOSProUnityECS.library
+SET labelName AMOSProUnityECS.library
+SET logsName logs/AMOSProUnityECS.library.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/genim2 FROM $sourceName -o$compName -C >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  Copy $compName LIBS:$labelName
+  Echo File '$labelName' copied to LIBS:
+  Copy $compName AmosProfessionalUnity/Libs/$labelName
+  Echo File '*labelName' copied to AmosProfessionalUnity/Libs/
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF
 
-echo "* Compilation DONE Successfully"
 
-echo "* ------> Installing AMOSProUnityECS.Library to LIBS:"
-Copy AmosProfessionalUnity/APUSystem/AMOSProUnityECS.library LIBS:AMOSProUnityECS.library
+; **************************************************************************
+SET sourceName src/AMOSProUnity_libraryAGA.s
+SET compName AmosProfessionalUnity/APUSystem/AMOSProUnityAGA.library
+SET labelName AMOSProUnityAGA.library
+SET logsName logs/AMOSProUnityAGA.library.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/genim2 FROM $sourceName -o$compName -C >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  Copy $compName LIBS:$labelName
+  Echo File '$labelName' copied to LIBS:
+  Copy $compName AmosProfessionalUnity/Libs/$labelName
+  Echo File '*labelName' copied to AmosProfessionalUnity/Libs/
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF
 
-echo "* ------> Copying AMOSProUnityECS.Library to AmosProUnity_System:LIBS/ For futures Setup"
-Copy AmosProfessionalUnity/APUSystem/AMOSProUnityECS.library AmosProfessionalUnity/Libs/AMOSProUnityECS.library
-
-
-echo "****************************************************** "
-echo "* Compile LIBS:AMOSProUnityAGA.library :"
-c/genim2 src/AMOSProUnity_libraryAGA.s -oAmosProfessionalUnity/APUSystem/AMOSProUnityAGA.library -C
-echo "* Compilation DONE Successfully"
-
-echo "* ------> Installing AMOSProUnityAGA.Library to LIBS:"
-Copy AmosProfessionalUnity/APUSystem/AMOSProUnityAGA.library LIBS:AMOSProUnityAGA.library
-
-echo "* ------> Copying AMOSProUnityAGA.Library to AmosProUnity_System:LIBS/ For futures Setup"
-Copy AmosProfessionalUnity/APUSystem/AMOSProUnityAGA.library AmosProfessionalUnity/Libs/AMOSProUnityAGA.library
+; **************************************************************************
+SET sourceName src/AMOSProUnity_librarySAGA.s
+SET compName AmosProfessionalUnity/APUSystem/AMOSProUnitySAGA.library
+SET labelName AMOSProUnitySAGA.library
+SET logsName logs/AMOSProUnitySAGA.library.logs
+Echo " "
+Echo "============> Build : $labelName"
+; Build : $labelName
+IF EXISTS $compName
+  Delete $compName >NIL:
+  Echo previous '$labelName' deleted
+ENDIF
+Echo Compile '$labelName'
+FAILAT 31
+c/genim2 FROM $sourceName -o$compName -C >$logsName
+SET temp1 $RC
+IF VAL $temp1 EQ 0
+  Echo Library '$labelName' compiled successfully
+  Delete $logsName >NIL:
+  Copy $compName LIBS:$labelName
+  Echo File '$labelName' copied to LIBS:
+  Copy $compName AmosProfessionalUnity/Libs/$labelName
+  Echo File '*labelName' copied to AmosProfessionalUnity/Libs/
+ELSE
+  Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
+  QUIT
+ENDIF
 
 
 
