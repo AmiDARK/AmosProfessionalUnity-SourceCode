@@ -1520,9 +1520,9 @@ CpInit:
     move.w     #-1,T_CopON(a5)
 ; ********************************************* Insert SPRITES inside the Copper List
     ; ******************************* 2021.03.27 Reinserted copper auto-adjustment
-    move.l     a0,T_SaveReg(a5)        ; Save Copper 1 Start Adress
     ; ******************************* 2021.03.27 Reinserted copper auto-adjustment
 HsCop:
+    move.l     a0,T_SaveReg(a5)        ; Save Copper 1 Start Adress
     move.l     #$1003FFFE,(a0)         ; Copper 1 : Wait to line raster line 16 (out of screen as screen start near line 50)
     move.l     (a0)+,(a1)+             ; Copper 2 : Copy Wait line from copper 1
 ; ******** 2021.03.30 Updated to handle sprite width 16, 32 and 64 - START
@@ -1646,11 +1646,12 @@ CpE2:    rts
 ***********************************************************
     IFEQ    EZFlag
 ******* COPPER ON/OFF
-TCopOn    tst.w    d1
+TCopOn:
+    tst.w    d1
     bne.s    ICpo1
 * Copper OFF -> Hide!
     tst.w    T_CopON(a5)
-    beq.s    ICpoX
+    beq      ICpoX
     clr.w    T_CopON(a5)
     bsr    EcForceCop            * RAZ des pointeurs
     clr.l    T_HsChange(a5)            * Plus de HS!
@@ -1659,7 +1660,8 @@ TCopOn    tst.w    d1
     bsr    WVbl
     bra    TCopSw
 * Copper ON -> Recalcule!
-ICpo1    tst.w    T_CopON(a5)
+ICpo1:
+    tst.w    T_CopON(a5)
     bne.s    ICpoX
     bsr    WVbl
     move.l    T_CopLogic(a5),a0        * Remet les listes sprites
@@ -1673,13 +1675,88 @@ ICpo1    tst.w    T_CopON(a5)
     bsr    TCpSw
     bsr    WVbl
     move.w    #-1,T_CopON(a5)        * Remet!
-    bsr    HsAff
+;    bsr    HsAff                ; 2023.08.17 Removed because it's refreshed by Set Sprite Width 16 addon below
     clr.w    T_MouShow(a5)
     bsr    EcForceCop        * Recalcule les listes
+
+; ******** 2023.08.17 Must force Set Sprite Width to 16 to ensure sprites are correctly refreshed - START
+    move.w    #-1,T_CopON(a5)        * Remet!
+    move.l     #aga16pixSprites,d3      ; 16 pixels wide sprites
+    move.w     #1,T_AgaSprWordsWidth(a5) ;
+    move.w     #2,T_AgaSprBytesWidth(a5)
+    move.l     #$00080000,T_SprAttach(a5)
+    bsr    SetSpriteWidthPix
+; ******** 2023.08.17 Must force Set Sprite Width to 16 to ensure sprites are correctly refreshed - END
+
     bsr    WVbl
-ICpoX    moveq    #0,d0
+ICpoX:
+; ******** 2023.08.17 Must force Set Sprite Width to 16 to ensure sprites are correctly refreshed - START
+; ******** 2023.08.17 Must force Set Sprite Width to 16 to ensure sprites are correctly refreshed - END
+    moveq    #0,d0
     rts
 
+; ******** 2023.08.17 Set Sprite Width sub routine - START
+SetSpriteWidthPix:
+.set:
+    ; ******** 5. Save the value in the register
+    move.w     d3,T_AgaSprWidth(a5)
+    ; ******** 6. We force Amos Professional to reset buffers.
+    move.w     T_HsNLine(a5),d1         ; Load the current lines max size
+    ext.l      d1
+    subq.l     #2,d1                    ; To get the original height, as because it automatically add +2 to the sent height.
+    move.w     #1,T_RefreshForce(a5)
+    SyCall     SBufHs                   ; Call the method to force sprites buffers refreshing (re-create them)
+    move.w     T_AgaSprWidth(a5),d0
+    move.l     T_CopLogic(a5),a0        ; A0 = Copper Logic
+    lsl.w      #2,d0                    ; D0 uses bits for Sprite Mode
+    move.l     T_CopPhysic(a5),a1       ; A1 = Copper Physic
+; ******** 2021.03.31 Update copper list FMODE set before Sprites SprXPTH/L list
+    move.w     d0,CopSprFMODE+2(a0)
+    move.w     d0,CopSprFMODE+2(a1)
+; ******** 2021.03.31 Update copper list FMODE set before Sprites SprXPTH/L list
+    bsr        UpdateFModes2
+    addq.w     #1,T_EcYAct(a5)         ; Forces Screen recalculation (in copper list)
+    bset       #BitEcrans,T_Actualise(a5) ; Force Screen refreshing
+    rts
+; ******** 2023.08.17 Set Sprite Width sub routine - END
+
+; ******** 2023.08.17 Update FMode 2 - START
+UpdateFModes2:
+    movem.l    d0-d3/a0-a2,-(sp)       ; Save registers
+    moveq      #10,d2                  ; D3 = Scren Number
+.loopScreen:
+    move.l     d2,d1
+    EcCall     AdrEc                   ; Return the adress of the screen
+    beq.s      .Next                   ; Screen does not exists -> .Next screen
+    move.l     d0,a0
+    move.w     EcNumber(a0),d0         ; Get Back Screen number in D0 for CopMark
+    lsl.w      #7,d0                   ; Multiply by 128 for Cop Mark Screen D0
+    lea        T_CopMark(a5),a1
+    add.w      d0,a1
+
+    move.w     T_AgaSprWidth(a5),d1
+    lsl.w      #2,d1
+    or.w       EcFMode(a0),d1          ; 2021.03.30 Read FMode datas
+.ml:
+    move.l     (a1)+,d0                ; D0 = Copper pointer to Color #00
+    beq.s      .Next                   ; No pointer -> .Next Screen
+    moveq      #16,d3
+    Add.l      #48*4,d0
+    move.l     d0,a2                   ; A0 = Copper pointer to Color #00
+.s1a:
+    cmp.w      #FMODE,(a2)
+    beq.s      .s1
+    add.l      #4,a2
+    dbra       d3,.s1a
+    bra.s      .ml
+.s1:
+    Move.w     d1,2(a2)                ; 2021.03.30 Push the whole datas
+    bra.s      .ml
+.Next:
+    dbra       d2,.loopScreen          ; Next Screen or ends.
+    movem.l    (sp)+,d0-d3/a0-a2       ; Load registers
+    Rts
+; ******** 2023.08.17 Update FMode 2 - END
     
 ******* COPSWAP
 TCopSw    tst.w    T_CopON(a5)
