@@ -1,0 +1,10 @@
+##base _Player61Base
+##bias 30
+##public
+P61_Play(a,b,c)(A0,D1,D0)
+P61_Stop()()
+P61_SetPos(a)(D0)
+P61_SetVol(a)(D0)
+P61_Inquire()()
+##end
+

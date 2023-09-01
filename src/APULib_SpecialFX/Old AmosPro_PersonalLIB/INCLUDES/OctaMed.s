@@ -1,0 +1,14 @@
+GetPlayer8=-30
+FreePlayer8=-36
+PlayModule8=-42
+ContModule8=-48
+StopPlayer8=-54
+LoadModule8=-60
+UnLoadModule8=-66
+SetModnum8=-72
+RelocModule8=-78
+SetHQ=-84
+RequiredPlayRoutine8=-90
+FastMemPlayRecommended8=-96
+LoadModule_Fast8=-$66
+SetFastMemPlay8=-$6c

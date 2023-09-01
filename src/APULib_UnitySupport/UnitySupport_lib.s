@@ -1082,8 +1082,8 @@ inputFormats:
     move.w     d1,T_rgb12High(a5)      ; Save RGB12 high bits
 ; ******** Calculate low bits of the RGB24 color palette
     move.l     T_rgbInput(a5),d1
-    moveq      #0,d0                   ; d0 = ........
     and.l      #$000F0F0F,d1           ; d1 = ...R.G.B
+    moveq      #0,d0                   ; d0 = ........
     move.b     d1,d0                   ; d0 = .......B
     lsr.l      #4,d1                   ; d1 = ....R.G.
     or.b       d1,d0                   ; d0 = ......GB

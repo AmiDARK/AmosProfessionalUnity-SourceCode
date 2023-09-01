@@ -1,8 +1,8 @@
 ; **************************************************************************
-SET sourceName src/APULib_SpecialFX/AMOSProUnity_SpecialFX.s
-SET compName AmosProfessionalUnity/APUSystem/AMOSProUnity_SpecialFX.Lib
-SET labelName APUSystem/AMOSProUnity_SpecialFX.lib
-SET logsName logs/AMOSProUnity_SpecialFX.Lib.logs
+SET sourceName src/APULib_SpecialFX/AMOSProUnity_Personal.s
+SET compName AmosProfessionalUnity/APUSystem/AMOSProUnity_Personal.Lib
+SET labelName APUSystem/AMOSProUnity_Personal.lib
+SET logsName logs/AMOSProUnity_Personal.Lib.logs
 Echo " "
 Echo "============> Build : $labelName"
 ; Build : $labelName
@@ -18,8 +18,8 @@ SET temp1 $RC
 IF VAL $temp1 EQ 0
   Echo Library '$labelName' compiled successfully
   Delete $logsName >NIL:
-  Delete >NIL: src/APULib_SpecialFX/AMOSProUnity_SpecialFX_Labels.s
-  Delete >NIL: src/APULib_SpecialFX/AMOSProUnity_SpecialFX_Size.s
+  Delete >NIL: src/APULib_SpecialFX/AMOSProUnity_Personal_Labels.s
+  Delete >NIL: src/APULib_SpecialFX/AMOSProUnity_Personal_Size.s
 ELSE
   Echo Library '$labelName' returned compilation error '$temp1', please check $logsName file for details.
   QUIT

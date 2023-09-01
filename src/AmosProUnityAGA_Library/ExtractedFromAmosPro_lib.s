@@ -3189,7 +3189,7 @@ PalUpdCont:
     moveq      #31,d4                  ; 32 colors to update (32-1)
 * Boucle de pokage
 EcSP1b:
-    move.w     EcPalL-EcPal(a1),d6     ; 2020.08.25 added : D6 = 2nd RGB12 color datas
+    move.w     514(a1),d6     ; 2020.08.25 added : D6 = 2nd RGB12 color datas
     move.w     (a1)+,d1                ; D1 = 1st RGB12 color datas
     bmi.s      EcSP3b
     and.w      #$FFF,d6                ; 2020.08.25 added : D6 filtered to RGB12 R4G4B4
@@ -3223,25 +3223,28 @@ EcSP3b:
     And.l      #$FFF,d5
 ; ********************** 2020.08.14 Update to Handle Update of up to 256 RGB24 colors in the copper list - START
 ; ********************** 2019.11.17 Update to also update the AGA color palette registers from 32-255 - START
+    move.l     a0,a4                   ; 2023.09.01 Fix load IFf color palette
     Move.l     T_AgaColor1(a5),a0      ; A0 = Pointer to the beginning of the current physical copper list.
     add.l      #6,a0                   ; 2020.08.13 Add #2 to point to content of 1st color register ( 0.l CopWait, 4.l SetColorGroup, 8.w 1st color Register, 10.w 1st color data)
     Move.l     T_AgaColor2(a5),a2      ; A2 = Pointer to the beginning of the current logic copper list
     add.l      #6,a2                   ; 2020.08.13 Add #2 to point to content of 1st color register ( 0.l CopWait, 4.l SetColorGroup, 8.w 1st color Register, 10.w 1st color data)
     lea        T_globAgaPal(a5),a3     ; A3 = Storage for AGA colors from 32 to 255 ( 224 registers )
-    move.l     T_CurScreen(a5),a4      ; A4 = Current Screen Structure pointer
-    Lea        EcScreenAGAPal(a4),a4
+;    move.l     T_CurScreen(a5),a4     ; A4 = Current Screen Structure pointer ; 2023.09.01 Fix load IFf color palette
+;    Lea        EcScreenAGAPal(a4),a4  ; 2023.09.01 Fix load IFf color palette
     Move.l     d5,d0                   ; D0 = Start at index 223 (-1 = end of copy)
     Clr.l      d1                      ; D1 = Register to check all 32 colors blocks
     bsr        uclAGA1                 ; Call method to update Copper List
+; 2023.08.29 Fixed color palette delta between color data and displayed ones.
     add.l      #2,a1                   ; Separator between 2 set of RGB12 color components.
+    add.l      #2,a4                   ; 2023.09.01 Fix load IFf color palette
 ; ************************************************************* 2020.08.13 Store Low bits in copper list
     Move.l     T_AgaColor1L(a5),a0     ; A0 = Pointer to the beginning of the current physical copper list.
     add.l      #6,a0                   ; 2020.08.13 Add #2 to point to content of 1st color register
     Move.l     T_AgaColor2L(a5),a2     ; A2 = Pointer to the beginning of the current logic copper list
     add.l      #6,a2                   ; 2020.08.13 Add #2 to point to content of 1st color register
     lea        T_globAgaPalL(a5),a3    ; A3 = Storage for AGA colors from 32 to 255 ( 224 registers )
-    move.l     T_CurScreen(a5),a4      ; A4 = Current Screen Structure pointer
-    Lea        EcScreenAGAPalL(a4),a4
+;    move.l     T_CurScreen(a5),a4     ; A4 = Current Screen Structure pointer ; 2023.09.01 Fix load IFf color palette
+;    Lea        EcScreenAGAPalL(a4),a4 ; 2023.09.01 Fix load IFf color palette
     move.l     d5,d0                   ; D0 = Start at index 223 (-1 = end of copy)
     Clr.l      d1                      ; D1 = Register to check all 32 colors blocks
     bsr        uclAGA1                 ; Call method to update copper list

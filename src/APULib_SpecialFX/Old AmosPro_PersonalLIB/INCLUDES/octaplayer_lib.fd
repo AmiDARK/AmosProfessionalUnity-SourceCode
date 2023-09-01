@@ -1,0 +1,20 @@
+* prototypes for OctaMEDPlayer.library V7
+##base _OctaPlayerBase
+##bias 30
+##public
+GetPlayer8()()
+FreePlayer8()()
+PlayModule8(module)(A0)
+ContModule8(module)(A0)
+StopPlayer8()()
+LoadModule8(filename)(A0)
+UnLoadModule8(module)(A0)
+SetModnum8(modnum)(D0)
+RelocModule8(module)(A0)
+SetHQ(hq)(D0)
+* functions below in V7.00 or later
+RequiredPlayRoutine8(module)(A0)
+FastMemPlayRecommended8(module)(A0)
+LoadModule_Fast8(module)(A0)
+SetFastMemPlay8(newstate,buffsize)(D0/D1)
+##end
