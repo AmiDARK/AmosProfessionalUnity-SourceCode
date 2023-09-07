@@ -301,6 +301,13 @@ C_Tk:
     dc.w    L_Nul,L_getRainbowFXColorValue
     dc.b    "get rainbow fx color lin","e"+$80,"00,0",-1        ; Rgb24ColorValue/-1= ( BankID,YLine)
 
+    dc.w    L_Nul,L_RGB24TORGB12H
+    dc.b    "get rgb12h from rgb2","4"+$80,"00",-1
+    dc.w    L_Nul,L_RGB24TORGB12L
+    dc.b    "get rgb12l from rgb2","4"+$80,"00",-1
+    dc.w    L_Nul,L_RGB12HLTORGB24
+    dc.b    "get rgb24 from rgb12h","l"+$80,"00,0",-1
+
     dc.w    L_Nul,L_GetSagaC2PScreenMode
     dc.b    "!get saga c2p screen mod","e"+$80,"00,0,0",-2         ; GFXMODE = get saga c2p screen mode( Width, Height, Depth )
     dc.w    L_Nul,L_GetSagaC2PScreenModeEx
@@ -981,14 +988,14 @@ CusEcLong      equ __RS          ; Length of a screen
 ; *************************************************************
   Lib_Def      SeparateRGBComponents
 ; ************************************ Separate RGB12, RGB15 and RGB24 color data into 2 RGB12 outputs.
-    movem.l    d0-d1/a0,-(sp)
+    movem.l    d0-d3/a0,-(sp)
     move.b     T_rgbInput(a5),d0
     and.l      #%11,d0                 ; d1 = in Interval {0-3} (Ignore high bits as there are only 3 formats supported)
     lsl.l      #2,d0                   ; D0 * 4 (for pointer list)
     lea        inputFormats(pc),a0
     adda.l     d0,a0                   ; a0 = Pointer to the method to callable
     jsr        (a0)                    ; Call the input method
-    movem.l    (sp)+,d0-d1/a0
+    movem.l    (sp)+,d0-d3/a0
     rts
 ; ************************************ RGB Input format supported
 inputFormats:
@@ -1021,6 +1028,36 @@ inputFormats:
     move.l     T_rgbInput(a5),d0       ; Load the RGB input data
     move.w     d0,T_rgb12High(a5)      ; On RGB12 input, Low and High bits are the same
     move.w     d0,T_rgb12Low(a5)       ; On RGB12 input, Low and High bits are the same
+    rts
+
+  Lib_Def      InputIsRGB12HL
+    movem.l    d0-d3,-(sp)
+    move.w     T_rgb12High(a5),d0      ; d0 = .....RGB
+    and.l      #$FFFF,d0
+    move.l     d0,d1                   ; d1 = .....RGB
+    and.l      #$F00,d1                ; d1 = .....R..
+    lsl.l      #8,d1                   ; d1 = ...R....
+    move.L     d0,d2                   ; d2 = .....RGB
+    and.l      #$0F0,d2                ; d2 = ......G.
+    lsl.l      #4,d2                   ; d2 = .....G..
+    and.l      #$F,d0                  ; d0 = .......B
+    or.l       d1,d0                   ; d0 = ...R...B
+    or.l       d2,d0                   ; d0 = ...R.G.B
+    lsl.l      #4,d0                   ; d0 = ..R.G.B.
+    move.w     T_rgb12Low(a5),d3
+    and.l      #$FFFF,d3
+    move.l     d3,d1                   ; d1 = .....RGB
+    and.l      #$F00,d1                ; d1 = .....R..
+    lsl.l      #8,d1                   ; d1 = ...R....
+    move.L     d3,d2                   ; d2 = .....RGB
+    and.l      #$0F0,d2                ; d2 = ......G.
+    lsl.l      #4,d2                   ; d2 = .....G..
+    and.l      #$F,d3                  ; d3 = .......B
+    or.l       d3,d1                   ; d1 = ...R...B
+    or.l       d2,d1                   ; d1 = ...R.G.B
+    or.l       d1,d0                   ; d0 = ..RRGGBB
+    move.l     d0,T_rgbOutput(a5)
+    movem.l    (sp)+,d0-d3
     rts
 
 ;
@@ -1070,20 +1107,20 @@ inputFormats:
   Lib_Def      InputIsRGB24
 ; ******** Calculate high bits of the RGB24 color palette
     move.l     T_rgbInput(a5),d1
-    and.l      #$00F0F0F0,d1           ; d2 = ..R.G.B.
-    moveq      #0,d0                   ; d0 = ........
-    lsr.l      #4,d1                   ; d2 = ...R.G.B
+    and.l      #$00F0F0F0,d1           ; d1 = ..R.G.B.
+    clr.l      d0                      ; d0 = ........
+    lsr.l      #4,d1                   ; d1 = ...R.G.B
     move.b     d1,d0                   ; d0 = .......B
-    lsr.l      #4,d1                   ; d2 = ....R.G.
+    lsr.l      #4,d1                   ; d1 = ....R.G.
     or.b       d1,d0                   ; d0 = ......GB
-    lsr.l      #4,d1                   ; d2 = .....R.G
-    and.l      #$F00,d1                ; d2 = .....R..
-    or.w       d0,d1                   ; d2 = .....RGB
+    lsr.l      #4,d1                   ; d1 = .....R.G
+    and.l      #$F00,d1                ; d1 = .....R..
+    or.l       d0,d1                   ; d1 = .....RGB
     move.w     d1,T_rgb12High(a5)      ; Save RGB12 high bits
 ; ******** Calculate low bits of the RGB24 color palette
     move.l     T_rgbInput(a5),d1
     and.l      #$000F0F0F,d1           ; d1 = ...R.G.B
-    moveq      #0,d0                   ; d0 = ........
+    clr.l      d0                      ; d0 = ........
     move.b     d1,d0                   ; d0 = .......B
     lsr.l      #4,d1                   ; d1 = ....R.G.
     or.b       d1,d0                   ; d0 = ......GB
@@ -1147,7 +1184,8 @@ outputFormats:
 ; *************************************************************
   Lib_Def      OutputIsRGB12
 ; ************************************ Read RGB12 High & Low bits and output them in RGB15 output format
-    move.l     T_rgb12High(a5),T_rgbOutput(a5)
+    clr.w      T_rgbOutput(a5)
+    move.w     T_rgb12High(a5),2+T_rgbOutput(a5)
     rts
 
 ;
@@ -2989,6 +3027,37 @@ cleanScreen:
 ;                                                                                                 ***
 ;                                                                                              ***
 ;                                                                                           ************************
+
+  Lib_Par     RGB24TORGB12H
+    Move.l    d3,T_rgbInput(a5)
+    Rbsr      L_InputIsRGB24
+    clr.l     d3
+    Move.w    T_rgb12High(a5),d3
+    Ret_Int
+
+  Lib_Par     RGB24TORGB12L
+    Move.l    d3,T_rgbInput(a5)
+    Rbsr      L_InputIsRGB24
+    clr.l     d3
+    Move.w    T_rgb12Low(a5),d3
+    Ret_Int
+
+  Lib_Par     RGB12HLTORGB24
+    move.l    (a3)+,d0
+    move.w    d3,T_rgb12Low(a5)
+    move.w    d0,T_rgb12High(a5)
+    Rbsr      L_OutputIsRGB24
+    move.l    T_rgbOutput(a5),d3
+    Ret_Int
+
+
+
+
+
+
+
+
+
 
 
 ;

@@ -99,6 +99,11 @@ Bits#08-12      : Graphic Resolution Mode    | SAGA | ECS  | AGA
                     $0B = 640x360            |  Y      X      X
                     ... = ...                |  Future Saga Graphics Resolutions
 
+- Added internal Unity Support method InputIsRGB12HL
+- Added command "get rgb12h from rgb24"
+- Added command "get rgb12l from rgb24"
+- Added command "get rgb24 from rgb12hl"
+
 ; ************************************************************************
 ; 2023.09.01
 - Fix Load IFF Color palette issue

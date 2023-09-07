@@ -48,8 +48,8 @@ getRGB12Datas  MACRO
     movem.l    a0,-(sp)                ; Save A0
     ColSupCallR CSSeparateRGBComponents,a0 ; Call method
     movem.l    (sp)+,a0                ; Load A0
-    moveq      #0,\2
-    moveq      #0,\3
+    clr.l      \2
+    clr.l      \3
     move.w     T_rgb12High(a5),\2      ; Load RGB12 High bits into parameter 2
     move.w     T_rgb12Low(a5),\3       ; Load RGB12 Low bits into parameter 3
     ENDM
