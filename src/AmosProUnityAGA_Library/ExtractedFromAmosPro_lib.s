@@ -3237,8 +3237,8 @@ EcSP3b:
 ;    Clr.l      d1                      ; D1 = Register to check all 32 colors blocks
     bsr        uclAGA1                 ; Call method to update Copper List
 ; 2023.08.29 Fixed color palette delta between color data and displayed ones.
-    add.l      #2,a1                   ; Separator between 2 set of RGB12 color components.
-    add.l      #64,a1                  ; 2023.09.07
+;    add.l      #2,a1                   ; Separator between 2 set of RGB12 color components.
+    add.l      #64+2,a1                  ; 2023.09.07
     add.l      #2,a4                   ; 2023.09.01 Fix load IFF color palette
 ; ************************************************************* 2020.08.13 Store Low bits in copper list
     Move.l     T_AgaColor1L(a5),a0     ; A0 = Pointer to the beginning of the current physical copper list.
