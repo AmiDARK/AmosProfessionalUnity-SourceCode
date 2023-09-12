@@ -308,6 +308,9 @@ C_Tk:
     dc.w    L_Nul,L_RGB12HLTORGB24
     dc.b    "get rgb24 from rgb12h","l"+$80,"00,0",-1
 
+    dc.w    L_Nul,L_GetScreenBitmap
+    dc.b    "get screen bitma","p"+$80,"0",-1
+
     dc.w    L_Nul,L_GetSagaC2PScreenMode
     dc.b    "!get saga c2p screen mod","e"+$80,"00,0,0",-2         ; GFXMODE = get saga c2p screen mode( Width, Height, Depth )
     dc.w    L_Nul,L_GetSagaC2PScreenModeEx
@@ -3052,6 +3055,13 @@ cleanScreen:
 
 
 
+  Lib_Par     GetScreenBitmap
+    move.l    ScOnAd(a5),a0
+    move.l    a0,d0
+    Rbeq      L_Err29
+    move.l    Ec_BitMap(a0),d3
+    Ret_Int
+    rts
 
 
 
@@ -3916,6 +3926,11 @@ ErDisk:
     moveq   #28,d0
     Rbra    L_Errors
 
+  Lib_Def Err29           ; Screen is not opened
+    moveq   #29,d0
+    Rbra    L_Errors
+
+
     Lib_Def Errors
     lea     ErrMess(pc),a0
     moveq   #0,d1        * Can be trapped
@@ -3963,6 +3978,8 @@ ErrMess:
     dc.b    "Invalid Custom Screen Pixel format.",0                                                * Error #26 USED (Custom Screens)
     dc.b    "Custom screen already exists",0                                                       * Error #27 USED (Custom Screens)
     dc.b    "Custom screen does not exists",0                                                      * Error #28 USED (Custom Screens)
+
+    dc.b    "Screen is not opened",0                                                               * Error #29 USED
 
 ; *******
 

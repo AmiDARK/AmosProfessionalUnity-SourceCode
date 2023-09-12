@@ -99,6 +99,11 @@ Bits#08-12      : Graphic Resolution Mode    | SAGA | ECS  | AGA
                     $0B = 640x360            |  Y      X      X
                     ... = ...                |  Future Saga Graphics Resolutions
 
+
+; ************************************************************************
+; 2023.09.12
+- Added command "=get screen bitmap()"
+
 ; ************************************************************************
 ; 2023.09.07
 - Added internal Unity Support method InputIsRGB12HL
